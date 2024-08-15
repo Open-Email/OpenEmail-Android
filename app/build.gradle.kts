@@ -67,13 +67,11 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-
     // Optional - Integration with activities
     implementation(libs.androidx.activity.compose)
     // Optional - Integration with ViewModels
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    // Optional - Integration with LiveData
-    implementation(libs.androidx.runtime.livedata)
-    // Optional - Integration with RxJava
-    implementation(libs.androidx.runtime.rxjava2)
+
+    implementation(libs.coil.compose)
+
 }
