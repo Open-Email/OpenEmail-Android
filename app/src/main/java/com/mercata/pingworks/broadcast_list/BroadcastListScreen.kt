@@ -1,5 +1,13 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+
 package com.mercata.pingworks.broadcast_list
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -52,15 +60,14 @@ import com.mercata.pingworks.BODY_TEXT_SIZE
 import com.mercata.pingworks.HEADER_TEXT_SIZE
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_HEIGHT
-import com.mercata.pingworks.message_details.MessageDetailsScreen
 import com.mercata.pingworks.models.BroadcastMessage
 import com.mercata.pingworks.models.Message
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BroadcastListScreen(
+fun SharedTransitionScope.BroadcastListScreen(
     navController: NavController,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     broadcastViewModel: BroadcastListViewModel = viewModel(),
 ) {
 
@@ -138,9 +145,15 @@ fun BroadcastListScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(state.messages) { item ->
-                    MessageViewHolder(item = item, onMessageClicked = {
-                        navController.navigate(
-                        "MessageDetailsScreen")})
+                    MessageViewHolder(
+                        item = item,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        onMessageClicked = { message ->
+                            navController.navigate(
+                                "MessageDetailsScreen/${message.id}"
+                            )
+                        })
+
                 }
             }
         }
@@ -149,16 +162,24 @@ fun BroadcastListScreen(
 }
 
 @Composable
-fun MessageViewHolder(
+fun SharedTransitionScope.MessageViewHolder(
     item: BroadcastMessage,
     modifier: Modifier = Modifier,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     onMessageClicked: (message: Message) -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .fillMaxWidth()
+            .sharedBounds(
+                sharedContentState = rememberSharedContentState(
+                    key = "bounds/${item.id}"
+                ),
+                animatedVisibilityScope = animatedVisibilityScope,
+            )
+            .background(color = MaterialTheme.colorScheme.surface)
             .height(MESSAGE_LIST_ITEM_HEIGHT)
+            .fillMaxWidth()
             .padding(horizontal = MARGIN_DEFAULT)
             .clickable {
                 onMessageClicked(item)
@@ -167,8 +188,8 @@ fun MessageViewHolder(
         AsyncImage(
             contentScale = ContentScale.Crop,
             modifier = modifier
-                .clip(RoundedCornerShape(16.0.dp))
-                .size(width = 72.0.dp, height = 72.0.dp),
+                .size(width = 72.0.dp, height = 72.0.dp)
+                .clip(RoundedCornerShape(16.0.dp)),
             model = item.person.imageUrl,
             contentDescription = null
         )

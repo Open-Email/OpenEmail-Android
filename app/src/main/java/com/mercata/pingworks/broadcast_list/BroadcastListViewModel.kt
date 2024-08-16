@@ -13,6 +13,7 @@ class BroadcastListViewModel :
         for (i in 0..20) {
             currentState.messages.add(
                 BroadcastMessage(
+                    id = i.toString(),
                     subject = "Some message subject might be longer then expected so here we are",
                     person = Person(
                         name = "Joanno Dopelhetz",

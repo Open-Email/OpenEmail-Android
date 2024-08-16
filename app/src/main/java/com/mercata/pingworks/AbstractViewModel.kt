@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 abstract class AbstractViewModel<T>(initialState: T) : ViewModel() {
 
-    protected var currentState = initialState
+    protected var currentState: T = initialState
 
     private val _state = MutableStateFlow(currentState)
     val state: StateFlow<T> = _state.asStateFlow()

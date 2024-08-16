@@ -1,6 +1,11 @@
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+
 package com.mercata.pingworks.message_details
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -34,7 +39,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,10 +52,10 @@ import com.mercata.pingworks.HEADER_TEXT_SIZE
 import com.mercata.pingworks.MARGIN_DEFAULT
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MessageDetailsScreen(
+fun SharedTransitionScope.MessageDetailsScreen(
     navController: NavController,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     messageDetailsViewModel: MessageDetailsViewModel = viewModel()
 ) {
 
@@ -59,6 +63,13 @@ fun MessageDetailsScreen(
     val scrollState = rememberScrollState()
 
     Scaffold(
+        modifier = Modifier
+            .sharedBounds(
+                rememberSharedContentState(
+                    key = "bounds/${state.message?.id}"
+                ),
+                animatedVisibilityScope,
+            ),
         topBar = {
             TopAppBar(
                 modifier = Modifier.shadow(elevation = if (scrollState.value == 0) 0.dp else 16.dp),
@@ -72,8 +83,7 @@ fun MessageDetailsScreen(
                         exit = fadeOut() + slideOutVertically { 100.dp.value.roundToInt() }
                     ) {
                         Text(
-                            state.message.subject,
-                            //state.message.subject,
+                            state.message?.subject ?: "",
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             fontSize = HEADER_TEXT_SIZE
@@ -108,33 +118,42 @@ fun MessageDetailsScreen(
                 .padding(padding)
                 .padding(MARGIN_DEFAULT)
         ) {
-            Text(text = state.message.subject, fontSize = HEADER_LARGE_TEXT_SIZE)
+            Text(
+                text = state.message?.subject ?: "",
+                fontSize = HEADER_LARGE_TEXT_SIZE,
+                fontWeight = FontWeight.Bold
+            )
             Spacer(modifier = Modifier.height(MARGIN_DEFAULT))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-            ) {
-                AsyncImage(
-                    contentScale = ContentScale.Crop,
+
+            state.message?.person?.run {
+                Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(16.0.dp))
-                        .size(width = 72.0.dp, height = 72.0.dp),
-                    model = state.message.person.imageUrl,
-                    contentDescription = null
-                )
-                Spacer(modifier = Modifier.width(MARGIN_DEFAULT))
-                Text(
-                    text = state.message.person.name,
-                    maxLines = 2,
-                    fontSize = HEADER_TEXT_SIZE,
-                    fontWeight = FontWeight.Bold,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.weight(1f))
-                Text(state.message.date.format(DEFAULT_DATE_FORMAT))
+                        .fillMaxWidth()
+                ) {
+                    AsyncImage(
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(width = 72.0.dp, height = 72.0.dp)
+                            .clip(RoundedCornerShape(16.0.dp)),
+                        model = state.message!!.person!!.imageUrl,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(MARGIN_DEFAULT))
+                    Text(
+                        text = state.message!!.person!!.name,
+                        maxLines = 2,
+                        fontSize = HEADER_TEXT_SIZE,
+                        fontWeight = FontWeight.Bold,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(state.message?.date?.format(DEFAULT_DATE_FORMAT) ?: "")
+                }
             }
             Spacer(modifier = Modifier.height(MARGIN_DEFAULT))
-            Text(text = state.message.body)
+            Text(
+                text = state.message?.body ?: "",
+            )
         }
     }
 }
