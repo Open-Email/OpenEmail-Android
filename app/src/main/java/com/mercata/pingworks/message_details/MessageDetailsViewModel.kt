@@ -8,16 +8,15 @@ import com.mercata.pingworks.models.Person
 import java.time.LocalDateTime
 
 class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) : AbstractViewModel<MessageDetailsState>(
-    MessageDetailsState(message = null)
+    MessageDetailsState(message = null, messageId = savedStateHandle.get<String>("messageId")!!)
 ) {
 
     init {
-        val messageId = savedStateHandle.get<String>("messageId")!!
         //TODO DB request for message by id
         updateState(
             currentState.copy(
                 message = BroadcastMessage(
-                    id = messageId,
+                    id = currentState.messageId,
                     subject = "Some message subject might be longer then expected so here we are",
                     person = Person(
                         name = "Joanno Dopelhetz",
@@ -35,4 +34,4 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) : AbstractView
     }
 }
 
-data class MessageDetailsState(val message: Message?)
+data class MessageDetailsState(val message: Message?, val messageId: String)

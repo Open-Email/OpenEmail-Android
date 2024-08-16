@@ -5,8 +5,6 @@ package com.mercata.pingworks.broadcast_list
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -188,6 +186,12 @@ fun SharedTransitionScope.MessageViewHolder(
         AsyncImage(
             contentScale = ContentScale.Crop,
             modifier = modifier
+                .sharedBounds(
+                    sharedContentState = rememberSharedContentState(
+                        key = "image/${item.id}"
+                    ),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                )
                 .size(width = 72.0.dp, height = 72.0.dp)
                 .clip(RoundedCornerShape(16.0.dp)),
             model = item.person.imageUrl,

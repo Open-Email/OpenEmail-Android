@@ -66,7 +66,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
         modifier = Modifier
             .sharedBounds(
                 rememberSharedContentState(
-                    key = "bounds/${state.message?.id}"
+                    key = "bounds/${state.messageId}"
                 ),
                 animatedVisibilityScope,
             ),
@@ -133,6 +133,12 @@ fun SharedTransitionScope.MessageDetailsScreen(
                     AsyncImage(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
+                            .sharedBounds(
+                                sharedContentState = rememberSharedContentState(
+                                    key = "image/${state.messageId}"
+                                ),
+                                animatedVisibilityScope = animatedVisibilityScope,
+                            )
                             .size(width = 72.0.dp, height = 72.0.dp)
                             .clip(RoundedCornerShape(16.0.dp)),
                         model = state.message!!.person!!.imageUrl,
