@@ -1,16 +1,18 @@
 package com.mercata.pingworks.broadcast_list
 
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.models.BroadcastMessage
 import com.mercata.pingworks.models.Person
 import java.time.LocalDateTime
 
 class BroadcastListViewModel :
-    AbstractViewModel<BroadcastListState>(BroadcastListState(messages = mutableListOf())) {
+    AbstractViewModel<BroadcastListState>(BroadcastListState(messages = mutableStateListOf())) {
 
     init {
         //TODO remove test data
-        for (i in 0..20) {
+        for (i in 0..50) {
             currentState.messages.add(
                 BroadcastMessage(
                     id = i.toString(),
@@ -31,6 +33,11 @@ class BroadcastListViewModel :
 
         updateState(currentState)
     }
+
+    fun removeItem(item: BroadcastMessage) {
+        currentState.messages.remove(item)
+        updateState(currentState)
+    }
 }
 
-data class BroadcastListState(val messages: MutableList<BroadcastMessage>)
+data class BroadcastListState(val messages: SnapshotStateList<BroadcastMessage>)
