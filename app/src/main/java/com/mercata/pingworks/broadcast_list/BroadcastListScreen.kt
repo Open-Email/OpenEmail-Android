@@ -52,7 +52,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -70,8 +69,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.mercata.pingworks.BODY_TEXT_SIZE
-import com.mercata.pingworks.HEADER_TEXT_SIZE
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.models.BroadcastMessage
@@ -229,13 +226,13 @@ fun SharedTransitionScope.MessageViewHolder(
                 text = item.id + item.subject,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
-                fontSize = HEADER_TEXT_SIZE,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = item.body,
                 maxLines = 2,
-                fontSize = BODY_TEXT_SIZE,
+                style = MaterialTheme.typography.bodyMedium,
                 overflow = TextOverflow.Ellipsis,
             )
         }

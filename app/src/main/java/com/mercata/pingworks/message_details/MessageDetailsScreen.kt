@@ -47,8 +47,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.mercata.pingworks.DEFAULT_DATE_FORMAT
-import com.mercata.pingworks.HEADER_LARGE_TEXT_SIZE
-import com.mercata.pingworks.HEADER_TEXT_SIZE
 import com.mercata.pingworks.MARGIN_DEFAULT
 import kotlin.math.roundToInt
 
@@ -86,7 +84,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                             state.message?.subject ?: "",
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
-                            fontSize = HEADER_TEXT_SIZE
+                            style = MaterialTheme.typography.labelMedium
                         )
                     }
                 },
@@ -120,7 +118,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
         ) {
             Text(
                 text = state.message?.subject ?: "",
-                fontSize = HEADER_LARGE_TEXT_SIZE,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(MARGIN_DEFAULT))
@@ -148,7 +146,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                     Text(
                         text = state.message!!.person!!.name,
                         maxLines = 2,
-                        fontSize = HEADER_TEXT_SIZE,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         overflow = TextOverflow.Ellipsis
                     )

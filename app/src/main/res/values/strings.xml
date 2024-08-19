@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">ping.works</string>
+    <string name="onboarding_title">Email of the future, today.</string>
+    <string name="onboarding_text">Spam-free, phishing-free, private &amp; secure by design.</string>
+    <string name="address_input_hint">%s address</string>
+    <string name="sign_in_button">Sign In</string>
+    <string name="no_account_question">Don\'t have an %s address yet?</string>
+    <string name="registration_button">Get one for free instantly</string>
 </resources>
