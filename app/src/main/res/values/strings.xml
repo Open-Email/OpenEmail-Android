@@ -6,4 +6,5 @@
     <string name="sign_in_button">Sign In</string>
     <string name="no_account_question">Don\'t have an %s address yet?</string>
     <string name="registration_button">Get one for free instantly</string>
+    <string name="invalid_email">Invalid address. Please, check input and try again.</string>
 </resources>

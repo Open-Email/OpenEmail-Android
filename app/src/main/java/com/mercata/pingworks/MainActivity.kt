@@ -8,10 +8,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,12 +25,16 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContent {
             AppTheme {
-                /*SharedTransitionLayout {
+                SharedTransitionLayout {
                     val navController = rememberNavController()
                     NavHost(
                         navController = navController,
-                        startDestination = "BroadcastListState"
+                        startDestination = "SignInScreen"
                     ) {
+                        composable(route = "SignInScreen") {
+                            SignInScreen(navController = navController)
+                        }
+
                         composable(route = "BroadcastListState") {
                             BroadcastListScreen(
                                 navController,
@@ -56,8 +56,8 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                     }
-                }*/
-                SignInScreen()
+                }
+
             }
         }
     }

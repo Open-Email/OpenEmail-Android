@@ -22,6 +22,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
@@ -31,17 +33,21 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.theme.bodyFontFamily
 import com.mercata.pingworks.theme.displayFontFamily
 
-@Preview
 @Composable
-fun SignInScreen(modifier: Modifier = Modifier) {
+fun SignInScreen(
+    navController: NavController,
+    modifier: Modifier = Modifier, viewModel: SignInViewModel = viewModel()
+) {
 
+    val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
 
     Scaffold { padding ->
@@ -55,7 +61,7 @@ fun SignInScreen(modifier: Modifier = Modifier) {
                 .verticalScroll(rememberScrollState())
 
         ) {
-            Spacer(modifier = modifier.weight(1f))
+            Spacer(modifier = modifier.weight(0.3f))
             Icon(
                 Icons.Default.Email,
                 tint = MaterialTheme.colorScheme.primary,
@@ -83,20 +89,20 @@ fun SignInScreen(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = modifier.weight(0.3f))
             OutlinedTextField(
-
-                value = "",
-                onValueChange = { str -> },
+                value = state.emailInput,
+                onValueChange = { str -> viewModel.onEmailChange(str) },
                 singleLine = true,
-
+                isError = !state.emailValid,
+                enabled = !state.loading,
                 modifier = modifier.fillMaxWidth(),
-                /*placeholder = {
-                    Text(
-                        text = String.format(
-                            stringResource(id = R.string.address_input_hint),
-                            stringResource(id = R.string.app_name)
+                supportingText = {
+                    if (!state.emailValid) {
+                        Text(
+                            text = stringResource(id = R.string.invalid_email),
+                            color = MaterialTheme.colorScheme.error
                         )
-                    )
-                },*/
+                    }
+                },
                 label = {
                     Text(
                         text = String.format(
@@ -116,8 +122,14 @@ fun SignInScreen(modifier: Modifier = Modifier) {
                 ),
             )
             Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-            Button(onClick = { /*TODO*/ }, enabled = false) {
-                Text(stringResource(id = R.string.sign_in_button), fontFamily = bodyFontFamily)
+            Button(
+                onClick = { viewModel.signIn() },
+                enabled = !state.loading && state.signInButtonActive
+            ) {
+                Text(
+                    stringResource(id = R.string.sign_in_button),
+                    fontFamily = bodyFontFamily
+                )
             }
             Spacer(modifier = modifier.weight(1f))
             Text(
@@ -128,7 +140,7 @@ fun SignInScreen(modifier: Modifier = Modifier) {
                 textAlign = TextAlign.Center,
                 fontFamily = bodyFontFamily,
             )
-            TextButton(onClick = { /*TODO*/ }) {
+            TextButton(onClick = { /*TODO*/ }, enabled = !state.loading) {
                 Text(stringResource(id = R.string.registration_button), fontFamily = bodyFontFamily)
             }
         }

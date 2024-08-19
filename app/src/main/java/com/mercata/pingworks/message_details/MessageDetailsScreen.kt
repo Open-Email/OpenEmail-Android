@@ -54,10 +54,10 @@ import kotlin.math.roundToInt
 fun SharedTransitionScope.MessageDetailsScreen(
     navController: NavController,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    messageDetailsViewModel: MessageDetailsViewModel = viewModel()
+    viewModel: MessageDetailsViewModel = viewModel()
 ) {
 
-    val state by messageDetailsViewModel.state.collectAsState()
+    val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
 
     Scaffold(
