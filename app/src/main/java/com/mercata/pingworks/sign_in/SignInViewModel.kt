@@ -17,28 +17,28 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
 
     fun signIn() {
-        if (emailValid()) {
-            viewModelScope.launch {
-                updateState(currentState.copy(loading = true))
-                when (val call = safeApiCall { getWellKnownHosts(getHost()) }) {
-                    is HttpResult.Success -> {
-                        val knownHosts: List<String> =
-                            call.data?.split("\n")
-                                ?.filter { it.startsWith("#") || it.isBlank() }
-                                ?: listOf()
-                        if (knownHosts.isNotEmpty()) {
-                            updateState(currentState.copy(keysInputOpen = true))
-                        }
-                    }
-
-                    is HttpResult.Error -> {
-                        updateState(currentState.copy(emailErrorResId = R.string.no_account_error))
+        if (!emailValid()) {
+            updateState(currentState.copy(emailErrorResId = R.string.invalid_email))
+            return
+        }
+        viewModelScope.launch {
+            updateState(currentState.copy(loading = true))
+            when (val call = safeApiCall { getWellKnownHosts(getHost()) }) {
+                is HttpResult.Success -> {
+                    val knownHosts: List<String> =
+                        call.data?.split("\n")
+                            ?.filter { it.startsWith("#") || it.isBlank() }
+                            ?: listOf()
+                    if (knownHosts.isNotEmpty()) {
+                        updateState(currentState.copy(keysInputOpen = true))
                     }
                 }
-                updateState(currentState.copy(loading = false))
+
+                is HttpResult.Error -> {
+                    updateState(currentState.copy(emailErrorResId = R.string.no_account_error))
+                }
             }
-        } else {
-            updateState(currentState.copy(emailErrorResId = R.string.invalid_email))
+            updateState(currentState.copy(loading = false))
         }
     }
 
@@ -59,6 +59,8 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                 emailInput = str,
                 emailErrorResId = null,
                 keysInputOpen = false,
+                privateSigningKeyInput = "",
+                privateEncryptionKeyInput = "",
                 signInButtonActive = str.isNotBlank()
             )
         )
@@ -73,6 +75,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
             )
         )
     }
+
     fun onPrivateSigningKeyInput(str: String) {
         updateState(
             currentState.copy(
@@ -88,7 +91,10 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
     }
 
     fun authenticateWithKeys() {
-//TODO
+        val encryptionKey = currentState.privateEncryptionKeyInput.trim().replace("\n", "")
+        val signingKey = currentState.privateSigningKeyInput.trim().replace("\n", "")
+        //TODO login
+
     }
 }
 

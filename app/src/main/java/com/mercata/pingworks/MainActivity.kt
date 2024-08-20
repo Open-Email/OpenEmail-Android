@@ -15,6 +15,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mercata.pingworks.broadcast_list.BroadcastListScreen
 import com.mercata.pingworks.message_details.MessageDetailsScreen
+import com.mercata.pingworks.registration.RegistrationScreen
 import com.mercata.pingworks.sign_in.SignInScreen
 import com.mercata.pingworks.theme.AppTheme
 
@@ -34,7 +35,9 @@ class MainActivity : AppCompatActivity() {
                         composable(route = "SignInScreen") {
                             SignInScreen(navController = navController)
                         }
-
+                        composable(route = "RegistrationScreen") {
+                            RegistrationScreen(navController = navController)
+                        }
                         composable(route = "BroadcastListState") {
                             BroadcastListScreen(
                                 navController,

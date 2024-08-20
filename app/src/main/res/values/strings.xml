@@ -11,4 +11,14 @@
     <string name="private_signing_key_hint">Private Signing Key</string>
     <string name="private_encryption_key_hint">Private Encryption Key</string>
     <string name="no_account_error">No account associated with this address. Please check your input and try again.</string>
+    <string name="registration_title">Up &amp; Running in Seconds</string>
+    <string name="registration_description">Get a free email address on one of our domains:</string>
+    <string name="user_name_hint">user.name</string>
+    <string name="full_name_hint">Full name</string>
+    <string name="complete_later_label">You can complete your profile later.</string>
+    <string name="register_button">Register</string>
+    <string name="terms_of_service_title">Terms of Service</string>
+    <string name="user_name_existing_error">Too bad! That name is not available.</string>
+    <string name="full_name_empty_error">Please add your full name.</string>
+    <string name="terms_of_service_description">Users are prohibited from engaging in abusive behavior or any illegal activities while using our service, because while we\'re all for freedom, we draw the line at breaking the law or being a jerk.</string>
 </resources>

@@ -59,13 +59,10 @@ fun SignInScreen(
 ) {
 
     val state by viewModel.state.collectAsState()
-    val addressFocusManager = LocalFocusManager.current
+    val focusManager = LocalFocusManager.current
+
     val addressFocusRequester = remember { FocusRequester() }
-
-    val encryptionFocusManager = LocalFocusManager.current
     val encryptionFocusRequester = remember { FocusRequester() }
-
-    val signingFocusManager = LocalFocusManager.current
     val signingFocusRequester = remember { FocusRequester() }
 
     val animationDuration = 500
@@ -110,15 +107,11 @@ fun SignInScreen(
             Spacer(modifier = modifier.weight(0.3f))
 
             LaunchedEffect(key1 = state.keysInputOpen) {
+                focusManager.clearFocus()
                 if (state.keysInputOpen) {
                     delay(animationDuration.toLong())
-                    addressFocusManager.clearFocus()
                     viewModel.openInputKeys()
                     encryptionFocusRequester.requestFocus()
-                } else {
-                    encryptionFocusManager.clearFocus()
-                    signingFocusManager.clearFocus()
-                    addressFocusRequester.requestFocus()
                 }
             }
 
@@ -216,7 +209,7 @@ fun SignInScreen(
                         ),
                         keyboardActions = KeyboardActions(
                             onNext = {
-                                encryptionFocusManager.clearFocus()
+                                focusManager.clearFocus()
                                 signingFocusRequester.requestFocus()
                             }
                         ),
@@ -243,7 +236,7 @@ fun SignInScreen(
                         ),
                         keyboardActions = KeyboardActions(
                             onDone = {
-                                signingFocusManager.clearFocus()
+                                focusManager.clearFocus()
                                 viewModel.authenticateWithKeys()
                             }
                         ),
@@ -269,9 +262,12 @@ fun SignInScreen(
                 textAlign = TextAlign.Center,
                 fontFamily = bodyFontFamily,
             )
-            TextButton(onClick = { /*TODO*/ }, enabled = !state.loading) {
+            TextButton(onClick = {
+                navController.navigate("RegistrationScreen")
+            }, enabled = !state.loading) {
                 Text(stringResource(id = R.string.registration_button), fontFamily = bodyFontFamily)
             }
+            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
         }
     }
 }

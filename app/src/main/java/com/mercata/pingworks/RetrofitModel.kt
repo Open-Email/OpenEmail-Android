@@ -3,6 +3,7 @@ package com.mercata.pingworks
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Headers
+import retrofit2.HttpException
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -16,17 +17,22 @@ private fun getInstance(baseUrl: String): RestApi = Retrofit.Builder()
     .create(RestApi::class.java)
 
 suspend fun getWellKnownHosts(hostName: String): Response<String> {
-
-
-
-
-    //url	Foundation.URL	"https://ping.works/.well-known/mail.txt"
-    //[0]	String	"mail.ping.works"
-    //val baseUrl = "https://$hostName/$WELL_KNOWN_URI/"
-
     return getInstance("https://$hostName/").getWellKnownHosts()
 }
 
+suspend fun isAddressAvailable(hostname: String, localName: String): Boolean {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = "https://$MAIL_HOST/account/${hostname}/${localName}"
+            val response = getInstance("https://$MAIL_HOST").isAddressAvailable(url)
+            response.isSuccessful
+        } catch (e: HttpException) {
+            false
+        } catch (e: Exception) {
+            false
+        }
+    }
+}
 
 suspend fun <T : Any> safeApiCall(call: suspend () -> Response<T>): HttpResult<T> =
     withContext(Dispatchers.IO) {
