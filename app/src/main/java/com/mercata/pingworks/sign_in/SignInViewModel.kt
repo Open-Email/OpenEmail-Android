@@ -3,6 +3,7 @@ package com.mercata.pingworks.sign_in
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.HttpResult
+import com.mercata.pingworks.R
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.getWellKnownHosts
 import com.mercata.pingworks.safeApiCall
@@ -14,15 +15,6 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
         //TODO check autologin
     }
 
-    fun onEmailChange(str: String) {
-        updateState(
-            currentState.copy(
-                emailInput = str,
-                emailValid = true,
-                signInButtonActive = str.isNotBlank()
-            )
-        )
-    }
 
     fun signIn() {
         if (emailValid()) {
@@ -35,18 +27,18 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                                 ?.filter { it.startsWith("#") || it.isBlank() }
                                 ?: listOf()
                         if (knownHosts.isNotEmpty()) {
-                            //TODO send LaunchedEffect to open keys input screen
+                            updateState(currentState.copy(keysInputOpen = true))
                         }
                     }
 
                     is HttpResult.Error -> {
-                        //TODO send LaunchedEffect to show error dialog
+                        updateState(currentState.copy(emailErrorResId = R.string.no_account_error))
                     }
                 }
                 updateState(currentState.copy(loading = false))
             }
         } else {
-            updateState(currentState.copy(emailValid = false))
+            updateState(currentState.copy(emailErrorResId = R.string.invalid_email))
         }
     }
 
@@ -60,11 +52,54 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
     private fun getHost(): String = currentState.emailInput.substringAfter("@")
     private fun getLocal(): String = currentState.emailInput.substringBefore("@")
+
+    fun onEmailChange(str: String) {
+        updateState(
+            currentState.copy(
+                emailInput = str,
+                emailErrorResId = null,
+                keysInputOpen = false,
+                signInButtonActive = str.isNotBlank()
+            )
+        )
+    }
+
+    fun onPrivateEncryptionKeyInput(str: String) {
+        updateState(
+            currentState.copy(
+                privateEncryptionKeyInput = str,
+                authenticateButtonEnabled = currentState.privateSigningKeyInput.isNotBlank()
+                        && currentState.privateEncryptionKeyInput.isNotBlank()
+            )
+        )
+    }
+    fun onPrivateSigningKeyInput(str: String) {
+        updateState(
+            currentState.copy(
+                privateSigningKeyInput = str,
+                authenticateButtonEnabled = currentState.privateSigningKeyInput.isNotBlank()
+                        && currentState.privateEncryptionKeyInput.isNotBlank()
+            )
+        )
+    }
+
+    fun openInputKeys() {
+        updateState(currentState.copy(keysInputOpen = true))
+    }
+
+    fun authenticateWithKeys() {
+//TODO
+    }
 }
 
 data class SignInState(
     val emailInput: String = "",
-    val emailValid: Boolean = true,
+    val privateEncryptionKeyInput: String = "",
+    val privateSigningKeyInput: String = "",
+    val keysInputOpen: Boolean = false,
+    val authenticateButtonVisible: Boolean = false,
+    val authenticateButtonEnabled: Boolean = false,
+    val emailErrorResId: Int? = null,
     val signInButtonActive: Boolean = false,
     val loading: Boolean = false
 )

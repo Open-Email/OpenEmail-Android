@@ -4,7 +4,11 @@
     <string name="onboarding_text">Spam-free, phishing-free, private &amp; secure by design.</string>
     <string name="address_input_hint">%s address</string>
     <string name="sign_in_button">Sign In</string>
+    <string name="authenticate_button">Authenticate</string>
     <string name="no_account_question">Don\'t have an %s address yet?</string>
     <string name="registration_button">Get one for free instantly</string>
     <string name="invalid_email">Invalid address. Please, check input and try again.</string>
+    <string name="private_signing_key_hint">Private Signing Key</string>
+    <string name="private_encryption_key_hint">Private Encryption Key</string>
+    <string name="no_account_error">No account associated with this address. Please check your input and try again.</string>
 </resources>
