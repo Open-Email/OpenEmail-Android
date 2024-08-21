@@ -5,6 +5,7 @@ import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.HttpResult
 import com.mercata.pingworks.R
 import com.mercata.pingworks.emailRegex
+import com.mercata.pingworks.getHost
 import com.mercata.pingworks.getWellKnownHosts
 import com.mercata.pingworks.safeApiCall
 import kotlinx.coroutines.launch
@@ -23,20 +24,11 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
         }
         viewModelScope.launch {
             updateState(currentState.copy(loading = true))
-            when (val call = safeApiCall { getWellKnownHosts(getHost()) }) {
-                is HttpResult.Success -> {
-                    val knownHosts: List<String> =
-                        call.data?.split("\n")
-                            ?.filter { it.startsWith("#") || it.isBlank() }
-                            ?: listOf()
-                    if (knownHosts.isNotEmpty()) {
-                        updateState(currentState.copy(keysInputOpen = true))
-                    }
-                }
-
-                is HttpResult.Error -> {
-                    updateState(currentState.copy(emailErrorResId = R.string.no_account_error))
-                }
+            val result = getWellKnownHosts(currentState.emailInput.getHost())
+            if (result.isNotEmpty()) {
+                updateState(currentState.copy(keysInputOpen = true))
+            } else {
+                updateState(currentState.copy(emailErrorResId = R.string.no_account_error))
             }
             updateState(currentState.copy(loading = false))
         }
@@ -49,9 +41,6 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
         return currentState.emailInput.lowercase().matches(emailRegex)
     }
-
-    private fun getHost(): String = currentState.emailInput.substringAfter("@")
-    private fun getLocal(): String = currentState.emailInput.substringBefore("@")
 
     fun onEmailChange(str: String) {
         updateState(

@@ -7,6 +7,7 @@ plugins {
 android {
     namespace = "com.mercata.pingworks"
     compileSdk = 34
+    android.buildFeatures.buildConfig = true
 
     defaultConfig {
         applicationId = "com.mercata.pingworks"
@@ -18,13 +19,36 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        getByName("debug") {
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+        }
+        create("release") {
+            //TODO replace with release keystore and credentials
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("release")
+            isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        debug {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = true
         }
     }
     buildFeatures {
@@ -53,6 +77,11 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.converter.scalars)
+    implementation(libs.logging.interceptor)
+    //noinspection UseTomlInstead
+    implementation("com.goterl:lazysodium-android:5.1.0@aar")
+    //noinspection UseTomlInstead
+    implementation("net.java.dev.jna:jna:5.14.0@aar")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

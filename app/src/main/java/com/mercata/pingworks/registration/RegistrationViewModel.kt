@@ -2,10 +2,19 @@ package com.mercata.pingworks.registration
 
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
+import com.mercata.pingworks.DEFAULT_MAIL_SUBDOMAIN
+import com.mercata.pingworks.EncryptionKeys
+import com.mercata.pingworks.SigningKeys
+import com.mercata.pingworks.availableHosts
+import com.mercata.pingworks.generateEncryptionKeys
+import com.mercata.pingworks.generateSigningKeys
+import com.mercata.pingworks.getHost
 import com.mercata.pingworks.isAddressAvailable
+import com.mercata.pingworks.registerCall
 import kotlinx.coroutines.launch
 
 class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationState()) {
+
     fun onUsernameChange(str: String) {
         updateState(currentState.copy(usernameInput = str))
     }
@@ -17,17 +26,29 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
     fun register() {
         viewModelScope.launch {
             updateState(currentState.copy(isLoading = true))
+            val localName = currentState.usernameInput.trim().lowercase()
             val available: Boolean = isAddressAvailable(
-                hostname = "ping.works",
-                localName = currentState.usernameInput.trim().lowercase()
+                hostname = currentState.selectedHostName,
+                localName = localName
             )
             if (available) {
-                //TODO registration flow
+                val user = UserData(
+                    name = currentState.fullNameInput,
+                    address = "${currentState.usernameInput}@${currentState.selectedHostName}",
+                    encryptionKeys = generateEncryptionKeys(),
+                    signingKeys = generateSigningKeys()
+                )
+                val result = registerCall(user)
+                //TODO redirect
                 updateState(currentState.copy(isLoading = false))
             } else {
                 updateState(currentState.copy(isLoading = false, userNameError = true))
             }
         }
+    }
+
+    fun selectHostName(hostName: String) {
+        updateState(currentState.copy(selectedHostName = hostName))
     }
 }
 
@@ -37,4 +58,15 @@ data class RegistrationState(
     val userNameError: Boolean = false,
     val fullNameError: Boolean = false,
     val isLoading: Boolean = false,
+    val hostnames: List<String> = availableHosts,
+    val selectedHostName: String = hostnames.first()
 )
+
+data class UserData(
+    val name: String,
+    val address: String,
+    val encryptionKeys: EncryptionKeys,
+    val signingKeys: SigningKeys,
+) {
+    fun getHost() = "$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}"
+}
