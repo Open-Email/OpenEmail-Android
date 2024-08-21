@@ -3,6 +3,7 @@ package com.mercata.pingworks
 import com.goterl.lazysodium.LazySodiumAndroid
 import com.goterl.lazysodium.SodiumAndroid
 import com.goterl.lazysodium.exceptions.SodiumException
+import com.goterl.lazysodium.interfaces.Sign
 import com.goterl.lazysodium.utils.Key
 import com.mercata.pingworks.registration.UserData
 import java.nio.charset.StandardCharsets
@@ -15,6 +16,7 @@ data class PrivateKey(val key: Key) {
 data class PublicKey(val key: Key) {
     override fun toString(): String = key.encodeToBase64()
 }
+
 data class EncryptionKeys(val privateKey: PrivateKey, val publicKey: PublicKey, val id: String)
 data class SigningKeys(val privateKey: PrivateKey, val publicKey: PublicKey)
 
@@ -68,6 +70,7 @@ fun sign(user: UserData): String {
 
 @Throws(SodiumException::class)
 fun signData(privateKey: Key, data: ByteArray): String {
-    val signature = sodium.cryptoSignDetached(data.toString(), privateKey)
-    return Base64.getEncoder().encodeToString(signature.toByteArray())
+    val signature = ByteArray(size = Sign.ED25519_BYTES)
+    sodium.cryptoSignDetached(signature, data, data.size.toLong(), privateKey.asBytes)
+    return Base64.getEncoder().encodeToString(signature)
 }
