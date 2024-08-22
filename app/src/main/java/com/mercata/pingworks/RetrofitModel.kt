@@ -1,7 +1,9 @@
 package com.mercata.pingworks
 
 import android.util.Log
+import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.response_converters.UserPublicDataConverterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Headers
@@ -22,6 +24,7 @@ private fun getInstance(baseUrl: String): RestApi {
 
     val rv = Retrofit.Builder()
         .baseUrl(baseUrl)
+        .addConverterFactory(UserPublicDataConverterFactory())
         .addConverterFactory(ScalarsConverterFactory.create())
         .addConverterFactory(GsonConverterFactory.create())
 
@@ -55,6 +58,13 @@ suspend fun getWellKnownHosts(hostName: String): List<String> {
     }
 }
 
+suspend fun getProfilePublicData(address: String): Response<PublicUserData> {
+    return getInstance("https://$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}").getProfilePublicData(
+        hostPart = address.getHost(),
+        localPart = address.getLocal()
+    )
+}
+
 suspend fun isAddressAvailable(hostname: String, localName: String): Boolean {
     return withContext(Dispatchers.IO) {
         try {
@@ -70,7 +80,7 @@ suspend fun isAddressAvailable(hostname: String, localName: String): Boolean {
     }
 }
 
-suspend fun registerCall(user: UserData): Boolean {
+suspend fun registerCall(user: UserData): String? {
     if (BuildConfig.DEBUG) {
         Log.i(
             "KEYS", "\n" +
@@ -101,11 +111,35 @@ suspend fun registerCall(user: UserData): Boolean {
                 url = url,
                 body = postData.toRequestBody()
             )
-            response.isSuccessful
+            if (response.isSuccessful) {
+                null
+            } else {
+                response.code().toString()
+            }
         } catch (e: HttpException) {
-            false
+            e.message()
         } catch (e: Exception) {
-            false
+            e.localizedMessage
+        }
+    }
+}
+
+suspend fun loginCall(user: UserData): String? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url =
+                "https://${user.getHost()}/home/${user.address.getHost()}/${user.address.getLocal()}"
+            val authNonce: String = sign(user)
+            val response = getInstance("https://${user.getHost()}").login(authNonce, url)
+            if (response.isSuccessful) {
+                null
+            } else {
+                response.code().toString()
+            }
+        } catch (e: HttpException) {
+            e.message()
+        } catch (e: Exception) {
+            e.localizedMessage
         }
     }
 }

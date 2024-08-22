@@ -38,8 +38,12 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
                     encryptionKeys = generateEncryptionKeys(),
                     signingKeys = generateSigningKeys()
                 )
-                val result = registerCall(user)
-                //TODO redirect
+                val error: String? = registerCall(user)
+                if (error == null) {
+                    //TODO navigate to main screen
+                } else {
+                    //TODO show error dialog
+                }
                 updateState(currentState.copy(isLoading = false))
             } else {
                 updateState(currentState.copy(isLoading = false, userNameError = true))

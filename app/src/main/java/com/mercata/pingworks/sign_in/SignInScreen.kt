@@ -6,12 +6,15 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -73,12 +76,13 @@ fun SignInScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = modifier
                 .fillMaxSize()
-                .padding(padding)
+                //.padding(padding)
                 .padding(horizontal = MARGIN_DEFAULT)
+                .imePadding()
                 .verticalScroll(rememberScrollState())
 
         ) {
-            Spacer(modifier = modifier.weight(0.3f))
+            Spacer(modifier = modifier.weight(0.3f).defaultMinSize(minHeight = padding.calculateTopPadding() + MARGIN_DEFAULT))
             Icon(
                 Icons.Default.Email,
                 tint = MaterialTheme.colorScheme.primary,
@@ -251,6 +255,7 @@ fun SignInScreen(
                             fontFamily = bodyFontFamily
                         )
                     }
+                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                 }
             }
             Spacer(modifier = modifier.weight(1f))
@@ -267,7 +272,7 @@ fun SignInScreen(
             }, enabled = !state.loading) {
                 Text(stringResource(id = R.string.registration_button), fontFamily = bodyFontFamily)
             }
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+            Spacer(modifier = modifier.height(MARGIN_DEFAULT + padding.calculateBottomPadding()))
         }
     }
 }

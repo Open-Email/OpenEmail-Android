@@ -1,12 +1,21 @@
 package com.mercata.pingworks.sign_in
 
 import androidx.lifecycle.viewModelScope
+import com.goterl.lazysodium.utils.Key
 import com.mercata.pingworks.AbstractViewModel
+import com.mercata.pingworks.EncryptionKeys
 import com.mercata.pingworks.HttpResult
+import com.mercata.pingworks.PrivateKey
+import com.mercata.pingworks.PublicKey
 import com.mercata.pingworks.R
+import com.mercata.pingworks.SigningKeys
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.getHost
+import com.mercata.pingworks.getProfilePublicData
 import com.mercata.pingworks.getWellKnownHosts
+import com.mercata.pingworks.loginCall
+import com.mercata.pingworks.models.PublicUserData
+import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.safeApiCall
 import kotlinx.coroutines.launch
 
@@ -57,20 +66,25 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
     fun onPrivateEncryptionKeyInput(str: String) {
         updateState(
-            currentState.copy(
-                privateEncryptionKeyInput = str,
-                authenticateButtonEnabled = currentState.privateSigningKeyInput.isNotBlank()
-                        && currentState.privateEncryptionKeyInput.isNotBlank()
-            )
+            currentState.copy(privateEncryptionKeyInput = str)
         )
+
+        updateAuthButton()
     }
 
     fun onPrivateSigningKeyInput(str: String) {
         updateState(
+            currentState.copy(privateSigningKeyInput = str)
+        )
+        updateAuthButton()
+    }
+
+    private fun updateAuthButton() {
+        val enabled = currentState.privateSigningKeyInput.isNotBlank()
+                && currentState.privateEncryptionKeyInput.isNotBlank()
+        updateState(
             currentState.copy(
-                privateSigningKeyInput = str,
-                authenticateButtonEnabled = currentState.privateSigningKeyInput.isNotBlank()
-                        && currentState.privateEncryptionKeyInput.isNotBlank()
+                authenticateButtonEnabled = enabled
             )
         )
     }
@@ -82,8 +96,47 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
     fun authenticateWithKeys() {
         val encryptionKey = currentState.privateEncryptionKeyInput.trim().replace("\n", "")
         val signingKey = currentState.privateSigningKeyInput.trim().replace("\n", "")
-        //TODO login
 
+        viewModelScope.launch {
+            var publicData: PublicUserData? = null
+            updateState(currentState.copy(loading = true))
+            when (val call = safeApiCall { getProfilePublicData(currentState.emailInput) }) {
+                is HttpResult.Success -> {
+                    publicData = call.data
+                }
+
+                is HttpResult.Error -> {
+                    println()
+                }
+            }
+            if (publicData == null) {
+                updateState(currentState.copy(loading = false))
+                return@launch
+            }
+
+            val userData = UserData(
+                name = publicData.fullName,
+                address = currentState.emailInput,
+                encryptionKeys = EncryptionKeys(
+                    privateKey = PrivateKey(Key.fromBase64String(encryptionKey)),
+                    publicKey = PublicKey(Key.fromBase64String(publicData.publicEncryptionKey)),
+                    id = publicData.encryptionKeyId
+                ),
+                signingKeys = SigningKeys(
+                    PrivateKey(Key.fromBase64String(signingKey)),
+                    publicKey = PublicKey(Key.fromBase64String(publicData.publicSigningKey))
+                )
+            )
+
+            val error: String? = loginCall(userData)
+            if (error == null) {
+                //TODO navigate to main screen
+            } else {
+                //TODO show error dialog
+            }
+
+            updateState(currentState.copy(loading = false))
+        }
     }
 }
 
