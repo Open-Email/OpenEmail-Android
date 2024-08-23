@@ -31,4 +31,10 @@
     <string name="registered_title">You are registered!</string>
     <string name="biometry_suggestion">Do you want to enable biometric entry to %s</string>
     <string name="enable_button">Enable</string>
+    <string name="broadcast_title">Broadcast</string>
+    <string name="enable_autologin_feature">Enable autologin feature</string>
+    <string name="enable_biometric_feature">Enable biometric access</string>
+    <string name="consider_saving_warning">Please, consider saving keys in a secure place, since this is the only way to access the app. Do not share it with anyone.</string>
+    <string name="save_button">Save</string>
+    <string name="review_login_settings">Please review the login settings and that\'s it.</string>
 </resources>

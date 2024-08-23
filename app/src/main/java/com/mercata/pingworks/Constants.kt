@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter
 
 val MESSAGE_LIST_ITEM_HEIGHT = 88.dp
 val MARGIN_DEFAULT = 16.dp
+const val animationDuration = 500
 
 val emailRegex = Regex("^[a-z0-9][a-z0-9\\.\\-_\\+]{2,}@[a-z0-9.-]+\\.[a-z]{2,}|xn--[a-z0-9]{2,}$")
 const val WELL_KNOWN_URI = ".well-known/mail.txt"
@@ -25,6 +26,8 @@ const val headerKeyValueSeparator = "="
 const val SP_ADDRESS = "sp_address"
 const val SP_PRIVATE_SIGNING_KEY = "sp_private_signing_key"
 const val SP_PRIVATE_ENCRYPTION_KEY = "sp_private_encryption_key"
+const val SP_AUTOLOGIN = "sp_autologin"
+const val SP_BIOMETRY = "sp_biometry"
 val availableHosts = listOf("ping.works")
 
 

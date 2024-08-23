@@ -10,6 +10,7 @@ class MainApplication : Application() {
 
     private val appModule = module {
         single { SharedPreferences(get()) }
+        single { BioManager(get()) }
     }
 
     override fun onCreate() {

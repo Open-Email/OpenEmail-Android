@@ -108,7 +108,7 @@ fun SharedTransitionScope.BroadcastListScreen(
                     ),
                     title = {
                         Text(
-                            stringResource(id = R.string.inbox_title),
+                            stringResource(id = R.string.broadcast_title),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -181,7 +181,6 @@ fun SharedTransitionScope.BroadcastListScreen(
             }
         }
     }
-
 }
 
 @Composable

@@ -24,11 +24,46 @@ import org.koin.core.component.inject
 class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
     init {
-        val sharedPreferences : SharedPreferences by inject()
+        val sharedPreferences: SharedPreferences by inject()
         val address = sharedPreferences.getUserAddress()
-        updateState(currentState.copy(emailInput = address ?: "", signInButtonActive = !address.isNullOrBlank()))
+        if (!address.isNullOrBlank()) {
+            updateState(currentState.copy(emailInput = address, signInButtonActive = true))
+            if (sharedPreferences.isAutologin()) {
+                if (sharedPreferences.isBiometry()) {
+                    updateState(currentState.copy(biometryShown = true))
+                } else {
+                    val keys = sharedPreferences.getUserPrivateKeys()!!
+                    updateState(
+                        currentState.copy(
+                            privateSigningKeyInput = keys.privateSigningKey.toString(),
+                            privateEncryptionKeyInput = keys.privateEncryptionKey.toString()
+                        )
+                    )
+                    authenticateWithKeys()
+                }
+            }
+        }
     }
 
+    fun biometryPassed() {
+        val keys = sharedPreferences.getUserPrivateKeys()!!
+        updateState(
+            currentState.copy(
+                biometryShown = false, privateSigningKeyInput = keys.privateSigningKey.toString(),
+                privateEncryptionKeyInput = keys.privateEncryptionKey.toString()
+            )
+        )
+        authenticateWithKeys()
+    }
+
+    fun biometryCanceled() {
+        updateState(
+            currentState.copy(
+                biometryShown = false,
+                keysInputOpen = true
+            )
+        )
+    }
 
     fun signInClicked() {
         if (!emailValid()) {
@@ -39,9 +74,10 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
             updateState(currentState.copy(loading = true))
             val result = getWellKnownHosts(currentState.emailInput.getHost())
             if (result.isNotEmpty()) {
-                updateState(currentState.copy(keysInputOpen = true))
-                if (sharedPreferences.getUserAddress() == currentState.emailInput) {
-                    //TODO suggest biometry
+                if (sharedPreferences.getUserAddress() == currentState.emailInput && sharedPreferences.isBiometry()) {
+                    updateState(currentState.copy(biometryShown = true))
+                } else {
+                    updateState(currentState.copy(keysInputOpen = true))
                 }
             } else {
                 updateState(currentState.copy(emailErrorResId = R.string.no_account_error))
@@ -158,6 +194,7 @@ data class SignInState(
     val privateSigningKeyInput: String = "",
     val registrationError: String? = null,
     val keysInputOpen: Boolean = false,
+    val biometryShown: Boolean = false,
     val isLoggedIn: Boolean = false,
     val authenticateButtonVisible: Boolean = false,
     val authenticateButtonEnabled: Boolean = false,

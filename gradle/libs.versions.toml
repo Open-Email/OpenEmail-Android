@@ -2,6 +2,7 @@
 activityCompose = "1.9.1"
 agp = "8.5.2"
 animation = "1.7.0-rc01"
+biometric = "1.1.0"
 coilCompose = "2.7.0"
 datastorePreferences = "1.1.1"
 koinAndroid = "4.0.0-RC1"
@@ -11,7 +12,7 @@ junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.7.0"
-kotlinxSerializationJson = "1.4.1"
+kotlinxSerializationJson = "1.6.3"
 lifecycleViewmodelCompose = "2.8.4"
 loggingInterceptor = "4.9.1"
 material = "1.12.0"
@@ -25,6 +26,7 @@ uiTextGoogleFonts = "1.6.8"
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-animation = { module = "androidx.compose.animation:animation", version.ref = "animation" }
+androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }

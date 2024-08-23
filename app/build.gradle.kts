@@ -6,13 +6,13 @@ plugins {
 
 android {
     namespace = "com.mercata.pingworks"
-    compileSdk = 34
+    compileSdk = 35
     android.buildFeatures.buildConfig = true
 
     defaultConfig {
         applicationId = "com.mercata.pingworks"
-        minSdk = 26
-        targetSdk = 34
+        minSdk = 28
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -38,6 +38,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             isDebuggable = false
             proguardFiles(
@@ -47,6 +48,7 @@ android {
         }
         debug {
             isMinifyEnabled = false
+            isShrinkResources = false
             signingConfig = signingConfigs.getByName("debug")
             isDebuggable = true
         }
@@ -82,6 +84,7 @@ dependencies {
     implementation(libs.jetbrains.kotlin.reflect)
     implementation(libs.androidx.security.crypto)
     implementation(libs.koin.android)
+    implementation(libs.androidx.biometric)
     //noinspection UseTomlInstead
     implementation("com.goterl:lazysodium-android:5.1.0@aar")
     //noinspection UseTomlInstead

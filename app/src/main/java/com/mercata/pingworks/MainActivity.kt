@@ -20,6 +20,7 @@ import androidx.navigation.navArgument
 import com.mercata.pingworks.broadcast_list.BroadcastListScreen
 import com.mercata.pingworks.message_details.MessageDetailsScreen
 import com.mercata.pingworks.registration.RegistrationScreen
+import com.mercata.pingworks.save_keys_suggestion.SaveKeysSuggestionScreen
 import com.mercata.pingworks.sign_in.SignInScreen
 import com.mercata.pingworks.theme.AppTheme
 
@@ -65,6 +66,9 @@ class MainActivity : AppCompatActivity() {
                         }
                         composable(route = "RegistrationScreen") {
                             RegistrationScreen(navController = navController)
+                        }
+                        composable(route = "SaveKeysSuggestionScreen") {
+                            SaveKeysSuggestionScreen(navController = navController)
                         }
                         composable(
                             route = "BroadcastListScreen",

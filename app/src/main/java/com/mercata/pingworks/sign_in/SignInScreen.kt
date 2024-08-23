@@ -1,5 +1,7 @@
 package com.mercata.pingworks.sign_in
 
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -40,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,10 +52,13 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
+import com.mercata.pingworks.animationDuration
 import com.mercata.pingworks.theme.bodyFontFamily
 import com.mercata.pingworks.theme.displayFontFamily
 import kotlinx.coroutines.delay
@@ -69,14 +76,17 @@ fun SignInScreen(
     val encryptionFocusRequester = remember { FocusRequester() }
     val signingFocusRequester = remember { FocusRequester() }
 
-    val animationDuration = 500
-
     LaunchedEffect(key1 = state.isLoggedIn) {
         if (state.isLoggedIn) {
             navController.popBackStack(route = "SignInScreen", inclusive = true)
             navController.navigate(route = "BroadcastListScreen")
         }
     }
+
+    BiometryEffect(
+        isShown = state.biometryShown,
+        onPassed = { viewModel.biometryPassed() },
+        onCancelled = { viewModel.biometryCanceled() })
 
     Scaffold { padding ->
         Box {
@@ -270,7 +280,11 @@ fun SignInScreen(
                         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                     }
                 }
-                Spacer(modifier = modifier.weight(1f))
+
+                Box(contentAlignment = Alignment.Center, modifier = modifier.weight(1f)) {
+                    if (state.loading)
+                        CircularProgressIndicator()
+                }
                 Text(
                     String.format(
                         stringResource(id = R.string.no_account_question),
@@ -321,4 +335,46 @@ fun RequestErrorDialog(message: String, onDismiss: () -> Unit) {
             }
         },
     )
+}
+
+@Composable
+fun BiometryEffect(
+    isShown: Boolean,
+    onPassed: () -> Unit,
+    onCancelled: () -> Unit,
+    onError: ((errorCode: Int) -> Unit)? = null
+) {
+    val context = LocalContext.current as FragmentActivity
+    LaunchedEffect(key1 = isShown) {
+        if (!isShown) return@LaunchedEffect
+
+        val authCallback = object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                onPassed()
+            }
+
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                if (errorCode == 10) {
+                    onCancelled()
+                } else {
+                    onError?.invoke(errorCode)
+                }
+            }
+
+            override fun onAuthenticationFailed() {
+                println()
+            }
+        }
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("AndroidX Biometric")
+            .setSubtitle("Authenticate user via Biometric")
+            .setDescription("Please authenticate yourself here")
+            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+            .setConfirmationRequired(true)
+            .build()
+
+        BiometricPrompt(context, ContextCompat.getMainExecutor(context), authCallback).authenticate(
+            promptInfo
+        )
+    }
 }

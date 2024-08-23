@@ -46,7 +46,6 @@ suspend fun getWellKnownHosts(hostName: String): List<String> {
     return withContext(Dispatchers.IO) {
         try {
             val response = getInstance("https://$hostName").getWellKnownHosts()
-            response.isSuccessful
             response.body()?.split("\n")
                 ?.filter { it.startsWith("#") || it.isBlank() }
                 ?: listOf()

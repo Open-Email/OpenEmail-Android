@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -70,9 +72,7 @@ fun RegistrationScreen(
 
     LaunchedEffect(key1 = state.isRegistered) {
         if (state.isRegistered) {
-
-            navController.popBackStack(route = "SignInScreen", inclusive = true)
-            navController.navigate(route = "BroadcastListScreen")
+            navController.navigate(route = "SaveKeysSuggestionScreen")
         }
     }
 
@@ -83,8 +83,8 @@ fun RegistrationScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = modifier
                     .fillMaxSize()
-                    .padding(padding)
                     .padding(horizontal = MARGIN_DEFAULT)
+                    .imePadding()
                     .verticalScroll(rememberScrollState())
 
             ) {
@@ -229,7 +229,10 @@ fun RegistrationScreen(
                         fontFamily = bodyFontFamily
                     )
                 }
-                Spacer(modifier = modifier.weight(1f))
+                Box(contentAlignment = Alignment.Center, modifier = modifier.weight(1f)) {
+                    if (state.isLoading)
+                        CircularProgressIndicator()
+                }
                 Text(
                     stringResource(id = R.string.terms_of_service_title),
                     textAlign = TextAlign.Center,
@@ -243,7 +246,7 @@ fun RegistrationScreen(
                     fontFamily = bodyFontFamily,
                     style = MaterialTheme.typography.bodySmall
                 )
-                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT + padding.calculateBottomPadding()))
             }
             if (state.registrationError != null) {
                 RequestErrorDialog(message = state.registrationError!!, onDismiss = {
