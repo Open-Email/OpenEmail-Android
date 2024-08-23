@@ -6,8 +6,12 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,6 +33,30 @@ class MainActivity : AppCompatActivity() {
                 SharedTransitionLayout {
                     val navController = rememberNavController()
                     NavHost(
+                        enterTransition = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Start,
+                                tween(300)
+                            )
+                        },
+                        exitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Start,
+                                tween(300)
+                            )
+                        },
+                        popEnterTransition = {
+                            slideIntoContainer(
+                                AnimatedContentTransitionScope.SlideDirection.End,
+                                tween(300)
+                            )
+                        },
+                        popExitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.End,
+                                tween(300)
+                            )
+                        },
                         navController = navController,
                         startDestination = "SignInScreen"
                     ) {
@@ -38,7 +66,22 @@ class MainActivity : AppCompatActivity() {
                         composable(route = "RegistrationScreen") {
                             RegistrationScreen(navController = navController)
                         }
-                        composable(route = "BroadcastListState") {
+                        composable(
+                            route = "BroadcastListScreen",
+                            enterTransition = {
+                                fadeIn()
+                            },
+                            exitTransition = {
+                                fadeOut()
+                            },
+                            popEnterTransition = {
+                                fadeIn()
+                            },
+                            popExitTransition = {
+                                fadeOut()
+                            },
+                        ) {
+
                             BroadcastListScreen(
                                 navController,
                                 this,
@@ -51,7 +94,19 @@ class MainActivity : AppCompatActivity() {
                                     type = NavType.StringType
                                     nullable = false
                                 }
-                            )
+                            ),
+                            enterTransition = {
+                                fadeIn()
+                            },
+                            exitTransition = {
+                                fadeOut()
+                            },
+                            popEnterTransition = {
+                                fadeIn()
+                            },
+                            popExitTransition = {
+                                fadeOut()
+                            },
                         ) {
                             MessageDetailsScreen(
                                 navController,

@@ -20,5 +20,11 @@
     <string name="terms_of_service_title">Terms of Service</string>
     <string name="user_name_existing_error">Too bad! That name is not available.</string>
     <string name="full_name_empty_error">Please add your full name.</string>
+    <string name="something_went_wrong_title">Something went wrong</string>
+    <string name="cancel_button">Cancel</string>
     <string name="terms_of_service_description">Users are prohibited from engaging in abusive behavior or any illegal activities while using our service, because while we\'re all for freedom, we draw the line at breaking the law or being a jerk.</string>
+    <string name="create_new_message">Create new message</string>
+    <string name="search">Search</string>
+    <string name="navigation_menu">Navigation menu</string>
+    <string name="inbox_title">Inbox</string>
 </resources>

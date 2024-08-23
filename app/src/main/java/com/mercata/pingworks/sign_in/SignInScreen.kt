@@ -6,8 +6,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -70,209 +71,247 @@ fun SignInScreen(
 
     val animationDuration = 500
 
+    LaunchedEffect(key1 = state.isLoggedIn) {
+        if (state.isLoggedIn) {
+            navController.popBackStack(route = "SignInScreen", inclusive = true)
+            navController.navigate(route = "BroadcastListScreen")
+        }
+    }
+
     Scaffold { padding ->
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = modifier
-                .fillMaxSize()
-                //.padding(padding)
-                .padding(horizontal = MARGIN_DEFAULT)
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-
-        ) {
-            Spacer(modifier = modifier.weight(0.3f).defaultMinSize(minHeight = padding.calculateTopPadding() + MARGIN_DEFAULT))
-            Icon(
-                Icons.Default.Email,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = modifier.size(100.dp),
-                contentDescription = null
-            )
-            Text(
-                stringResource(id = R.string.app_name),
-                fontFamily = displayFontFamily,
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-            Text(
-                stringResource(id = R.string.onboarding_title),
-                fontFamily = bodyFontFamily,
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                stringResource(id = R.string.onboarding_text),
-                textAlign = TextAlign.Center,
-                fontFamily = bodyFontFamily,
-            )
-            Spacer(modifier = modifier.weight(0.3f))
-
-            LaunchedEffect(key1 = state.keysInputOpen) {
-                focusManager.clearFocus()
-                if (state.keysInputOpen) {
-                    delay(animationDuration.toLong())
-                    viewModel.openInputKeys()
-                    encryptionFocusRequester.requestFocus()
-                }
-            }
-
-            OutlinedTextField(
-                value = state.emailInput,
-                onValueChange = { str -> viewModel.onEmailChange(str) },
-                singleLine = true,
-                isError = state.emailErrorResId != null,
-                enabled = !state.loading,
+        Box {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = modifier
-                    .fillMaxWidth()
-                    .focusRequester(addressFocusRequester),
-                supportingText = {
-                    state.emailErrorResId?.run {
-                        Text(
-                            text = stringResource(id = this),
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                },
-                label = {
-                    Text(
-                        text = String.format(
-                            stringResource(id = R.string.address_input_hint),
-                            stringResource(id = R.string.app_name)
-                        )
-                    )
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next,
-                    showKeyboardOnFocus = true,
-                    capitalization = KeyboardCapitalization.None
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = {
-                        viewModel.signIn()
-                    }
-                ),
+                    .fillMaxSize()
+                    .padding(horizontal = MARGIN_DEFAULT)
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
 
-                )
-            AnimatedVisibility(
-                visible = !state.keysInputOpen,
-                enter = fadeIn(animationSpec = tween(durationMillis = animationDuration)) + expandVertically(
-                    animationSpec = tween(durationMillis = animationDuration)
-                ),
-                exit = fadeOut(animationSpec = tween(durationMillis = animationDuration)) + shrinkVertically(
-                    animationSpec = tween(durationMillis = animationDuration)
-                )
             ) {
+                Spacer(
+                    modifier = modifier
+                        .weight(0.3f)
+                        .defaultMinSize(minHeight = padding.calculateTopPadding() + MARGIN_DEFAULT)
+                )
+                Icon(
+                    Icons.Default.Email,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = modifier.size(100.dp),
+                    contentDescription = null
+                )
+                Text(
+                    stringResource(id = R.string.app_name),
+                    fontFamily = displayFontFamily,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.displayMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                Text(
+                    stringResource(id = R.string.onboarding_title),
+                    fontFamily = bodyFontFamily,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    stringResource(id = R.string.onboarding_text),
+                    textAlign = TextAlign.Center,
+                    fontFamily = bodyFontFamily,
+                )
+                Spacer(modifier = modifier.weight(0.3f))
 
-                Button(
-                    modifier = modifier.padding(top = MARGIN_DEFAULT),
-                    onClick = { viewModel.signIn() },
-                    enabled = !state.loading && state.signInButtonActive
-                ) {
-                    Text(
-                        stringResource(id = R.string.sign_in_button),
-                        fontFamily = bodyFontFamily
-                    )
+                LaunchedEffect(key1 = state.keysInputOpen) {
+                    focusManager.clearFocus()
+                    if (state.keysInputOpen) {
+                        delay(animationDuration.toLong())
+                        viewModel.openInputKeys()
+                        encryptionFocusRequester.requestFocus()
+                    }
                 }
-            }
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-            AnimatedVisibility(
-                visible = state.keysInputOpen,
-                enter = fadeIn(animationSpec = tween(durationMillis = animationDuration)) + expandVertically(
-                    animationSpec = tween(durationMillis = animationDuration)
-                ),
-                exit = fadeOut(animationSpec = tween(durationMillis = animationDuration)) + shrinkVertically(
-                    animationSpec = tween(durationMillis = animationDuration)
-                )
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
+
+                OutlinedTextField(
+                    value = state.emailInput,
+                    onValueChange = { str -> viewModel.onEmailChange(str) },
+                    singleLine = true,
+                    isError = state.emailErrorResId != null,
+                    enabled = !state.loading,
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .focusRequester(addressFocusRequester),
+                    supportingText = {
+                        state.emailErrorResId?.run {
+                            Text(
+                                text = stringResource(id = this),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
+                    label = {
+                        Text(
+                            text = String.format(
+                                stringResource(id = R.string.address_input_hint),
+                                stringResource(id = R.string.app_name)
+                            )
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next,
+                        showKeyboardOnFocus = true,
+                        capitalization = KeyboardCapitalization.None
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = {
+                            viewModel.signIn()
+                        }
+                    ),
+
+                    )
+                AnimatedVisibility(
+                    visible = !state.keysInputOpen,
+                    enter = fadeIn(animationSpec = tween(durationMillis = animationDuration)) + expandVertically(
+                        animationSpec = tween(durationMillis = animationDuration)
+                    ),
+                    exit = fadeOut(animationSpec = tween(durationMillis = animationDuration)) + shrinkVertically(
+                        animationSpec = tween(durationMillis = animationDuration)
+                    )
                 ) {
-                    OutlinedTextField(
-                        value = state.privateEncryptionKeyInput,
-                        onValueChange = { str -> viewModel.onPrivateEncryptionKeyInput(str) },
-                        singleLine = true,
-                        enabled = !state.loading,
-                        modifier = modifier
-                            .fillMaxWidth()
-                            .focusRequester(encryptionFocusRequester),
-                        label = {
-                            Text(
-                                text = stringResource(id = R.string.private_encryption_key_hint)
-                            )
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Unspecified,
-                            imeAction = ImeAction.Next,
-                            showKeyboardOnFocus = true,
-                            capitalization = KeyboardCapitalization.None
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onNext = {
-                                focusManager.clearFocus()
-                                signingFocusRequester.requestFocus()
-                            }
-                        ),
-                    )
-                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                    OutlinedTextField(
-                        value = state.privateSigningKeyInput,
-                        onValueChange = { str -> viewModel.onPrivateSigningKeyInput(str) },
-                        singleLine = true,
-                        enabled = !state.loading,
-                        modifier = modifier
-                            .fillMaxWidth()
-                            .focusRequester(signingFocusRequester),
-                        label = {
-                            Text(
-                                text = stringResource(id = R.string.private_signing_key_hint)
-                            )
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Unspecified,
-                            imeAction = ImeAction.Done,
-                            showKeyboardOnFocus = true,
-                            capitalization = KeyboardCapitalization.None
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                focusManager.clearFocus()
-                                viewModel.authenticateWithKeys()
-                            }
-                        ),
-                    )
-                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+
                     Button(
-                        onClick = { viewModel.authenticateWithKeys() },
-                        enabled = !state.loading && state.authenticateButtonEnabled
+                        modifier = modifier.padding(top = MARGIN_DEFAULT),
+                        onClick = { viewModel.signIn() },
+                        enabled = !state.loading && state.signInButtonActive
                     ) {
                         Text(
-                            stringResource(id = R.string.authenticate_button),
+                            stringResource(id = R.string.sign_in_button),
                             fontFamily = bodyFontFamily
                         )
                     }
-                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                 }
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                AnimatedVisibility(
+                    visible = state.keysInputOpen,
+                    enter = fadeIn(animationSpec = tween(durationMillis = animationDuration)) + expandVertically(
+                        animationSpec = tween(durationMillis = animationDuration)
+                    ),
+                    exit = fadeOut(animationSpec = tween(durationMillis = animationDuration)) + shrinkVertically(
+                        animationSpec = tween(durationMillis = animationDuration)
+                    )
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        OutlinedTextField(
+                            value = state.privateEncryptionKeyInput,
+                            onValueChange = { str -> viewModel.onPrivateEncryptionKeyInput(str) },
+                            singleLine = true,
+                            enabled = !state.loading,
+                            modifier = modifier
+                                .fillMaxWidth()
+                                .focusRequester(encryptionFocusRequester),
+                            label = {
+                                Text(
+                                    text = stringResource(id = R.string.private_encryption_key_hint)
+                                )
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Unspecified,
+                                imeAction = ImeAction.Next,
+                                showKeyboardOnFocus = true,
+                                capitalization = KeyboardCapitalization.None
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = {
+                                    focusManager.clearFocus()
+                                    signingFocusRequester.requestFocus()
+                                }
+                            ),
+                        )
+                        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                        OutlinedTextField(
+                            value = state.privateSigningKeyInput,
+                            onValueChange = { str -> viewModel.onPrivateSigningKeyInput(str) },
+                            singleLine = true,
+                            enabled = !state.loading,
+                            modifier = modifier
+                                .fillMaxWidth()
+                                .focusRequester(signingFocusRequester),
+                            label = {
+                                Text(
+                                    text = stringResource(id = R.string.private_signing_key_hint)
+                                )
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Unspecified,
+                                imeAction = ImeAction.Done,
+                                showKeyboardOnFocus = true,
+                                capitalization = KeyboardCapitalization.None
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    focusManager.clearFocus()
+                                    viewModel.authenticateWithKeys()
+                                }
+                            ),
+                        )
+                        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                        Button(
+                            onClick = { viewModel.authenticateWithKeys() },
+                            enabled = !state.loading && state.authenticateButtonEnabled
+                        ) {
+                            Text(
+                                stringResource(id = R.string.authenticate_button),
+                                fontFamily = bodyFontFamily
+                            )
+                        }
+                        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                    }
+                }
+                Spacer(modifier = modifier.weight(1f))
+                Text(
+                    String.format(
+                        stringResource(id = R.string.no_account_question),
+                        stringResource(id = R.string.app_name)
+                    ),
+                    textAlign = TextAlign.Center,
+                    fontFamily = bodyFontFamily,
+                )
+                TextButton(onClick = {
+                    navController.navigate("RegistrationScreen")
+                }, enabled = !state.loading) {
+                    Text(
+                        stringResource(id = R.string.registration_button),
+                        fontFamily = bodyFontFamily
+                    )
+                }
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT + padding.calculateBottomPadding()))
             }
-            Spacer(modifier = modifier.weight(1f))
-            Text(
-                String.format(
-                    stringResource(id = R.string.no_account_question),
-                    stringResource(id = R.string.app_name)
-                ),
-                textAlign = TextAlign.Center,
-                fontFamily = bodyFontFamily,
-            )
-            TextButton(onClick = {
-                navController.navigate("RegistrationScreen")
-            }, enabled = !state.loading) {
-                Text(stringResource(id = R.string.registration_button), fontFamily = bodyFontFamily)
+
+            if (state.registrationError != null) {
+                AlertDialog(
+                    title = {
+                        Text(text = stringResource(id = R.string.something_went_wrong_title))
+                    },
+                    text = {
+                        Text(text = "Error: ${state.registrationError}")
+                    },
+                    onDismissRequest = {
+                        viewModel.clearError()
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.clearError()
+                            }
+                        ) {
+                            Text(stringResource(id = R.string.cancel_button))
+                        }
+                    },
+                )
             }
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT + padding.calculateBottomPadding()))
         }
     }
 }

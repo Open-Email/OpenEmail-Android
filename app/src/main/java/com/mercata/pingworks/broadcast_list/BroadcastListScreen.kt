@@ -62,6 +62,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
@@ -71,6 +72,7 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_HEIGHT
+import com.mercata.pingworks.R
 import com.mercata.pingworks.models.BroadcastMessage
 import com.mercata.pingworks.models.Message
 import kotlinx.coroutines.delay
@@ -94,7 +96,7 @@ fun SharedTransitionScope.BroadcastListScreen(
         drawerState = drawerState,
         gesturesEnabled = drawerState.isOpen,
         drawerContent = {
-            ModalDrawerSheet() { /* Drawer content */ }
+            ModalDrawerSheet { /* Drawer content */ }
         }) {
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -106,7 +108,7 @@ fun SharedTransitionScope.BroadcastListScreen(
                     ),
                     title = {
                         Text(
-                            "Inbox",
+                            stringResource(id = R.string.inbox_title),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -123,7 +125,7 @@ fun SharedTransitionScope.BroadcastListScreen(
                         }) {
                             Icon(
                                 imageVector = Icons.Filled.Menu,
-                                contentDescription = "Localized description"
+                                contentDescription = stringResource(id = R.string.navigation_menu)
                             )
                         }
                     },
@@ -131,7 +133,7 @@ fun SharedTransitionScope.BroadcastListScreen(
                         IconButton(onClick = { /* do something */ }) {
                             Icon(
                                 imageVector = Icons.Filled.Search,
-                                contentDescription = "Localized description"
+                                contentDescription = stringResource(id = R.string.search)
                             )
                         }
                     },
@@ -143,7 +145,7 @@ fun SharedTransitionScope.BroadcastListScreen(
                     onClick = {
                         println()
                     }) {
-                    Icon(Icons.Filled.Edit, "Create message")
+                    Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
                 }
             }
         ) { padding ->
@@ -253,7 +255,7 @@ fun <T> SwipeContainer(
     animationDuration: Int = 500,
     content: @Composable (T) -> Unit
 ) {
-    var actionState by remember { mutableStateOf<SwipeAction>(SwipeAction.Idle) }
+    var actionState by remember { mutableStateOf(SwipeAction.Idle) }
 
     val state = rememberSwipeToDismissBoxState(
         positionalThreshold = { _ -> 0f },

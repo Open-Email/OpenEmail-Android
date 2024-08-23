@@ -40,9 +40,9 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
                 )
                 val error: String? = registerCall(user)
                 if (error == null) {
-                    //TODO navigate to main screen
+                    updateState(currentState.copy(isRegistered = true))
                 } else {
-                    //TODO show error dialog
+                    updateState(currentState.copy(registrationError = error))
                 }
                 updateState(currentState.copy(isLoading = false))
             } else {
@@ -54,14 +54,20 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
     fun selectHostName(hostName: String) {
         updateState(currentState.copy(selectedHostName = hostName))
     }
+
+    fun clearError() {
+        updateState(currentState.copy(registrationError = null))
+    }
 }
 
 data class RegistrationState(
     val usernameInput: String = "",
     val fullNameInput: String = "",
+    val registrationError: String? = null,
     val userNameError: Boolean = false,
     val fullNameError: Boolean = false,
     val isLoading: Boolean = false,
+    val isRegistered: Boolean = false,
     val hostnames: List<String> = availableHosts,
     val selectedHostName: String = hostnames.first()
 )

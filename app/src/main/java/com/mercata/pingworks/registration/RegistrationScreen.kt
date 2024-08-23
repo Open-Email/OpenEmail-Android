@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -26,7 +27,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,173 +67,217 @@ fun RegistrationScreen(
 
     var dropdownExpanded by remember { mutableStateOf(false) }
 
+    LaunchedEffect(key1 = state.isRegistered) {
+        if (state.isRegistered) {
+            navController.popBackStack(route = "SignInScreen", inclusive = true)
+            navController.navigate(route = "BroadcastListScreen")
+        }
+    }
+
     Scaffold { padding ->
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = MARGIN_DEFAULT)
-                .verticalScroll(rememberScrollState())
+        Box {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = MARGIN_DEFAULT)
+                    .verticalScroll(rememberScrollState())
 
-        ) {
-            Spacer(modifier = modifier.weight(1f))
-            Icon(
-                Icons.Default.AccountCircle,
-                modifier = modifier.size(50.dp),
-                tint = MaterialTheme.colorScheme.primary,
-                contentDescription = null
-            )
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-            Text(
-                stringResource(id = R.string.registration_title),
-                fontFamily = displayFontFamily,
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-            Text(
-                stringResource(id = R.string.registration_description),
-                fontFamily = bodyFontFamily,
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically
             ) {
+                Spacer(modifier = modifier.weight(1f))
+                Icon(
+                    Icons.Default.AccountCircle,
+                    modifier = modifier.size(50.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                    contentDescription = null
+                )
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                Text(
+                    stringResource(id = R.string.registration_title),
+                    fontFamily = displayFontFamily,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                Text(
+                    stringResource(id = R.string.registration_description),
+                    fontFamily = bodyFontFamily,
+                    textAlign = TextAlign.Center,
+                )
+
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = state.usernameInput,
+                        onValueChange = { str -> viewModel.onUsernameChange(str) },
+                        singleLine = true,
+                        isError = state.userNameError,
+                        enabled = !state.isLoading,
+                        modifier = modifier
+                            .weight(1f)
+                            .focusRequester(usernameFocusRequester),
+                        supportingText = {
+                            if (state.userNameError) {
+                                Text(
+                                    text = stringResource(id = R.string.user_name_existing_error),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        },
+                        label = {
+                            Text(
+                                text = stringResource(id = R.string.user_name_hint),
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next,
+                            showKeyboardOnFocus = true,
+                            capitalization = KeyboardCapitalization.None
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = {
+                                focusManager.clearFocus()
+                                fullNameFocusRequester.requestFocus()
+                            }
+                        )
+                    )
+                    Text(
+                        "@", modifier = modifier
+                            .padding(horizontal = MARGIN_DEFAULT / 2)
+                    )
+                    Box(modifier = modifier.clickable {
+                        dropdownExpanded = !dropdownExpanded
+                    }) {
+                        Row {
+                            Text(state.selectedHostName, color = MaterialTheme.colorScheme.primary)
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                tint = MaterialTheme.colorScheme.primary,
+                                contentDescription = null
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = dropdownExpanded,
+                            onDismissRequest = { dropdownExpanded = false }) {
+                            state.hostnames.forEach {
+                                DropdownMenuItem(
+                                    text = { Text(it) },
+                                    onClick = {
+                                        viewModel.selectHostName(it)
+                                        dropdownExpanded = false
+                                    })
+                            }
+                        }
+                    }
+                }
+
+                fun registerCall() {
+                    focusManager.clearFocus()
+                    viewModel.register()
+                }
                 OutlinedTextField(
-                    value = state.usernameInput,
-                    onValueChange = { str -> viewModel.onUsernameChange(str) },
+                    value = state.fullNameInput,
+                    onValueChange = { str -> viewModel.onFullNameEdit(str) },
                     singleLine = true,
-                    isError = state.userNameError,
+                    isError = state.fullNameError,
                     enabled = !state.isLoading,
                     modifier = modifier
-                        .weight(1f)
-                        .focusRequester(usernameFocusRequester),
+                        .fillMaxWidth()
+                        .focusRequester(fullNameFocusRequester),
+                    label = {
+                        Text(
+                            text = stringResource(id = R.string.full_name_hint)
+                        )
+                    },
                     supportingText = {
-                        if (state.userNameError) {
+                        if (state.fullNameError) {
                             Text(
-                                text = stringResource(id = R.string.user_name_existing_error),
+                                text = stringResource(id = R.string.full_name_empty_error),
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
                     },
-                    label = {
-                        Text(
-                            text = stringResource(id = R.string.user_name_hint),
-                        )
-                    },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Next,
+                        keyboardType = KeyboardType.Unspecified,
+                        imeAction = ImeAction.Done,
                         showKeyboardOnFocus = true,
                         capitalization = KeyboardCapitalization.None
                     ),
                     keyboardActions = KeyboardActions(
-                        onNext = {
-                            focusManager.clearFocus()
-                            fullNameFocusRequester.requestFocus()
+                        onDone = {
+                            registerCall()
                         }
+                    ),
+                )
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                Button(
+                    onClick = { registerCall() },
+                    enabled = !state.isLoading && state.usernameInput.isNotBlank() && state.fullNameInput.isNotBlank()
+                ) {
+                    Text(
+                        stringResource(id = R.string.authenticate_button),
+                        fontFamily = bodyFontFamily
                     )
+                }
+                Spacer(modifier = modifier.weight(1f))
+                Text(
+                    stringResource(id = R.string.terms_of_service_title),
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = bodyFontFamily,
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    "@", modifier = modifier
-                        .padding(horizontal = MARGIN_DEFAULT / 2)
+                    stringResource(id = R.string.terms_of_service_description),
+                    textAlign = TextAlign.Center,
+                    fontFamily = bodyFontFamily,
+                    style = MaterialTheme.typography.bodySmall
                 )
-                Box(modifier = modifier.clickable {
-                    dropdownExpanded = !dropdownExpanded
-                }) {
-                    Row {
-                        Text(state.selectedHostName, color = MaterialTheme.colorScheme.primary)
-                        Icon(
-                            Icons.Default.ArrowDropDown,
-                            tint = MaterialTheme.colorScheme.primary,
-                            contentDescription = null
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = dropdownExpanded,
-                        onDismissRequest = { dropdownExpanded = false }) {
-                        state.hostnames.forEach {
-                            DropdownMenuItem(
-                                text = { Text(it) },
-                                onClick = {
-                                    viewModel.selectHostName(it)
-                                    dropdownExpanded = false
-                                })
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+            }
+            if (state.registrationError != null) {
+                AlertDialog(
+                    icon = {
+                        Icon(Icons.Default.AccountCircle, contentDescription = "Example Icon")
+                    },
+                    title = {
+                        Text(text = "Dialog title")
+                    },
+                    text = {
+                        Text(text = "Dialgo text")
+                    },
+                    onDismissRequest = {
+                        viewModel.clearError()
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.clearError()
+                            }
+                        ) {
+                            Text("Confirm")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.clearError()
+                            }
+                        ) {
+                            Text("Dismiss")
                         }
                     }
-                }
+                )
             }
 
-            fun registerCall() {
-                focusManager.clearFocus()
-                viewModel.register()
-            }
-            OutlinedTextField(
-                value = state.fullNameInput,
-                onValueChange = { str -> viewModel.onFullNameEdit(str) },
-                singleLine = true,
-                isError = state.fullNameError,
-                enabled = !state.isLoading,
-                modifier = modifier
-                    .fillMaxWidth()
-                    .focusRequester(fullNameFocusRequester),
-                label = {
-                    Text(
-                        text = stringResource(id = R.string.full_name_hint)
-                    )
-                },
-                supportingText = {
-                    if (state.fullNameError) {
-                        Text(
-                            text = stringResource(id = R.string.full_name_empty_error),
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Unspecified,
-                    imeAction = ImeAction.Done,
-                    showKeyboardOnFocus = true,
-                    capitalization = KeyboardCapitalization.None
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        registerCall()
-                    }
-                ),
-            )
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-            Button(
-                onClick = { registerCall() },
-                enabled = !state.isLoading && state.usernameInput.isNotBlank() && state.fullNameInput.isNotBlank()
-            ) {
-                Text(
-                    stringResource(id = R.string.authenticate_button),
-                    fontFamily = bodyFontFamily
-                )
-            }
-            Spacer(modifier = modifier.weight(1f))
-            Text(
-                stringResource(id = R.string.terms_of_service_title),
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold,
-                fontFamily = bodyFontFamily,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                stringResource(id = R.string.terms_of_service_description),
-                textAlign = TextAlign.Center,
-                fontFamily = bodyFontFamily,
-                style = MaterialTheme.typography.bodySmall
-            )
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
         }
     }
 }

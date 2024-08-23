@@ -93,6 +93,10 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
         updateState(currentState.copy(keysInputOpen = true))
     }
 
+    fun clearError() {
+        updateState(currentState.copy(registrationError = null))
+    }
+
     fun authenticateWithKeys() {
         val encryptionKey = currentState.privateEncryptionKeyInput.trim().replace("\n", "")
         val signingKey = currentState.privateSigningKeyInput.trim().replace("\n", "")
@@ -130,9 +134,9 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
             val error: String? = loginCall(userData)
             if (error == null) {
-                //TODO navigate to main screen
+                updateState(currentState.copy(isLoggedIn = true))
             } else {
-                //TODO show error dialog
+                updateState(currentState.copy(registrationError = error))
             }
 
             updateState(currentState.copy(loading = false))
@@ -144,7 +148,9 @@ data class SignInState(
     val emailInput: String = "",
     val privateEncryptionKeyInput: String = "",
     val privateSigningKeyInput: String = "",
+    val registrationError: String? = null,
     val keysInputOpen: Boolean = false,
+    val isLoggedIn: Boolean = false,
     val authenticateButtonVisible: Boolean = false,
     val authenticateButtonEnabled: Boolean = false,
     val emailErrorResId: Int? = null,
