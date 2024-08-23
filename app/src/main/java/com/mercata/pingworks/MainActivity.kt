@@ -69,16 +69,16 @@ class MainActivity : AppCompatActivity() {
                         composable(
                             route = "BroadcastListScreen",
                             enterTransition = {
-                                fadeIn()
+                                fadeIn(animationSpec = tween(300))
                             },
                             exitTransition = {
-                                fadeOut()
+                                fadeOut(animationSpec = tween(300))
                             },
                             popEnterTransition = {
-                                fadeIn()
+                                fadeIn(animationSpec = tween(300))
                             },
                             popExitTransition = {
-                                fadeOut()
+                                fadeOut(animationSpec = tween(300))
                             },
                         ) {
 

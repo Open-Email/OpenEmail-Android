@@ -13,6 +13,7 @@ import com.mercata.pingworks.isAddressAvailable
 import com.mercata.pingworks.registerCall
 import kotlinx.coroutines.launch
 
+
 class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationState()) {
 
     fun onUsernameChange(str: String) {
@@ -40,6 +41,7 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
                 )
                 val error: String? = registerCall(user)
                 if (error == null) {
+                    sharedPreferences.saveUserPrivateKeys(user)
                     updateState(currentState.copy(isRegistered = true))
                 } else {
                     updateState(currentState.copy(registrationError = error))

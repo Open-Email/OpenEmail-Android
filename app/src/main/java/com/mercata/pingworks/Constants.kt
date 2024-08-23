@@ -21,6 +21,11 @@ const val NONCE_HEADER_PUBKEY_KEY = "key"
 const val ANONYMOUS_ENCRYPTION_CIPHER = "curve25519xsalsa20poly1305"
 const val headerFieldSeparator = "; "
 const val headerKeyValueSeparator = "="
+
+const val SP_ADDRESS = "sp_address"
+const val SP_PRIVATE_SIGNING_KEY = "sp_private_signing_key"
+const val SP_PRIVATE_ENCRYPTION_KEY = "sp_private_encryption_key"
 val availableHosts = listOf("ping.works")
+
 
 val DEFAULT_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")

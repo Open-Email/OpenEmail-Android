@@ -78,10 +78,15 @@ dependencies {
     implementation(libs.converter.gson)
     implementation(libs.converter.scalars)
     implementation(libs.logging.interceptor)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.jetbrains.kotlin.reflect)
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.koin.android)
     //noinspection UseTomlInstead
     implementation("com.goterl:lazysodium-android:5.1.0@aar")
     //noinspection UseTomlInstead
     implementation("net.java.dev.jna:jna:5.14.0@aar")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -27,4 +27,8 @@
     <string name="search">Search</string>
     <string name="navigation_menu">Navigation menu</string>
     <string name="inbox_title">Inbox</string>
+    <string name="warning">Warning\n</string>
+    <string name="registered_title">You are registered!</string>
+    <string name="biometry_suggestion">Do you want to enable biometric entry to %s</string>
+    <string name="enable_button">Enable</string>
 </resources>

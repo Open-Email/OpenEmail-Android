@@ -8,6 +8,7 @@ import com.mercata.pingworks.HttpResult
 import com.mercata.pingworks.PrivateKey
 import com.mercata.pingworks.PublicKey
 import com.mercata.pingworks.R
+import com.mercata.pingworks.SharedPreferences
 import com.mercata.pingworks.SigningKeys
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.getHost
@@ -18,15 +19,18 @@ import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.safeApiCall
 import kotlinx.coroutines.launch
+import org.koin.core.component.inject
 
 class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
     init {
-        //TODO check autologin
+        val sharedPreferences : SharedPreferences by inject()
+        val address = sharedPreferences.getUserAddress()
+        updateState(currentState.copy(emailInput = address ?: "", signInButtonActive = !address.isNullOrBlank()))
     }
 
 
-    fun signIn() {
+    fun signInClicked() {
         if (!emailValid()) {
             updateState(currentState.copy(emailErrorResId = R.string.invalid_email))
             return
@@ -36,6 +40,9 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
             val result = getWellKnownHosts(currentState.emailInput.getHost())
             if (result.isNotEmpty()) {
                 updateState(currentState.copy(keysInputOpen = true))
+                if (sharedPreferences.getUserAddress() == currentState.emailInput) {
+                    //TODO suggest biometry
+                }
             } else {
                 updateState(currentState.copy(emailErrorResId = R.string.no_account_error))
             }
@@ -110,7 +117,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                 }
 
                 is HttpResult.Error -> {
-                    println()
+                    updateState(currentState.copy(registrationError = "${call.code}: ${call.message}"))
                 }
             }
             if (publicData == null) {
@@ -134,6 +141,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
             val error: String? = loginCall(userData)
             if (error == null) {
+                sharedPreferences.saveUserPrivateKeys(userData)
                 updateState(currentState.copy(isLoggedIn = true))
             } else {
                 updateState(currentState.copy(registrationError = error))

@@ -164,7 +164,7 @@ fun SignInScreen(
                     ),
                     keyboardActions = KeyboardActions(
                         onNext = {
-                            viewModel.signIn()
+                            viewModel.signInClicked()
                         }
                     ),
 
@@ -181,7 +181,7 @@ fun SignInScreen(
 
                     Button(
                         modifier = modifier.padding(top = MARGIN_DEFAULT),
-                        onClick = { viewModel.signIn() },
+                        onClick = { viewModel.signInClicked() },
                         enabled = !state.loading && state.signInButtonActive
                     ) {
                         Text(
@@ -291,28 +291,34 @@ fun SignInScreen(
             }
 
             if (state.registrationError != null) {
-                AlertDialog(
-                    title = {
-                        Text(text = stringResource(id = R.string.something_went_wrong_title))
-                    },
-                    text = {
-                        Text(text = "Error: ${state.registrationError}")
-                    },
-                    onDismissRequest = {
-                        viewModel.clearError()
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                viewModel.clearError()
-                            }
-                        ) {
-                            Text(stringResource(id = R.string.cancel_button))
-                        }
-                    },
-                )
+                RequestErrorDialog(message = state.registrationError!!, onDismiss = {
+                    viewModel.clearError()
+                })
             }
         }
     }
 }
 
+@Composable
+fun RequestErrorDialog(message: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        title = {
+            Text(text = stringResource(id = R.string.something_went_wrong_title))
+        },
+        text = {
+            Text(text = "Error: $message")
+        },
+        onDismissRequest = {
+            onDismiss()
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onDismiss()
+                }
+            ) {
+                Text(stringResource(id = R.string.cancel_button))
+            }
+        },
+    )
+}

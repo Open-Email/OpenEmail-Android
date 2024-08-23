@@ -51,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
+import com.mercata.pingworks.sign_in.RequestErrorDialog
 import com.mercata.pingworks.theme.bodyFontFamily
 import com.mercata.pingworks.theme.displayFontFamily
 
@@ -69,6 +70,7 @@ fun RegistrationScreen(
 
     LaunchedEffect(key1 = state.isRegistered) {
         if (state.isRegistered) {
+
             navController.popBackStack(route = "SignInScreen", inclusive = true)
             navController.navigate(route = "BroadcastListScreen")
         }
@@ -244,40 +246,53 @@ fun RegistrationScreen(
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT))
             }
             if (state.registrationError != null) {
+                RequestErrorDialog(message = state.registrationError!!, onDismiss = {
+                    viewModel.clearError()
+                })
+            }
+            if (state.isRegistered) {
                 AlertDialog(
                     icon = {
-                        Icon(Icons.Default.AccountCircle, contentDescription = "Example Icon")
+                        Icon(
+                            Icons.Default.AccountCircle,
+                            contentDescription = null
+                        )
                     },
                     title = {
-                        Text(text = "Dialog title")
+                        Text(text = stringResource(id = R.string.registered_title))
                     },
                     text = {
-                        Text(text = "Dialgo text")
+                        Text(
+                            text = String.format(
+                                stringResource(id = R.string.biometry_suggestion), stringResource(
+                                    id = R.string.app_name
+                                )
+                            )
+                        )
                     },
                     onDismissRequest = {
-                        viewModel.clearError()
+                        //TODO show dialog to save private keys
                     },
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                viewModel.clearError()
+                                //TODO biometry request
                             }
                         ) {
-                            Text("Confirm")
+                            Text(stringResource(id = R.string.enable_button))
                         }
                     },
                     dismissButton = {
                         TextButton(
                             onClick = {
-                                viewModel.clearError()
+                                //TODO show dialog to save private keys
                             }
                         ) {
-                            Text("Dismiss")
+                            Text(stringResource(id = R.string.cancel_button))
                         }
                     }
                 )
             }
-
         }
     }
 }
