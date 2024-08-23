@@ -86,7 +86,8 @@ fun SignInScreen(
     BiometryEffect(
         isShown = state.biometryShown,
         onPassed = { viewModel.biometryPassed() },
-        onCancelled = { viewModel.biometryCanceled() })
+        onCancelled = { viewModel.biometryCanceled() },
+        onError = { viewModel.biometryCanceled() })
 
     Scaffold { padding ->
         Box {

@@ -32,19 +32,19 @@ class SaveKeysSuggestionViewModel :
     fun biometryPassed() {
         sharedPreferences.run {
             setAutologin(currentState.autologinEnabled)
-            setAutologin(currentState.biometryEnabled)
+            setBiometry(currentState.biometryEnabled)
         }
         updateState(currentState.copy(navigate = true))
     }
 
     fun biometryCanceled() {
-        updateState(currentState.copy(biometryShown = false))
+        updateState(currentState.copy(biometryPrompt = false, biometryEnabled = false))
     }
 
     fun saveSettings() {
         if (currentState.biometryAvailable) {
             if (currentState.biometryEnabled) {
-                updateState(currentState.copy(biometryShown = true))
+                updateState(currentState.copy(biometryPrompt = true))
             } else {
                 sharedPreferences.setAutologin(currentState.autologinEnabled)
                 updateState(currentState.copy(navigate = true))
@@ -60,7 +60,7 @@ data class SaveKeysSuggestionState(
     val privateSigningKey: String = "",
     val privateEncryptionKey: String = "",
     val biometryAvailable: Boolean = false,
-    val biometryShown: Boolean = false,
+    val biometryPrompt: Boolean = false,
     val autologinEnabled: Boolean = true,
     val biometryEnabled: Boolean = true,
     val navigate: Boolean = false

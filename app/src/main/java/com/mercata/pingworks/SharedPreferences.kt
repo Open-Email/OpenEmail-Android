@@ -37,7 +37,7 @@ class SharedPreferences(applicationContext: Context) {
         sharedPreferences.edit().putBoolean(SP_BIOMETRY, biometry).apply()
     }
 
-    fun isBiometry() = sharedPreferences.getBoolean(SP_BIOMETRY, true)
+    fun isBiometry() = sharedPreferences.getBoolean(SP_BIOMETRY, false)
 
     fun getUserPrivateKeys(): UserPrivateKeys? {
         val address: String = getUserAddress() ?: return null

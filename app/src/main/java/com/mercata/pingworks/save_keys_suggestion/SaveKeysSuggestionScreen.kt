@@ -69,7 +69,7 @@ fun SaveKeysSuggestionScreen(
         }
 
         BiometryEffect(
-            isShown = state.biometryShown,
+            isShown = state.biometryPrompt,
             onPassed = { viewModel.biometryPassed() },
             onCancelled = { viewModel.biometryCanceled() })
 
