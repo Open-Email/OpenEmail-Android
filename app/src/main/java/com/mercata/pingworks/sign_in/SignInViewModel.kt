@@ -72,16 +72,23 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
         }
         viewModelScope.launch {
             updateState(currentState.copy(loading = true))
-            val result = getWellKnownHosts(currentState.emailInput.getHost())
-            if (result.isNotEmpty()) {
-                if (sharedPreferences.getUserAddress() == currentState.emailInput && sharedPreferences.isBiometry()) {
-                    updateState(currentState.copy(biometryShown = true))
-                } else {
-                    updateState(currentState.copy(keysInputOpen = true))
+            when(val call = safeApiCall { getWellKnownHosts(currentState.emailInput.getHost()) }) {
+                is HttpResult.Success -> {
+                    if (call.data?.isNotEmpty() == true) {
+                        if (sharedPreferences.getUserAddress() == currentState.emailInput && sharedPreferences.isBiometry()) {
+                            updateState(currentState.copy(biometryShown = true))
+                        } else {
+                            updateState(currentState.copy(keysInputOpen = true))
+                        }
+                    } else {
+                        updateState(currentState.copy(emailErrorResId = R.string.no_account_error))
+                    }
                 }
-            } else {
-                updateState(currentState.copy(emailErrorResId = R.string.no_account_error))
+                is HttpResult.Error -> {
+                    updateState(currentState.copy(emailErrorResId = R.string.no_account_error))
+                }
             }
+
             updateState(currentState.copy(loading = false))
         }
     }

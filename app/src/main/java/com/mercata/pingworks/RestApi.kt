@@ -2,6 +2,8 @@ package com.mercata.pingworks
 
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.response_converters.UserPublicData
+import com.mercata.pingworks.response_converters.WellKnownHost
+import com.mercata.pingworks.response_converters.WellKnownHosts
 import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -15,7 +17,8 @@ import retrofit2.http.Url
 interface RestApi {
 
     @GET(WELL_KNOWN_URI)
-    suspend fun getWellKnownHosts(): Response<String>
+    @WellKnownHosts
+    suspend fun getWellKnownHosts(): Response<List<WellKnownHost>>
 
     @HEAD
     suspend fun isAddressAvailable(@Url url: String): Response<Void>

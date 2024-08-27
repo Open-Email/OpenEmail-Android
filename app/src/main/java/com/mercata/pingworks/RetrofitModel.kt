@@ -4,7 +4,11 @@ import android.util.Log
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.response_converters.UserPublicDataConverterFactory
+import com.mercata.pingworks.response_converters.WellKnownHost
+import com.mercata.pingworks.response_converters.WellKnownHostsConverter
+import com.mercata.pingworks.response_converters.WellKnownHostsConverterFactory
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import okhttp3.Headers
 import okhttp3.OkHttpClient
@@ -13,7 +17,6 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.HttpException
 import retrofit2.Response
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -25,9 +28,8 @@ private fun getInstance(baseUrl: String): RestApi {
     val rv = Retrofit.Builder()
         .baseUrl(baseUrl)
         .addConverterFactory(UserPublicDataConverterFactory())
+        .addConverterFactory(WellKnownHostsConverterFactory())
         .addConverterFactory(ScalarsConverterFactory.create())
-        .addConverterFactory(GsonConverterFactory.create())
-
     if (BuildConfig.DEBUG) {
         val loggingInterceptor = HttpLoggingInterceptor()
         loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
@@ -42,19 +44,8 @@ private fun getInstance(baseUrl: String): RestApi {
     return rv.build().create(RestApi::class.java)
 }
 
-suspend fun getWellKnownHosts(hostName: String): List<String> {
-    return withContext(Dispatchers.IO) {
-        try {
-            val response = getInstance("https://$hostName").getWellKnownHosts()
-            response.body()?.split("\n")
-                ?.filter { it.startsWith("#") || it.isBlank() }
-                ?: listOf()
-        } catch (e: HttpException) {
-            listOf()
-        } catch (e: Exception) {
-            listOf()
-        }
-    }
+suspend fun getWellKnownHosts(hostName: String): Response<List<WellKnownHost>> {
+    return getInstance("https://$hostName").getWellKnownHosts()
 }
 
 suspend fun getProfilePublicData(address: String): Response<PublicUserData> {
@@ -74,6 +65,7 @@ suspend fun isAddressAvailable(hostname: String, localName: String): Boolean {
         } catch (e: HttpException) {
             false
         } catch (e: Exception) {
+            coroutineContext.ensureActive()
             false
         }
     }
@@ -118,6 +110,7 @@ suspend fun registerCall(user: UserData): String? {
         } catch (e: HttpException) {
             e.message()
         } catch (e: Exception) {
+            coroutineContext.ensureActive()
             e.localizedMessage
         }
     }
@@ -138,6 +131,7 @@ suspend fun loginCall(user: UserData): String? {
         } catch (e: HttpException) {
             e.message()
         } catch (e: Exception) {
+            coroutineContext.ensureActive()
             e.localizedMessage
         }
     }
@@ -159,6 +153,7 @@ suspend fun <T : Any> safeApiCall(call: suspend () -> Response<T>): HttpResult<T
                 HttpResult.Error(response.message(), response.code(), response.headers())
             }
         } catch (e: Exception) {
+            coroutineContext.ensureActive()
             e.printStackTrace()
             HttpResult.Error(e.message, -1, null)
         }

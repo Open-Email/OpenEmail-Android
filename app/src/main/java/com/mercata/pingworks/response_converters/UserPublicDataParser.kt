@@ -18,8 +18,7 @@ class UserPublicDataConverterFactory : Converter.Factory() {
         annotations: Array<out Annotation>,
         retrofit: Retrofit
     ): Converter<ResponseBody, *>? {
-        val hasJsonParser = annotations.any { it is UserPublicData }
-        return if (hasJsonParser) {
+        return if (annotations.any { it is UserPublicData }) {
             UserPublicDataConverter()
         } else {
             null
