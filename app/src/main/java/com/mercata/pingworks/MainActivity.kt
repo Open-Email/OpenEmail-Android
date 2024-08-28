@@ -23,6 +23,7 @@ import com.mercata.pingworks.message_details.MessageDetailsScreen
 import com.mercata.pingworks.outbox_list.OutboxListScreen
 import com.mercata.pingworks.registration.RegistrationScreen
 import com.mercata.pingworks.save_keys_suggestion.SaveKeysSuggestionScreen
+import com.mercata.pingworks.settings_screen.SettingsScreen
 import com.mercata.pingworks.sign_in.SignInScreen
 import com.mercata.pingworks.theme.AppTheme
 
@@ -61,8 +62,11 @@ class MainActivity : AppCompatActivity() {
                             )
                         },
                         navController = navController,
-                        startDestination = "InboxListScreen"
+                        startDestination = "SignInScreen"
                     ) {
+                        composable(route = "SettingsScreen") {
+                            SettingsScreen(navController = navController)
+                        }
                         composable(route = "SignInScreen") {
                             SignInScreen(navController = navController)
                         }

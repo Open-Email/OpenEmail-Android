@@ -1,6 +1,5 @@
 package com.mercata.pingworks.common
 
-import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -88,7 +87,7 @@ fun NavigationDrawerBody(
             count = 24
         )
         Spacer(modifier = modifier.weight(1f))
-        TextButton(onClick = { /*TODO*/ }) {
+        TextButton(onClick = { navController.navigate("SettingsScreen") }) {
             Row(
                 modifier = modifier.fillMaxWidth()
 

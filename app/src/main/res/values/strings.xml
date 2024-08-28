@@ -40,4 +40,5 @@
     <string name="authenticate_to_enable_biometric">Please authenticate to enable biometric access.</string>
     <string name="outbox_title">Outbox</string>
     <string name="settings_title">Settings</string>
+    <string name="back_button">Back button</string>
 </resources>
