@@ -1,6 +1,7 @@
 package com.mercata.pingworks
 
 import android.app.Application
+import com.mercata.pingworks.common.NavigationDrawerViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.GlobalContext.startKoin

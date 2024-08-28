@@ -3,6 +3,7 @@ package com.mercata.pingworks.broadcast_list
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.mercata.pingworks.AbstractViewModel
+import com.mercata.pingworks.common.ListState
 import com.mercata.pingworks.models.BroadcastMessage
 import com.mercata.pingworks.models.Person
 import java.time.ZonedDateTime
@@ -40,4 +41,4 @@ class BroadcastListViewModel :
     }
 }
 
-data class BroadcastListState(val messages: SnapshotStateList<BroadcastMessage>)
+data class BroadcastListState(override val messages: SnapshotStateList<BroadcastMessage>): ListState

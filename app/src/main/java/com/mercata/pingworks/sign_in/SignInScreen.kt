@@ -363,13 +363,13 @@ fun BiometryEffect(
             }
 
             override fun onAuthenticationFailed() {
-                println()
+                //ignore
             }
         }
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("AndroidX Biometric")
-            .setSubtitle("Authenticate user via Biometric")
-            .setDescription("Please authenticate yourself here")
+            .setTitle(context.getString(R.string.app_name))
+            .setSubtitle(context.getString(R.string.enable_biometric_feature))
+            .setDescription(context.getString(R.string.authenticate_to_enable_biometric))
             .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
             .setConfirmationRequired(true)
             .build()

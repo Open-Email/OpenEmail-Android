@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalSharedTransitionApi::class)
 
-package com.mercata.pingworks.broadcast_list
+package com.mercata.pingworks.inbox_list
 
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -16,10 +16,10 @@ import com.mercata.pingworks.common.ListScreen
 import com.mercata.pingworks.models.BroadcastMessage
 
 @Composable
-fun SharedTransitionScope.BroadcastListScreen(
+fun SharedTransitionScope.InboxListScreen(
     navController: NavController,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    viewModel: BroadcastListViewModel = viewModel(),
+    viewModel: InboxListViewModel = viewModel(),
 ) {
 
     val state by viewModel.state.collectAsState()
@@ -27,9 +27,9 @@ fun SharedTransitionScope.BroadcastListScreen(
         navController = navController,
         animatedVisibilityScope = animatedVisibilityScope,
         state = state,
-        titleResId = R.string.broadcast_title,
-        primaryColor = MaterialTheme.colorScheme.secondary,
-        primaryContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+        titleResId = R.string.inbox_title,
+        primaryColor = MaterialTheme.colorScheme.primary,
+        primaryContainerColor = MaterialTheme.colorScheme.primaryContainer,
         onDeleteAction = { message -> viewModel.removeItem(message as BroadcastMessage) }
     )
 }

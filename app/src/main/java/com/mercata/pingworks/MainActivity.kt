@@ -18,7 +18,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mercata.pingworks.broadcast_list.BroadcastListScreen
+import com.mercata.pingworks.inbox_list.InboxListScreen
 import com.mercata.pingworks.message_details.MessageDetailsScreen
+import com.mercata.pingworks.outbox_list.OutboxListScreen
 import com.mercata.pingworks.registration.RegistrationScreen
 import com.mercata.pingworks.save_keys_suggestion.SaveKeysSuggestionScreen
 import com.mercata.pingworks.sign_in.SignInScreen
@@ -59,7 +61,7 @@ class MainActivity : AppCompatActivity() {
                             )
                         },
                         navController = navController,
-                        startDestination = "SignInScreen"
+                        startDestination = "InboxListScreen"
                     ) {
                         composable(route = "SignInScreen") {
                             SignInScreen(navController = navController)
@@ -92,6 +94,46 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                         composable(
+                            route = "OutboxListScreen",
+                            enterTransition = {
+                                fadeIn()
+                            },
+                            exitTransition = {
+                                fadeOut()
+                            },
+                            popEnterTransition = {
+                                fadeIn()
+                            },
+                            popExitTransition = {
+                                fadeOut()
+                            },
+                        ) {
+                            OutboxListScreen(
+                                navController = navController,
+                                animatedVisibilityScope = this
+                            )
+                        }
+                        composable(
+                            route = "InboxListScreen",
+                            enterTransition = {
+                                fadeIn()
+                            },
+                            exitTransition = {
+                                fadeOut()
+                            },
+                            popEnterTransition = {
+                                fadeIn()
+                            },
+                            popExitTransition = {
+                                fadeOut()
+                            },
+                        ) {
+                            InboxListScreen(
+                                navController = navController,
+                                animatedVisibilityScope = this
+                            )
+                        }
+                        composable(
                             route = "MessageDetailsScreen/{messageId}",
                             arguments = listOf(
                                 navArgument("messageId") {
@@ -118,8 +160,9 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                     }
-                }
 
+
+                }
             }
         }
     }

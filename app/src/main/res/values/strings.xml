@@ -37,4 +37,7 @@
     <string name="consider_saving_warning">Please, consider saving keys in a secure place, since this is the only way to access the app. Do not share it with anyone.</string>
     <string name="save_button">Save</string>
     <string name="review_login_settings">Please review the login settings and that\'s it.</string>
+    <string name="authenticate_to_enable_biometric">Please authenticate to enable biometric access.</string>
+    <string name="outbox_title">Outbox</string>
+    <string name="settings_title">Settings</string>
 </resources>
