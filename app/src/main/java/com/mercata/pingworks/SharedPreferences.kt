@@ -52,6 +52,13 @@ class SharedPreferences(applicationContext: Context) {
             privateEncryptionKey = PrivateKey(Key.fromBase64String(encryption))
         )
     }
+
+    fun saveSelectedNavigationScreenName(screenName: String) {
+        sharedPreferences.edit().putString(SP_SELECTED_NAV_SCREEN, screenName).apply()
+    }
+
+    fun getSelectedNavigationScreenName(): String =
+        sharedPreferences.getString(SP_SELECTED_NAV_SCREEN, null) ?: "InboxListScreen"
 }
 
 data class UserPrivateKeys(

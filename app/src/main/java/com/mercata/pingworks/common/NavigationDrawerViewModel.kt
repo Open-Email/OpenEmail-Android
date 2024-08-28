@@ -3,18 +3,25 @@ package com.mercata.pingworks.common
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import com.mercata.pingworks.AbstractViewModel
+import com.mercata.pingworks.SharedPreferences
+import org.koin.core.component.inject
 
 class NavigationDrawerViewModel :
     AbstractViewModel<NavigationDrawerState>(NavigationDrawerState()) {
 
     init {
-        //TODO check persistent storage to open last opened screen
+        val sharedPreferences: SharedPreferences by inject()
+        updateState(currentState.copy(currentScreenName = sharedPreferences.getSelectedNavigationScreenName()))
     }
 
     fun selectPage(pageName: String) {
         updateState(currentState.copy(currentScreenName = pageName))
+        saveScreenSelection(pageName)
     }
 
+    private fun saveScreenSelection(screenName: String) {
+        sharedPreferences.saveSelectedNavigationScreenName(screenName)
+    }
 }
 
 data class NavigationDrawerState(

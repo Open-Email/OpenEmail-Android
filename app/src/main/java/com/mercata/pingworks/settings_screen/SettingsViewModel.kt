@@ -31,6 +31,11 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
         sharedPreferences.setAutologin(isEnabled)
         updateState(currentState.copy(autologinEnabled = sharedPreferences.isAutologin()))
     }
+
+    fun logout() {
+        //TODO
+        //sharedPreferences.setAutologin(false)
+    }
 }
 
 data class SettingsState(

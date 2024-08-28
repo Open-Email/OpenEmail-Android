@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +45,7 @@ fun NavigationDrawerBody(
 ) {
 
     val state by viewModel.state.collectAsState()
+
 
     Column(modifier = modifier.padding(12.dp)) {
         Text(
@@ -87,6 +89,24 @@ fun NavigationDrawerBody(
             count = 24
         )
         Spacer(modifier = modifier.weight(1f))
+        TextButton(onClick = { navController.navigate("ContactsScreen") }) {
+            Row(
+                modifier = modifier.fillMaxWidth()
+
+            ) {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = stringResource(id = R.string.contacts_title)
+                )
+                Spacer(modifier = modifier.width(MARGIN_SMALLER))
+                Text(
+                    text = stringResource(id = R.string.contacts_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = modifier.width(2.dp))
+            }
+        }
         TextButton(onClick = { navController.navigate("SettingsScreen") }) {
             Row(
                 modifier = modifier.fillMaxWidth()

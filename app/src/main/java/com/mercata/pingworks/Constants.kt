@@ -4,6 +4,7 @@ import androidx.compose.ui.unit.dp
 import java.time.format.DateTimeFormatter
 
 val MESSAGE_LIST_ITEM_HEIGHT = 88.dp
+val CONTACT_LIST_ITEM_HEIGHT = 52.dp
 val MARGIN_DEFAULT = 16.dp
 val MARGIN_SMALLER = 12.dp
 const val animationDuration = 500
@@ -29,6 +30,7 @@ const val SP_PRIVATE_SIGNING_KEY = "sp_private_signing_key"
 const val SP_PRIVATE_ENCRYPTION_KEY = "sp_private_encryption_key"
 const val SP_AUTOLOGIN = "sp_autologin"
 const val SP_BIOMETRY = "sp_biometry"
+const val SP_SELECTED_NAV_SCREEN = "sp_selected_nav_screen"
 val availableHosts = listOf("ping.works")
 
 

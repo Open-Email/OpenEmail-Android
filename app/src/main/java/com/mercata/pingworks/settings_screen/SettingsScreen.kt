@@ -3,6 +3,7 @@
 package com.mercata.pingworks.settings_screen
 
 import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -158,6 +159,16 @@ fun SettingsScreen(
                     }
                 }
             }
+            Text(
+                modifier = modifier.clickable {
+                    viewModel.logout()
+                    //navController.popBackStack()
+                },
+                text = stringResource(id = R.string.logout_button),
+                color = MaterialTheme.colorScheme.error,
+                fontFamily = bodyFontFamily,
+                softWrap = true
+            )
         }
     }
 }
