@@ -33,8 +33,7 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
     }
 
     fun logout() {
-        //TODO
-        //sharedPreferences.setAutologin(false)
+        toggleAutologin(false)
     }
 }
 

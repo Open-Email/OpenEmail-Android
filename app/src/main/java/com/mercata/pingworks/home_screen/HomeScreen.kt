@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 
-package com.mercata.pingworks.common
+package com.mercata.pingworks.home_screen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -50,6 +50,7 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,32 +67,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.R
+import com.mercata.pingworks.common.NavigationDrawerBody
 import com.mercata.pingworks.models.Message
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun SharedTransitionScope.ListScreen(
+fun SharedTransitionScope.HomeScreen(
     navController: NavController,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    state: ListState,
-    titleResId: Int,
-    primaryColor: Color,
-    primaryContainerColor: Color,
-    onDeleteAction: (message: Message) -> Unit
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = viewModel(),
 ) {
-    val coroutineScope = rememberCoroutineScope()
 
+    val coroutineScope = rememberCoroutineScope()
     val scrollBehavior =
         TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
-
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
+    val state by viewModel.state.collectAsState()
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -99,12 +99,16 @@ fun SharedTransitionScope.ListScreen(
         drawerContent = {
             ModalDrawerSheet {
                 NavigationDrawerBody(
+                    modifier = modifier,
                     navController = navController,
-                    onNavigate = {
+                    onItemClick = { homeScreen ->
                         coroutineScope.launch {
+                            viewModel.selectScreen(homeScreen)
                             drawerState.close()
                         }
-                    }
+                    },
+                    selected = state.screen,
+                    unread = state.unread,
                 )
             }
         }) {
@@ -113,12 +117,12 @@ fun SharedTransitionScope.ListScreen(
             topBar = {
                 LargeTopAppBar(
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = primaryContainerColor,
-                        titleContentColor = primaryColor,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     ),
                     title = {
                         Text(
-                            stringResource(id = titleResId),
+                            stringResource(id = state.screen.titleResId),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -152,8 +156,8 @@ fun SharedTransitionScope.ListScreen(
             },
             floatingActionButton = {
                 FloatingActionButton(
-                    containerColor = primaryContainerColor,
-                    contentColor = primaryColor,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     onClick = {
                         //TODO compose message
                         println()
@@ -175,8 +179,8 @@ fun SharedTransitionScope.ListScreen(
                     key = { it.id }) { item ->
                     SwipeContainer(
                         item = item,
-                        onDelete = { i ->
-                            onDeleteAction(i)
+                        onDelete = {
+                            viewModel.removeItem(item)
                         },
                         onUpdateReadState = { i ->
                             //TODO change read state

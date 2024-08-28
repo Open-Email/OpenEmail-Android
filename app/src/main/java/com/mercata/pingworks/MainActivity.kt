@@ -17,11 +17,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.mercata.pingworks.broadcast_list.BroadcastListScreen
 import com.mercata.pingworks.contacts_screen.ContactsScreen
-import com.mercata.pingworks.inbox_list.InboxListScreen
+import com.mercata.pingworks.home_screen.HomeScreen
 import com.mercata.pingworks.message_details.MessageDetailsScreen
-import com.mercata.pingworks.outbox_list.OutboxListScreen
 import com.mercata.pingworks.registration.RegistrationScreen
 import com.mercata.pingworks.save_keys_suggestion.SaveKeysSuggestionScreen
 import com.mercata.pingworks.settings_screen.SettingsScreen
@@ -81,7 +79,7 @@ class MainActivity : AppCompatActivity() {
                             SaveKeysSuggestionScreen(navController = navController)
                         }
                         composable(
-                            route = "BroadcastListScreen",
+                            route = "HomeScreen",
                             enterTransition = {
                                 fadeIn(animationSpec = tween(300))
                             },
@@ -96,49 +94,9 @@ class MainActivity : AppCompatActivity() {
                             },
                         ) {
 
-                            BroadcastListScreen(
+                            HomeScreen(
                                 navController,
                                 this,
-                            )
-                        }
-                        composable(
-                            route = "OutboxListScreen",
-                            enterTransition = {
-                                fadeIn()
-                            },
-                            exitTransition = {
-                                fadeOut()
-                            },
-                            popEnterTransition = {
-                                fadeIn()
-                            },
-                            popExitTransition = {
-                                fadeOut()
-                            },
-                        ) {
-                            OutboxListScreen(
-                                navController = navController,
-                                animatedVisibilityScope = this
-                            )
-                        }
-                        composable(
-                            route = "InboxListScreen",
-                            enterTransition = {
-                                fadeIn()
-                            },
-                            exitTransition = {
-                                fadeOut()
-                            },
-                            popEnterTransition = {
-                                fadeIn()
-                            },
-                            popExitTransition = {
-                                fadeOut()
-                            },
-                        ) {
-                            InboxListScreen(
-                                navController = navController,
-                                animatedVisibilityScope = this
                             )
                         }
                         composable(

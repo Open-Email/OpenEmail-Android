@@ -3,11 +3,11 @@
 package com.mercata.pingworks.settings_screen
 
 import android.content.Intent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -33,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -79,6 +81,7 @@ fun SettingsScreen(
     ) { padding ->
         Column(
             modifier = modifier
+                .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(padding)
                 .padding(MARGIN_DEFAULT)
@@ -159,16 +162,21 @@ fun SettingsScreen(
                     }
                 }
             }
-            Text(
-                modifier = modifier.clickable {
+            Spacer(modifier = modifier.weight(1f))
+            TextButton(modifier = modifier.fillMaxWidth(),
+                onClick = {
                     viewModel.logout()
-                    //navController.popBackStack()
-                },
-                text = stringResource(id = R.string.logout_button),
-                color = MaterialTheme.colorScheme.error,
-                fontFamily = bodyFontFamily,
-                softWrap = true
-            )
+                    navController.popBackStack(route = "HomeScreen", inclusive = true)
+                    navController.navigate(route = "SignInScreen")
+                }) {
+                Text(
+                    text = stringResource(id = R.string.logout_button),
+                    color = MaterialTheme.colorScheme.error,
+                    fontFamily = bodyFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    softWrap = true
+                )
+            }
         }
     }
 }

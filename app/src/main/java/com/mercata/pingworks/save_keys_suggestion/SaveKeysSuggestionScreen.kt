@@ -64,7 +64,7 @@ fun SaveKeysSuggestionScreen(
         LaunchedEffect(key1 = state.navigate) {
             if (state.navigate) {
                 navController.popBackStack(route = "SignInScreen", inclusive = true)
-                navController.navigate(route = "BroadcastListScreen")
+                navController.navigate(route = "HomeScreen")
             }
         }
 

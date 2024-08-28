@@ -16,10 +16,12 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) : AbstractView
         updateState(
             currentState.copy(
                 message = BroadcastMessage(
-                    id = currentState.messageId,
+                    id = 11.toString(),
                     subject = "Some message subject might be longer then expected so here we are",
                     person = Person(
+                        id = "${11 * 2}",
                         name = "Joanno Dopelhetz",
+                        address = "some.address@ping.works",
                         imageUrl = "https://cdn.lospec.com/avatar/smilingdog.png"
                     ),
                     date = ZonedDateTime.now(),

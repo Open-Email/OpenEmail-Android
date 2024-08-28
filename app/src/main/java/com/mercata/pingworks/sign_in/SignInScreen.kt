@@ -79,7 +79,7 @@ fun SignInScreen(
     LaunchedEffect(key1 = state.isLoggedIn) {
         if (state.isLoggedIn) {
             navController.popBackStack(route = "SignInScreen", inclusive = true)
-            navController.navigate(route = "BroadcastListScreen")
+            navController.navigate(route = "HomeScreen")
         }
     }
 

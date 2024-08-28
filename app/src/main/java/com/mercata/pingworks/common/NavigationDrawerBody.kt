@@ -20,8 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -33,20 +31,17 @@ import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MARGIN_SMALLER
 import com.mercata.pingworks.R
-import kotlinx.coroutines.Job
+import com.mercata.pingworks.home_screen.HomeScreen
 
-private val viewModel: NavigationDrawerViewModel = NavigationDrawerViewModel()
 
 @Composable
 fun NavigationDrawerBody(
     navController: NavController,
     modifier: Modifier = Modifier,
-    onNavigate: () -> Job
+    onItemClick: (screen: HomeScreen) -> Unit,
+    selected: HomeScreen,
+    unread: Map<HomeScreen, Int>
 ) {
-
-    val state by viewModel.state.collectAsState()
-
-
     Column(modifier = modifier.padding(12.dp)) {
         Text(
             text = stringResource(id = R.string.app_name),
@@ -54,40 +49,17 @@ fun NavigationDrawerBody(
             modifier = modifier.padding(MARGIN_DEFAULT),
             fontWeight = FontWeight.Bold
         )
-        //TODO parse count
-        NavigationItem(
-            onClick = {
-                navController.popBackStack(state.currentScreenName, inclusive = true)
-                viewModel.selectPage("BroadcastListScreen")
-                navController.navigate("BroadcastListScreen")
-            },
-            isSelected = state.currentScreenName == "BroadcastListScreen",
-            icon = Icons.Default.Email,
-            titleResId = R.string.broadcast_title,
-            count = state.broadcastUnreadCount
-        )
-        NavigationItem(
-            onClick = {
-                navController.popBackStack(state.currentScreenName, inclusive = true)
-                viewModel.selectPage("InboxListScreen")
-                navController.navigate("InboxListScreen")
-            },
-            isSelected = state.currentScreenName == "InboxListScreen",
-            icon = Icons.Default.KeyboardArrowDown,
-            titleResId = R.string.inbox_title,
-            count = 24
-        )
-        NavigationItem(
-            onClick = {
-                navController.popBackStack(state.currentScreenName, inclusive = true)
-                viewModel.selectPage("OutboxListScreen")
-                navController.navigate("OutboxListScreen")
-            },
-            isSelected = state.currentScreenName == "OutboxListScreen",
-            icon = Icons.Default.KeyboardArrowUp,
-            titleResId = R.string.outbox_title,
-            count = 24
-        )
+        HomeScreen.entries.forEach { screen ->
+            NavigationItem(
+                onClick = {
+                    onItemClick(screen)
+                },
+                isSelected = selected == screen,
+                icon = screen.icon,
+                titleResId = screen.titleResId,
+                count = unread[screen]
+            )
+        }
         Spacer(modifier = modifier.weight(1f))
         TextButton(onClick = { navController.navigate("ContactsScreen") }) {
             Row(
@@ -134,7 +106,7 @@ fun NavigationItem(
     isSelected: Boolean,
     icon: ImageVector,
     titleResId: Int,
-    count: Int,
+    count: Int?,
     onClick: () -> Unit
 ) {
     val color =
@@ -158,8 +130,10 @@ fun NavigationItem(
             style = MaterialTheme.typography.titleMedium,
             color = color
         )
-        Spacer(modifier = modifier.weight(1f))
-        Text(count.toString(), style = MaterialTheme.typography.titleMedium, color = color)
-        Spacer(modifier = modifier.width(2.dp))
+        if (count != null) {
+            Spacer(modifier = modifier.weight(1f))
+            Text(count.toString(), style = MaterialTheme.typography.titleMedium, color = color)
+            Spacer(modifier = modifier.width(2.dp))
+        }
     }
 }
