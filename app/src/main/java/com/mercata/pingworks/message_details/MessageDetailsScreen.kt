@@ -54,6 +54,7 @@ import kotlin.math.roundToInt
 fun SharedTransitionScope.MessageDetailsScreen(
     navController: NavController,
     animatedVisibilityScope: AnimatedVisibilityScope,
+    modifier: Modifier = Modifier,
     viewModel: MessageDetailsViewModel = viewModel()
 ) {
 
@@ -61,16 +62,16 @@ fun SharedTransitionScope.MessageDetailsScreen(
     val scrollState = rememberScrollState()
 
     Scaffold(
-        modifier = Modifier
+        modifier = modifier
             .sharedBounds(
                 rememberSharedContentState(
-                    key = "bounds/${state.messageId}"
+                    key = "message_bounds/${state.messageId}"
                 ),
                 animatedVisibilityScope,
             ),
         topBar = {
             TopAppBar(
-                modifier = Modifier.shadow(elevation = if (scrollState.value == 0) 0.dp else 16.dp),
+                modifier = modifier.shadow(elevation = if (scrollState.value == 0) 0.dp else 16.dp),
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = if (scrollState.value == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.primary,
@@ -110,7 +111,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
         },
     ) { padding ->
         Column(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(padding)
@@ -121,19 +122,19 @@ fun SharedTransitionScope.MessageDetailsScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(MARGIN_DEFAULT))
+            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
 
             state.message?.person?.run {
                 Row(
-                    modifier = Modifier
+                    modifier = modifier
                         .fillMaxWidth()
                 ) {
                     AsyncImage(
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier
+                        modifier = modifier
                             .sharedBounds(
                                 sharedContentState = rememberSharedContentState(
-                                    key = "image/${state.messageId}"
+                                    key = "message_image/${state.messageId}"
                                 ),
                                 animatedVisibilityScope = animatedVisibilityScope,
                             )
@@ -142,7 +143,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         model = state.message!!.person!!.imageUrl,
                         contentDescription = null
                     )
-                    Spacer(modifier = Modifier.width(MARGIN_DEFAULT))
+                    Spacer(modifier = modifier.width(MARGIN_DEFAULT))
                     Column {
                         state.message!!.person!!.name?.let { name ->
                             Text(
@@ -160,11 +161,11 @@ fun SharedTransitionScope.MessageDetailsScreen(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Spacer(Modifier.weight(1f))
+                    Spacer(modifier.weight(1f))
                     Text(state.message?.date?.format(DEFAULT_DATE_FORMAT) ?: "")
                 }
             }
-            Spacer(modifier = Modifier.height(MARGIN_DEFAULT))
+            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
             Text(
                 text = state.message?.body ?: "",
             )

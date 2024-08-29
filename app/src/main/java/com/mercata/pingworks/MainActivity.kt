@@ -17,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.mercata.pingworks.contact_details.ContactDetailsScreen
 import com.mercata.pingworks.contacts_screen.ContactsScreen
 import com.mercata.pingworks.home_screen.HomeScreen
 import com.mercata.pingworks.message_details.MessageDetailsScreen
@@ -63,8 +64,26 @@ class MainActivity : AppCompatActivity() {
                         navController = navController,
                         startDestination = "SignInScreen"
                     ) {
+                        composable(
+                            route = "ContactDetailsScreen/{address}",
+                            arguments = listOf(
+                                navArgument("address") {
+                                    type = NavType.StringType
+                                    nullable = false
+                                }
+                            ),
+                            enterTransition = { fadeIn() },
+                            exitTransition = { fadeOut() },
+                            popEnterTransition = { fadeIn() },
+                            popExitTransition = { fadeOut() },
+                        ) {
+                            ContactDetailsScreen(
+                                navController,
+                                this
+                            )
+                        }
                         composable(route = "ContactsScreen") {
-                            ContactsScreen(navController = navController)
+                            ContactsScreen(navController = navController, this)
                         }
                         composable(route = "SettingsScreen") {
                             SettingsScreen(navController = navController)
@@ -80,18 +99,10 @@ class MainActivity : AppCompatActivity() {
                         }
                         composable(
                             route = "HomeScreen",
-                            enterTransition = {
-                                fadeIn(animationSpec = tween(300))
-                            },
-                            exitTransition = {
-                                fadeOut(animationSpec = tween(300))
-                            },
-                            popEnterTransition = {
-                                fadeIn(animationSpec = tween(300))
-                            },
-                            popExitTransition = {
-                                fadeOut(animationSpec = tween(300))
-                            },
+                            enterTransition = { fadeIn() },
+                            exitTransition = { fadeOut() },
+                            popEnterTransition = { fadeIn() },
+                            popExitTransition = { fadeOut() },
                         ) {
 
                             HomeScreen(

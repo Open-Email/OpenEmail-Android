@@ -1,10 +1,13 @@
 @file:OptIn(
     ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3Api::class
+    ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class
 )
 
 package com.mercata.pingworks.contacts_screen
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -69,8 +72,9 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.models.Person
 
 @Composable
-fun ContactsScreen(
+fun SharedTransitionScope.ContactsScreen(
     navController: NavController,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     modifier: Modifier = Modifier,
     viewModel: ContactsViewModel = viewModel()
 ) {
@@ -125,7 +129,12 @@ fun ContactsScreen(
             ) {
                 items(items = state.contacts,
                     key = { it.address }) { item ->
-                    ContactViewHolder(modifier = modifier, person = item)
+                    ContactViewHolder(
+                        modifier = modifier,
+                        navController = navController,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        person = item
+                    )
                     //HorizontalDivider(color = MaterialTheme.colorScheme.primary, thickness = 1.dp)
                 }
             }
@@ -139,14 +148,27 @@ fun ContactsScreen(
 
 
 @Composable
-fun ContactViewHolder(modifier: Modifier = Modifier, person: Person) {
+fun SharedTransitionScope.ContactViewHolder(
+    modifier: Modifier = Modifier,
+    navController: NavController,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    person: Person
+) {
     Row(verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
+            .sharedBounds(
+                sharedContentState = rememberSharedContentState(
+                    key = "contact_bounds/${person.address}"
+                ),
+                animatedVisibilityScope = animatedVisibilityScope,
+            )
             .fillMaxSize()
-
             .height(CONTACT_LIST_ITEM_HEIGHT)
+            .background(MaterialTheme.colorScheme.surface)
             .clickable {
-                //TODO open contact details screen
+                navController.navigate(
+                    "ContactDetailsScreen/${person.address}"
+                )
             }
             .padding(horizontal = MARGIN_DEFAULT)
     ) {
@@ -154,12 +176,18 @@ fun ContactViewHolder(modifier: Modifier = Modifier, person: Person) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = modifier
+                    .sharedBounds(
+                        sharedContentState = rememberSharedContentState(
+                            key = "contact_image/${person.address}"
+                        ),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    )
                     .clip(CircleShape)
                     .size(40.0.dp)
                     .background(MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Text(
-                    text = "${person.name?.first() ?: person.address.first()}",
+                    text = "${person.name?.firstOrNull() ?: person.address.first()}",
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -167,12 +195,12 @@ fun ContactViewHolder(modifier: Modifier = Modifier, person: Person) {
             AsyncImage(
                 contentScale = ContentScale.Crop,
                 modifier = modifier
-                    /*.sharedBounds(
+                    .sharedBounds(
                         sharedContentState = rememberSharedContentState(
-                            key = "image/${item.id}"
+                            key = "contact_image/${person.address}"
                         ),
                         animatedVisibilityScope = animatedVisibilityScope,
-                    )*/
+                    )
                     .size(40.0.dp)
                     .clip(CircleShape),
                 model = person.imageUrl,

@@ -212,7 +212,7 @@ fun SharedTransitionScope.MessageViewHolder(
         modifier = modifier
             .sharedBounds(
                 sharedContentState = rememberSharedContentState(
-                    key = "bounds/${item.id}"
+                    key = "message_bounds/${item.id}"
                 ),
                 animatedVisibilityScope = animatedVisibilityScope,
             )
@@ -230,7 +230,7 @@ fun SharedTransitionScope.MessageViewHolder(
                 modifier = modifier
                     .sharedBounds(
                         sharedContentState = rememberSharedContentState(
-                            key = "image/${item.id}"
+                            key = "message_image/${item.id}"
                         ),
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
