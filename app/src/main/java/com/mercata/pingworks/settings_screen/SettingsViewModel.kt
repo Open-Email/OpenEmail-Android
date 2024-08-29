@@ -13,6 +13,7 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
         val keys = sharedPreferences.getUserPrivateKeys()
         updateState(
             currentState.copy(
+                address = keys?.address,
                 privateEncryptionKey = keys?.privateEncryptionKey?.toString(),
                 privateSigningKey = keys?.privateSigningKey?.toString(),
                 biometryAvailable = bioManager.isBiometricAvailable(),
@@ -40,6 +41,7 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
 data class SettingsState(
     val privateEncryptionKey: String? = null,
     val privateSigningKey: String? = null,
+    val address: String? = null,
     val biometryAvailable: Boolean = false,
     val biometryEnabled: Boolean = false,
     val autologinEnabled: Boolean = false

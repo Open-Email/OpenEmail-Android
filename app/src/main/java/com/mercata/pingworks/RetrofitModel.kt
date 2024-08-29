@@ -5,7 +5,6 @@ import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.response_converters.UserPublicDataConverterFactory
 import com.mercata.pingworks.response_converters.WellKnownHost
-import com.mercata.pingworks.response_converters.WellKnownHostsConverter
 import com.mercata.pingworks.response_converters.WellKnownHostsConverterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive

@@ -61,7 +61,7 @@ fun SettingsScreen(
                 ),
                 title = {
                     Text(
-                        stringResource(id = R.string.settings_title),
+                        "${stringResource(id = R.string.settings_title)} ${state.address ?: ""}",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
