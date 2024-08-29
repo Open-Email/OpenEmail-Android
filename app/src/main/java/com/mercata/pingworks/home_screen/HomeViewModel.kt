@@ -26,7 +26,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                     id = UUID.randomUUID().toString(),
                     subject = "Some message subject might be longer then expected so here we are",
                     person = Person(
-                        id = "${i * 2}",
                         name = "Joanno Dopelhetz",
                         address = "some.address@ping.works",
                         imageUrl = "https://cdn.lospec.com/avatar/smilingdog.png",

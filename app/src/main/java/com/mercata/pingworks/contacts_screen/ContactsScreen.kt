@@ -1,15 +1,26 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
+@file:OptIn(
+    ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3Api::class
+)
 
 package com.mercata.pingworks.contacts_screen
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -17,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -35,8 +47,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -48,6 +62,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.mercata.pingworks.CONTACT_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
@@ -109,8 +124,9 @@ fun ContactsScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(items = state.contacts,
-                    key = { it.id }) { item ->
+                    key = { it.address }) { item ->
                     ContactViewHolder(modifier = modifier, person = item)
+                    //HorizontalDivider(color = MaterialTheme.colorScheme.primary, thickness = 1.dp)
                 }
             }
 
@@ -124,15 +140,53 @@ fun ContactsScreen(
 
 @Composable
 fun ContactViewHolder(modifier: Modifier = Modifier, person: Person) {
-    Column(
-        modifier
+    Row(verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
             .fillMaxSize()
+
             .height(CONTACT_LIST_ITEM_HEIGHT)
+            .clickable {
+                //TODO open contact details screen
+            }
+            .padding(horizontal = MARGIN_DEFAULT)
     ) {
-        person.name?.let {
-            Text(text = person.name)
+        if (person.imageUrl == null) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = modifier
+                    .clip(CircleShape)
+                    .size(40.0.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Text(
+                    text = "${person.name?.first() ?: person.address.first()}",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        } else {
+            AsyncImage(
+                contentScale = ContentScale.Crop,
+                modifier = modifier
+                    /*.sharedBounds(
+                        sharedContentState = rememberSharedContentState(
+                            key = "image/${item.id}"
+                        ),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    )*/
+                    .size(40.0.dp)
+                    .clip(CircleShape),
+                model = person.imageUrl,
+                contentDescription = stringResource(id = R.string.profile_image)
+            )
         }
-        Text(text = person.address)
+
+        Spacer(modifier = modifier.width(MARGIN_DEFAULT))
+        Column {
+            person.name?.let {
+                Text(text = person.name, style = MaterialTheme.typography.bodyLarge)
+            }
+            Text(text = person.address, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
 
@@ -145,11 +199,20 @@ fun AddContactDialog(
     val addressFocusRequester = remember { FocusRequester() }
     var focusRequested = remember { false }
     val focusManager = LocalFocusManager.current
-    val titleResId = if (state.newContactFound == null) R.string.add_new_contact else {
-        if (state.contacts.any { it.address == state.newContactFound.address }) {
-            R.string.account_in_contacts
+    val addressPresented =
+        state.contacts.any { it.address == state.newContactFound?.address }
+    val samePerson = state.loggedInPersonAddress == state.newContactAddressInput.lowercase().trim()
+    val titleResId = if (samePerson) {
+        R.string.cannot_add_yourself
+    } else {
+        if (state.newContactFound == null) {
+            R.string.add_new_contact
         } else {
-            R.string.accont_not_in_contacts
+            if (addressPresented) {
+                R.string.account_in_contacts
+            } else {
+                R.string.accont_not_in_contacts
+            }
         }
     }
 
@@ -162,8 +225,9 @@ fun AddContactDialog(
 
     AlertDialog(
         icon = {
-            Icon(
+            if (state.loading) CircularProgressIndicator(modifier = modifier.size(24.0.dp)) else Icon(
                 Icons.Default.Person,
+                modifier = modifier.size(24.0.dp),
                 contentDescription = stringResource(id = R.string.add_new_contact)
             )
         },
@@ -173,7 +237,7 @@ fun AddContactDialog(
         text = {
             if (state.newContactFound == null) {
                 OutlinedTextField(
-                    value = state.newContactAddressInput ?: "",
+                    value = state.newContactAddressInput,
                     onValueChange = { str -> viewModel.onNewContactAddressInput(str) },
                     singleLine = true,
                     enabled = !state.loading,
@@ -200,7 +264,10 @@ fun AddContactDialog(
                     ),
                 )
             } else {
-                Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    modifier = modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(state.newContactFound.fullName)
                     Text(state.newContactFound.address)
                 }
@@ -210,17 +277,19 @@ fun AddContactDialog(
             viewModel.updateContactSearchDialog(false)
         },
         confirmButton = {
-            TextButton(enabled = !state.loading && state.searchButtonActive,
-                onClick = {
-                    if (state.newContactFound == null) {
-                        viewModel.searchNewContact()
-                    } else {
-                        viewModel.addContact()
-                        viewModel.updateContactSearchDialog(false)
+            if (!addressPresented && !samePerson) {
+                TextButton(enabled = !state.loading && state.searchButtonActive,
+                    onClick = {
+                        if (state.newContactFound == null) {
+                            viewModel.searchNewContact()
+                        } else {
+                            viewModel.addContact()
+                            viewModel.updateContactSearchDialog(false)
+                        }
                     }
+                ) {
+                    Text(stringResource(id = if (state.newContactFound == null) R.string.search_address else R.string.add_button))
                 }
-            ) {
-                Text(stringResource(id = if (state.newContactFound == null) R.string.search_address else R.string.add_button))
             }
         },
         dismissButton = {

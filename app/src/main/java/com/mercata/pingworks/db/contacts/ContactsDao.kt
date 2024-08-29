@@ -6,15 +6,16 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ContactsDao {
 
     @Query("SELECT * FROM dbcontact")
-    suspend fun getAll(): List<DBContact>
+    fun getAll(): Flow<List<DBContact>>
 
-    @Query("SELECT * FROM dbcontact WHERE id IN (:userIds)")
-    suspend fun loadAllByIds(userIds: List<String>): List<DBContact>
+    @Query("SELECT * FROM dbcontact WHERE address IN (:userAddresses)")
+    fun loadAllByIds(userAddresses: List<String>): Flow<List<DBContact>>
 
     @Query("SELECT * FROM DBContact WHERE name LIKE :name LIMIT 1")
     suspend fun findByName(name: String): DBContact?

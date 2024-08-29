@@ -237,7 +237,7 @@ fun SharedTransitionScope.MessageViewHolder(
                     .size(width = 72.0.dp, height = 72.0.dp)
                     .clip(RoundedCornerShape(16.0.dp)),
                 model = item.person?.imageUrl,
-                contentDescription = null
+                contentDescription = stringResource(id = R.string.profile_image)
             )
             Spacer(modifier = modifier.width(MARGIN_DEFAULT))
         }

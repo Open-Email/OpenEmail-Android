@@ -274,7 +274,7 @@ fun SignInScreen(
                             enabled = !state.loading && state.authenticateButtonEnabled
                         ) {
                             Text(
-                                stringResource(id = R.string.authenticate_button),
+                                stringResource(id = R.string.sign_in_button),
                                 fontFamily = bodyFontFamily
                             )
                         }

@@ -4,7 +4,7 @@ import androidx.compose.ui.unit.dp
 import java.time.format.DateTimeFormatter
 
 val MESSAGE_LIST_ITEM_HEIGHT = 88.dp
-val CONTACT_LIST_ITEM_HEIGHT = 52.dp
+val CONTACT_LIST_ITEM_HEIGHT = 72.dp
 val MARGIN_DEFAULT = 16.dp
 val MARGIN_SMALLER = 12.dp
 const val animationDuration = 500

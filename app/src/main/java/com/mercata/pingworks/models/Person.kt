@@ -3,7 +3,6 @@ package com.mercata.pingworks.models
 import java.time.LocalDateTime
 
 data class Person(
-    val id: String,
     val name: String?,
     val createdAt: LocalDateTime,
     val imageUrl: String?,

@@ -10,9 +10,8 @@ import java.time.ZoneId
 
 @Entity
 data class DBContact(
-    @PrimaryKey @ColumnInfo(name = "id") val id: String,
     @ColumnInfo(name = "timestamp") val timestamp: Long,
-    @ColumnInfo(name = "address") val address: String,
+    @PrimaryKey @ColumnInfo(name = "address") val address: String,
     @ColumnInfo(name = "name") val name: String?,
     @ColumnInfo(name = "imageUrl") val imageUrl: String?,
     @ColumnInfo(name = "receiveBroadcasts") val receiveBroadcasts: Boolean,
@@ -27,7 +26,6 @@ fun DBContact.toPerson(): Person {
     val instant = Instant.ofEpochMilli(this.timestamp)
     LocalDateTime.ofInstant(instant, ZoneId.systemDefault())
     return Person(
-        id = this.id,
         name = this.name,
         address = this.address,
         imageUrl = this.imageUrl,
@@ -42,7 +40,6 @@ fun DBContact.toPerson(): Person {
 
 fun Person.toDbContact(): DBContact {
     return DBContact(
-        id = this.id,
         timestamp = this.createdAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
         address = this.address,
         name = this.name,

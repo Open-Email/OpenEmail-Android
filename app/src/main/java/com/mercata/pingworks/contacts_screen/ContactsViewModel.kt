@@ -5,6 +5,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.HttpResult
+import com.mercata.pingworks.SharedPreferences
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.db.contacts.toPerson
@@ -16,20 +17,23 @@ import com.mercata.pingworks.safeApiCall
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
-import java.util.UUID
 
 class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
 
     init {
         val db: AppDatabase by inject()
         viewModelScope.launch {
-            val contacts: List<Person> = db.userDao().getAll().map { it.toPerson() }
-            currentState.contacts.addAll(contacts)
+            db.userDao().getAll().collect { dbEntities ->
+                currentState.contacts.clear()
+                currentState.contacts.addAll(dbEntities.map { it.toPerson() })
+            }
         }
+        val sp: SharedPreferences by inject()
+        updateState(currentState.copy(loggedInPersonAddress = sp.getUserAddress()!!))
 
     }
 
-    var searchJob: Job? = null
+    private var searchJob: Job? = null
 
     fun onNewContactAddressInput(str: String) {
         updateState(
@@ -75,7 +79,6 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
             val publicData = currentState.newContactFound!!
             db.userDao().insertAll(
                 DBContact(
-                    id = UUID.randomUUID().toString(),
                     timestamp = System.currentTimeMillis(),
                     address = publicData.address,
                     name = publicData.fullName.takeUnless { it.isBlank() },
@@ -96,6 +99,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     fun updateContactSearchDialog(isShown: Boolean) {
         updateState(currentState.copy(newContactSearchDialogShown = isShown))
         if (!isShown) {
+            updateState(currentState.copy(newContactAddressInput = ""))
             clearFoundContact()
             searchJob?.cancel()
         }
@@ -109,7 +113,8 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
 data class ContactsState(
     val contacts: SnapshotStateList<Person> = mutableStateListOf(),
     val searchInput: String = "",
-    val newContactAddressInput: String? = null,
+    val newContactAddressInput: String = "",
+    val loggedInPersonAddress: String = "",
     val newContactFound: PublicUserData? = null,
     val searchButtonActive: Boolean = false,
     val loading: Boolean = false,
