@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.google.ksp)
 }
 
 android {
@@ -85,6 +86,10 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.koin.android)
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.room.runtime)
+    annotationProcessor(libs.room.compiler)
+    ksp(libs.room.compiler)
+    implementation(libs.androidx.room.ktx)
     //noinspection UseTomlInstead
     implementation("com.goterl:lazysodium-android:5.1.0@aar")
     //noinspection UseTomlInstead

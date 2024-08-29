@@ -1,6 +1,7 @@
 package com.mercata.pingworks
 
 import androidx.lifecycle.ViewModel
+import com.mercata.pingworks.db.AppDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,6 +13,7 @@ abstract class AbstractViewModel<T>(initialState: T) : ViewModel(), KoinComponen
     protected var currentState: T = initialState
 
     protected val sharedPreferences : SharedPreferences by inject()
+    protected val db : AppDatabase by inject()
 
     private val _state = MutableStateFlow(currentState)
     val state: StateFlow<T> = _state.asStateFlow()

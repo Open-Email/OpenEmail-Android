@@ -139,7 +139,7 @@ fun SharedTransitionScope.HomeScreen(
                         }) {
                             Icon(
                                 imageVector = Icons.Filled.Menu,
-                                contentDescription = stringResource(id = R.string.navigation_menu)
+                                contentDescription = stringResource(id = R.string.navigation_menu_title)
                             )
                         }
                     },

@@ -5,6 +5,7 @@ import java.time.ZonedDateTime
 
 data class PublicUserData(
     val fullName: String,
+    val address: String,
     val lastSeenPublic: Boolean,
     val lastSeen: ZonedDateTime?,
     val updated: ZonedDateTime?,

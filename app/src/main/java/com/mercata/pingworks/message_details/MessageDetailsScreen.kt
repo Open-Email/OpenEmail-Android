@@ -25,7 +25,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -144,13 +143,23 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         contentDescription = null
                     )
                     Spacer(modifier = Modifier.width(MARGIN_DEFAULT))
-                    Text(
-                        text = state.message!!.person!!.name,
-                        maxLines = 2,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Column {
+                        state.message!!.person!!.name?.let { name ->
+                            Text(
+                                text = name,
+                                maxLines = 2,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Text(
+                            text = state.message!!.person!!.address,
+                            maxLines = 2,
+                            style = MaterialTheme.typography.bodyMedium,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                     Spacer(Modifier.weight(1f))
                     Text(state.message?.date?.format(DEFAULT_DATE_FORMAT) ?: "")
                 }

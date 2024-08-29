@@ -43,3 +43,4 @@ interface RestApi {
         @Path("localPart") localPart: String
     ): Response<PublicUserData>
 }
+

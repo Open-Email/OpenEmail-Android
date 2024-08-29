@@ -4,7 +4,7 @@
     <string name="onboarding_text">Spam-free, phishing-free, private &amp; secure by design.</string>
     <string name="address_input_hint">%s address</string>
     <string name="sign_in_button">Sign In</string>
-    <string name="authenticate_button">Authenticate</string>
+    <string name="authenticate_button">Register Account</string>
     <string name="no_account_question">Don\'t have an %s address yet?</string>
     <string name="registration_button">Get one for free instantly</string>
     <string name="invalid_email">Invalid address. Please, check input and try again.</string>
@@ -25,7 +25,7 @@
     <string name="terms_of_service_description">Users are prohibited from engaging in abusive behavior or any illegal activities while using our service, because while we\'re all for freedom, we draw the line at breaking the law or being a jerk.</string>
     <string name="create_new_message">Create new message</string>
     <string name="search">Search</string>
-    <string name="navigation_menu">Navigation menu</string>
+    <string name="navigation_menu_title">Navigation menu</string>
     <string name="inbox_title">Inbox</string>
     <string name="warning">Warning\n</string>
     <string name="registered_title">You are registered!</string>
@@ -44,4 +44,9 @@
     <string name="contacts_title">Contacts</string>
     <string name="add_new_contact">Add new contact</string>
     <string name="logout_button">Logout</string>
+    <string name="input_contact_address_hint">Contact address</string>
+    <string name="search_address">Search adress</string>
+    <string name="account_in_contacts">This account already in your contact list</string>
+    <string name="accont_not_in_contacts">This account is not in your contact list</string>
+    <string name="add_button">Add</string>
 </resources>

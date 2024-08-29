@@ -28,7 +28,9 @@ class UserPublicDataConverterFactory : Converter.Factory() {
 
 class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
     override fun convert(value: ResponseBody): PublicUserData? {
-        val map = value.string().split("\n").filterNot { it.startsWith("#") }
+        val split = value.string().split("\n")
+        val address = split.first().substringAfter("Profile of ")
+        val map = split.filterNot { it.startsWith("#") }
             .associate { it.substringBefore(": ") to it.substringAfter(": ") }
 
         if (!map.containsKey("Encryption-Key") || !map.containsKey("Signing-Key")) return null
@@ -40,6 +42,7 @@ class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
             ?.associate { it.substringBefore("=") to it.substringAfter("=") } as Map
 
         return PublicUserData(
+            address = address,
             fullName = map["Name"] ?: "",
             lastSeenPublic = map["Last-Seen-Public"] == "Yes",
             lastSeen = map["Last-Seen"]?.run {

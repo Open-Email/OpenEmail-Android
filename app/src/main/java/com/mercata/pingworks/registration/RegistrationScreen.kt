@@ -253,49 +253,6 @@ fun RegistrationScreen(
                     viewModel.clearError()
                 })
             }
-            if (state.isRegistered) {
-                AlertDialog(
-                    icon = {
-                        Icon(
-                            Icons.Default.AccountCircle,
-                            contentDescription = null
-                        )
-                    },
-                    title = {
-                        Text(text = stringResource(id = R.string.registered_title))
-                    },
-                    text = {
-                        Text(
-                            text = String.format(
-                                stringResource(id = R.string.biometry_suggestion), stringResource(
-                                    id = R.string.app_name
-                                )
-                            )
-                        )
-                    },
-                    onDismissRequest = {
-                        //TODO show dialog to save private keys
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                //TODO biometry request
-                            }
-                        ) {
-                            Text(stringResource(id = R.string.enable_button))
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = {
-                                //TODO show dialog to save private keys
-                            }
-                        ) {
-                            Text(stringResource(id = R.string.cancel_button))
-                        }
-                    }
-                )
-            }
         }
     }
 }
