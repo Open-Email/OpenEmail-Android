@@ -61,6 +61,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     )
                     .height(imageSize)
                     .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.primaryContainer)
             ) {
                 if (state.contact?.imageUrl == null) {
                     Box(
@@ -69,7 +70,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                             .height(imageSize)
                             .padding(horizontal = MARGIN_DEFAULT)
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.primaryContainer)
+
                     ) {
                         Text(
                             textAlign = TextAlign.Center,

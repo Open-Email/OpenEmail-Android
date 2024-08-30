@@ -10,7 +10,7 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
     init {
         val sharedPreferences: SharedPreferences by inject()
         val bioManager: BioManager by inject()
-        val keys = sharedPreferences.getUserPrivateKeys()
+        val keys = sharedPreferences.getUserKeys()
         updateState(
             currentState.copy(
                 address = keys?.address,

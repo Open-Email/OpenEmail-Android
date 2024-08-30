@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.DEFAULT_MAIL_SUBDOMAIN
 import com.mercata.pingworks.EncryptionKeys
+import com.mercata.pingworks.HttpResult
 import com.mercata.pingworks.SigningKeys
 import com.mercata.pingworks.availableHosts
 import com.mercata.pingworks.generateEncryptionKeys
@@ -11,6 +12,7 @@ import com.mercata.pingworks.generateSigningKeys
 import com.mercata.pingworks.getHost
 import com.mercata.pingworks.isAddressAvailable
 import com.mercata.pingworks.registerCall
+import com.mercata.pingworks.safeApiCall
 import kotlinx.coroutines.launch
 
 
@@ -28,20 +30,26 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
         viewModelScope.launch {
             updateState(currentState.copy(isLoading = true))
             val localName = currentState.usernameInput.trim().lowercase()
-            val available: Boolean = isAddressAvailable(
-                hostname = currentState.selectedHostName,
-                localName = localName
-            )
+            val address = "$localName@${currentState.selectedHostName}"
+            val available: Boolean = when (safeApiCall {
+                isAddressAvailable(address)
+            }) {
+                is HttpResult.Error -> false
+                is HttpResult.Success -> true
+            }
             if (available) {
                 val user = UserData(
                     name = currentState.fullNameInput,
-                    address = "${currentState.usernameInput}@${currentState.selectedHostName}",
+                    address = address,
                     encryptionKeys = generateEncryptionKeys(),
                     signingKeys = generateSigningKeys()
                 )
-                val error: String? = registerCall(user)
+                val error: String? = when (val call = safeApiCall { registerCall(user) }) {
+                    is HttpResult.Error -> call.message
+                    is HttpResult.Success -> null
+                }
                 if (error == null) {
-                    sharedPreferences.saveUserPrivateKeys(user)
+                    sharedPreferences.saveUserKeys(user)
                     updateState(currentState.copy(isRegistered = true))
                 } else {
                     updateState(currentState.copy(registrationError = error))
@@ -80,5 +88,5 @@ data class UserData(
     val encryptionKeys: EncryptionKeys,
     val signingKeys: SigningKeys,
 ) {
-    fun getHost() = "$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}"
+    fun getMailHost() = "$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}"
 }

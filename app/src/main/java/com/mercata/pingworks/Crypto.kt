@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalStdlibApi::class)
+
 package com.mercata.pingworks
 
 import com.goterl.lazysodium.LazySodiumAndroid
@@ -5,8 +7,11 @@ import com.goterl.lazysodium.SodiumAndroid
 import com.goterl.lazysodium.exceptions.SodiumException
 import com.goterl.lazysodium.interfaces.Sign
 import com.goterl.lazysodium.utils.Key
+import com.mercata.pingworks.models.Address
 import com.mercata.pingworks.registration.UserData
+import org.koin.java.KoinJavaComponent.inject
 import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import java.util.Base64
 
 data class PrivateKey(val key: Key) {
@@ -47,11 +52,19 @@ fun generateRandomString(length: Int = 32): String {
 }
 
 fun sign(user: UserData): String {
+    return sign(
+        mailHost = user.getMailHost(),
+        privateSignKey = user.signingKeys.privateKey,
+        publicSignKey = user.signingKeys.publicKey
+    )
+}
+
+fun sign(mailHost: String, privateSignKey: PrivateKey, publicSignKey: PublicKey): String {
     val value = generateRandomString()
     val signature: String? = try {
         signData(
-            privateKey = user.signingKeys.privateKey.key,
-            data = (user.getHost() + value).toByteArray()
+            privateKey = privateSignKey.key,
+            data = (mailHost + value).toByteArray()
         )
     } catch (e: SodiumException) {
         null
@@ -60,13 +73,29 @@ fun sign(user: UserData): String {
     val headers = mutableListOf<String>()
 
     headers.add("$NONCE_HEADER_VALUE_KEY$headerKeyValueSeparator$value")
-    headers.add("$NONCE_HEADER_VALUE_HOST$headerKeyValueSeparator${user.getHost()}")
+    headers.add("$NONCE_HEADER_VALUE_HOST$headerKeyValueSeparator${mailHost}")
     headers.add("$NONCE_HEADER_ALGORITHM_KEY$headerKeyValueSeparator$SIGNING_ALGORITHM")
     headers.add("$NONCE_HEADER_SIGNATURE_KEY$headerKeyValueSeparator$signature")
-    headers.add("$NONCE_HEADER_PUBKEY_KEY$headerKeyValueSeparator${user.signingKeys.publicKey}")
+    headers.add("$NONCE_HEADER_PUBKEY_KEY$headerKeyValueSeparator${publicSignKey}")
 
     return headers.joinToString(prefix = "$NONCE_SCHEME ", separator = headerFieldSeparator)
 }
+
+@Throws(SodiumException::class)
+fun encryptAnonymous(address: Address, publicEncryptionKey: PublicKey): String {
+   return sodium.cryptoBoxSealEasy(address, publicEncryptionKey.key)
+}
+
+fun Address.generateLink(): String {
+    val sp: SharedPreferences by inject(SharedPreferences::class.java)
+    val addresses = listOf(sp.getUserAddress()!!, this).sorted().joinToString(separator = "")
+    return addresses.hashedWithSha256()
+}
+
+fun String.hashedWithSha256() =
+    MessageDigest.getInstance("SHA-256")
+        .digest(toByteArray())
+        .toHexString()
 
 @Throws(SodiumException::class)
 fun signData(privateKey: Key, data: ByteArray): String {

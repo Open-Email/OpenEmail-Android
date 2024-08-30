@@ -32,7 +32,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                 if (sharedPreferences.isBiometry()) {
                     updateState(currentState.copy(biometryShown = true))
                 } else {
-                    val keys = sharedPreferences.getUserPrivateKeys()!!
+                    val keys = sharedPreferences.getUserKeys()!!
                     updateState(
                         currentState.copy(
                             privateSigningKeyInput = keys.privateSigningKey.toString(),
@@ -46,7 +46,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
     }
 
     fun biometryPassed() {
-        val keys = sharedPreferences.getUserPrivateKeys()!!
+        val keys = sharedPreferences.getUserKeys()!!
         updateState(
             currentState.copy(
                 biometryShown = false, privateSigningKeyInput = keys.privateSigningKey.toString(),
@@ -72,7 +72,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
         }
         viewModelScope.launch {
             updateState(currentState.copy(loading = true))
-            when(val call = safeApiCall { getWellKnownHosts(currentState.emailInput.getHost()) }) {
+            when (val call = safeApiCall { getWellKnownHosts(currentState.emailInput.getHost()) }) {
                 is HttpResult.Success -> {
                     if (call.data?.isNotEmpty() == true) {
                         if (sharedPreferences.getUserAddress() == currentState.emailInput && sharedPreferences.isBiometry()) {
@@ -84,6 +84,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                         updateState(currentState.copy(emailErrorResId = R.string.no_account_error))
                     }
                 }
+
                 is HttpResult.Error -> {
                     updateState(currentState.copy(emailErrorResId = R.string.no_account_error))
                 }
@@ -182,9 +183,13 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                 )
             )
 
-            val error: String? = loginCall(userData)
+            val error: String? = when (val call = safeApiCall { loginCall(userData) }) {
+                is HttpResult.Error -> call.message
+                is HttpResult.Success -> null
+            }
+
             if (error == null) {
-                sharedPreferences.saveUserPrivateKeys(userData)
+                sharedPreferences.saveUserKeys(userData)
                 updateState(currentState.copy(isLoggedIn = true))
             } else {
                 updateState(currentState.copy(registrationError = error))

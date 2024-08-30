@@ -11,7 +11,7 @@ class SaveKeysSuggestionViewModel :
     init {
         val bioManager: BioManager by inject()
         val sharedPreferences: SharedPreferences by inject()
-        val keys = sharedPreferences.getUserPrivateKeys()!!
+        val keys = sharedPreferences.getUserKeys()!!
         updateState(
             currentState.copy(
                 biometryAvailable = bioManager.isBiometricAvailable(),
