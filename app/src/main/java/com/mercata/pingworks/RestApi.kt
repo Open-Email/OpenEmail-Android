@@ -1,12 +1,14 @@
 package com.mercata.pingworks
 
 import com.mercata.pingworks.models.PublicUserData
+import com.mercata.pingworks.response_converters.ContactsList
 import com.mercata.pingworks.response_converters.UserPublicData
 import com.mercata.pingworks.response_converters.WellKnownHost
 import com.mercata.pingworks.response_converters.WellKnownHosts
 import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.HEAD
 import retrofit2.http.Header
@@ -57,6 +59,22 @@ interface RestApi {
         @Path("localPart") localPart: String,
         @Path("link") link: String,
         @Body body: RequestBody
+    ): Response<Void>
+
+    @GET("/home/{hostPart}/{localPart}/links")
+    @ContactsList
+    suspend fun getAllContacts(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+    ): Response<List<String>>
+
+    @DELETE("/home/{hostPart}/{localPart}/links/{linkAddr}")
+    suspend fun deleteContact(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+        @Path("linkAddr") linkAddr: String,
     ): Response<Void>
 }
 

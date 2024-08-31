@@ -1,9 +1,11 @@
 package com.mercata.pingworks
 
 import android.util.Log
+import com.mercata.pingworks.models.Person
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.models.getMailHost
 import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.response_converters.ContactsListConverterFactory
 import com.mercata.pingworks.response_converters.UserPublicDataConverterFactory
 import com.mercata.pingworks.response_converters.WellKnownHost
 import com.mercata.pingworks.response_converters.WellKnownHostsConverterFactory
@@ -17,17 +19,16 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
-import java.nio.charset.Charset
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.util.Base64
 
 
 private fun getInstance(baseUrl: String): RestApi {
 
     val rv = Retrofit.Builder()
         .baseUrl(baseUrl)
+        .addConverterFactory(ContactsListConverterFactory())
         .addConverterFactory(UserPublicDataConverterFactory())
         .addConverterFactory(WellKnownHostsConverterFactory())
         .addConverterFactory(ScalarsConverterFactory.create())
@@ -75,7 +76,6 @@ suspend fun registerCall(user: UserData): Response<Void> {
         )
     }
 
-    val authNonce: String = sign(user)
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX")
 
     val postData = """
@@ -84,12 +84,8 @@ suspend fun registerCall(user: UserData): Response<Void> {
             Signing-Key: algorithm=${SIGNING_ALGORITHM}; value=${user.signingKeys.publicKey}
             Updated: ${LocalDateTime.now().atOffset(ZoneOffset.UTC).format(formatter)}
             """.trimIndent()
-//Name: Anton Akimchenko
-//Encryption-Key: id=9Yw8; algorithm=curve25519xsalsa20poly1305; value=7LqZ5KzGfVTpXXRZCcItVwtnNDINiv4Qsk04F/ZoQFw=
-//Signing-Key: algorithm=ed25519; value=0vSV/BJ65mmD4pu33APAWauSWbmMhrRzPetRKCuulis=
-//Updated: 2024-08-31T12:17:23.956Z
     return getInstance("https://${user.address.getMailHost()}").register(
-        sotnHeader = authNonce,
+        sotnHeader = user.sign(),
         hostPart = user.address.getHost(),
         localPart = user.address.getLocal(),
         body = postData.toRequestBody()
@@ -97,9 +93,8 @@ suspend fun registerCall(user: UserData): Response<Void> {
 }
 
 suspend fun loginCall(user: UserData): Response<Void> {
-    val authNonce: String = sign(user)
     return getInstance("https://${user.address.getMailHost()}").login(
-        authNonce,
+        user.sign(),
         hostPart = user.address.getHost(),
         localPart = user.address.getLocal()
     )
@@ -112,16 +107,34 @@ suspend fun uploadContact(
     val link = contact.address.generateLink()
 
     val currentUser = sharedPreferences.getUserData()!!
-    val authNonce = sign(currentUser)
 
-    val encryptedRemoteAddress = encryptAnonymous(contact.address, currentUser.encryptionKeys.publicKey).encodeToBase64()
+    val encryptedRemoteAddress = encryptAnonymous(contact.address, currentUser)
 
-    return getInstance("https://${contact.address.getMailHost()}").uploadContact(
-        sotnHeader = authNonce,
+    return getInstance("https://${currentUser.address.getMailHost()}").uploadContact(
+        sotnHeader = currentUser.sign(),
         hostPart = currentUser.address.getHost(),
         localPart = currentUser.address.getLocal(),
         link = link,
         body = encryptedRemoteAddress.toRequestBody()
+    )
+}
+
+suspend fun getAllContacts(sharedPreferences: SharedPreferences): Response<List<String>> {
+    val currentUser = sharedPreferences.getUserData()!!
+    return getInstance("https://${currentUser.address.getMailHost()}").getAllContacts(
+        sotnHeader = currentUser.sign(),
+        hostPart = currentUser.address.getHost(),
+        localPart = currentUser.address.getLocal()
+    )
+}
+
+suspend fun deleteContact(contact: Person, sharedPreferences: SharedPreferences): Response<Void> {
+    val currentUser = sharedPreferences.getUserData()!!
+    return getInstance("https://${currentUser.address.getMailHost()}").deleteContact(
+        sotnHeader = currentUser.sign(),
+        hostPart = currentUser.address.getHost(),
+        localPart = currentUser.address.getLocal(),
+        linkAddr = contact.address.generateLink()
     )
 }
 

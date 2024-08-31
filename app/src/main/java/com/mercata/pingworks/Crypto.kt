@@ -5,9 +5,10 @@ package com.mercata.pingworks
 import com.goterl.lazysodium.LazySodiumAndroid
 import com.goterl.lazysodium.SodiumAndroid
 import com.goterl.lazysodium.exceptions.SodiumException
-import com.goterl.lazysodium.interfaces.Box
 import com.goterl.lazysodium.interfaces.Sign
+import com.goterl.lazysodium.utils.Base64MessageEncoder
 import com.goterl.lazysodium.utils.Key
+import com.goterl.lazysodium.utils.KeyPair
 import com.mercata.pingworks.models.Address
 import com.mercata.pingworks.models.getMailHost
 import com.mercata.pingworks.registration.UserData
@@ -24,10 +25,15 @@ data class PublicKey(val key: Key) {
     override fun toString(): String = key.asBytes.encodeToBase64()
 }
 
-data class EncryptionKeys(val privateKey: PrivateKey, val publicKey: PublicKey, val id: String)
-data class SigningKeys(val privateKey: PrivateKey, val publicKey: PublicKey)
+data class EncryptionKeys(val privateKey: PrivateKey, val publicKey: PublicKey, val id: String) {
+    fun getKeyPair() = KeyPair(publicKey.key, privateKey.key)
+}
 
-val sodium = LazySodiumAndroid(SodiumAndroid(), StandardCharsets.UTF_8)
+data class SigningKeys(val privateKey: PrivateKey, val publicKey: PublicKey) {
+    fun getKeyPair() = KeyPair(publicKey.key, privateKey.key)
+}
+
+val sodium = LazySodiumAndroid(SodiumAndroid(), StandardCharsets.UTF_8, Base64MessageEncoder())
 
 fun generateEncryptionKeys(): EncryptionKeys {
     val pair = sodium.cryptoBoxKeypair()
@@ -39,6 +45,7 @@ fun generateEncryptionKeys(): EncryptionKeys {
 }
 
 fun ByteArray.encodeToBase64(): String = Base64.getEncoder().encodeToString(this)
+//fun String.decodeToBase64(): ByteArray = Base64.getDecoder().decode(this)
 
 fun generateSigningKeys(): SigningKeys {
     val pair = sodium.cryptoSignKeypair()
@@ -53,12 +60,12 @@ fun generateRandomString(length: Int = 32): String {
     return Array(length) { alphabet.random() }.joinToString("")
 }
 
-fun sign(user: UserData): String {
+fun UserData.sign(): String {
     val value = generateRandomString()
     val signature: String? = try {
         signData(
-            privateKey = user.signingKeys.privateKey.key,
-            data = (user.address.getMailHost() + value).toByteArray()
+            privateKey = this.signingKeys.privateKey.key,
+            data = (this.address.getMailHost() + value).toByteArray()
         )
     } catch (e: SodiumException) {
         null
@@ -67,25 +74,21 @@ fun sign(user: UserData): String {
     val headers = mutableListOf<String>()
 
     headers.add("$NONCE_HEADER_VALUE_KEY$headerKeyValueSeparator$value")
-    headers.add("$NONCE_HEADER_VALUE_HOST$headerKeyValueSeparator${user.address.getMailHost()}")
+    headers.add("$NONCE_HEADER_VALUE_HOST$headerKeyValueSeparator${this.address.getMailHost()}")
     headers.add("$NONCE_HEADER_ALGORITHM_KEY$headerKeyValueSeparator$SIGNING_ALGORITHM")
     headers.add("$NONCE_HEADER_SIGNATURE_KEY$headerKeyValueSeparator$signature")
-    headers.add("$NONCE_HEADER_PUBKEY_KEY$headerKeyValueSeparator${user.signingKeys.publicKey}")
+    headers.add("$NONCE_HEADER_PUBKEY_KEY$headerKeyValueSeparator${this.signingKeys.publicKey}")
     return headers.joinToString(prefix = "$NONCE_SCHEME ", separator = headerFieldSeparator)
 }
 
+@Throws(SodiumException::class)
+fun encryptAnonymous(address: Address, currentUser: UserData): String {
+    return sodium.cryptoBoxSealEasy(address, currentUser.encryptionKeys.publicKey.key)
+}
 
 @Throws(SodiumException::class)
-fun encryptAnonymous(address: Address, publicEncryptionKey: PublicKey): ByteArray {
-    val keyBytes: ByteArray = publicEncryptionKey.key.asBytes
-    val addressBytes: ByteArray = address.toByteArray()
-    val cipher = ByteArray(Box.SEALBYTES + addressBytes.size)
-
-    if (!sodium.cryptoBoxSeal(cipher, addressBytes, addressBytes.size.toLong(), keyBytes)) {
-        throw SodiumException("Could not encrypt message.")
-    }
-
-    return cipher
+fun decryptAnonymous(cipherText: String, currentUser: UserData): String {
+    return sodium.cryptoBoxSealOpenEasy(cipherText, currentUser.encryptionKeys.getKeyPair())
 }
 
 fun Address.generateLink(): String {

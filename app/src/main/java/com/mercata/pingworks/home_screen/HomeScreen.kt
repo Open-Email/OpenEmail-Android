@@ -222,10 +222,11 @@ fun SharedTransitionScope.MessageViewHolder(
             .background(color = MaterialTheme.colorScheme.surface)
             .height(MESSAGE_LIST_ITEM_HEIGHT)
             .fillMaxWidth()
-            .padding(horizontal = MARGIN_DEFAULT)
             .clickable {
                 onMessageClicked(item)
             }
+            .padding(horizontal = MARGIN_DEFAULT)
+
     ) {
         if (item.person?.imageUrl != null) {
             AsyncImage(
@@ -271,8 +272,8 @@ enum class SwipeAction {
 @Composable
 fun <T> SwipeContainer(
     item: T,
-    onDelete: (T) -> Unit,
-    onUpdateReadState: (T) -> Unit,
+    onDelete: ((T) -> Unit)? = null,
+    onUpdateReadState: ((T) -> Unit)? = null,
     animationDuration: Int = 500,
     content: @Composable (T) -> Unit
 ) {
@@ -304,10 +305,10 @@ fun <T> SwipeContainer(
     LaunchedEffect(key1 = actionState) {
         delay(animationDuration.toLong())
         when (actionState) {
-            SwipeAction.Deleted -> onDelete(item)
+            SwipeAction.Deleted -> onDelete?.invoke(item)
             SwipeAction.UpdatedRead -> {
                 state.snapTo(SwipeToDismissBoxValue.Settled)
-                onUpdateReadState(item)
+                onUpdateReadState?.invoke(item)
             }
 
             SwipeAction.Idle -> state.snapTo(SwipeToDismissBoxValue.Settled)
@@ -327,8 +328,8 @@ fun <T> SwipeContainer(
                 DeleteBackground(swipeValue = state.targetValue)
             },
             content = { content(item) },
-            enableDismissFromEndToStart = true,
-            enableDismissFromStartToEnd = true,
+            enableDismissFromEndToStart = onDelete != null,
+            enableDismissFromStartToEnd = onUpdateReadState != null,
         )
     }
 }

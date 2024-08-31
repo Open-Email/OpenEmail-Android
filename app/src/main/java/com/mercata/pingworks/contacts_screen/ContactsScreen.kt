@@ -72,6 +72,8 @@ import coil.compose.AsyncImage
 import com.mercata.pingworks.CONTACT_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
+import com.mercata.pingworks.home_screen.MessageViewHolder
+import com.mercata.pingworks.home_screen.SwipeContainer
 import com.mercata.pingworks.models.Person
 
 @Composable
@@ -82,21 +84,9 @@ fun SharedTransitionScope.ContactsScreen(
     viewModel: ContactsViewModel = viewModel()
 ) {
 
-    val context = LocalContext.current
     val state by viewModel.state.collectAsState()
-    val snackBarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(key1 = state.snackBarTextResId) {
-        if (state.snackBarTextResId != null) {
-            snackBarHostState.showSnackbar(
-                message = context.getString(state.snackBarTextResId!!),
-                withDismissAction = true,
-                duration = viewModel.snackBarDuration
-            )
-        }
-    }
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -145,14 +135,20 @@ fun SharedTransitionScope.ContactsScreen(
             ) {
                 items(items = state.contacts,
                     key = { it.address }) { item ->
-                    ContactViewHolder(
-                        modifier = modifier,
-                        navController = navController,
-                        animatedVisibilityScope = animatedVisibilityScope,
-                        person = item,
-                        uploading = item.address == state.loadingContactAddress
-                    )
-                    //HorizontalDivider(color = MaterialTheme.colorScheme.primary, thickness = 1.dp)
+
+                    SwipeContainer(
+                        item = item,
+                        onDelete = {
+                            viewModel.removeItem(item)
+                        }) {
+                        ContactViewHolder(
+                            modifier = modifier,
+                            navController = navController,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            person = item,
+                            uploading = item.address == state.loadingContactAddress
+                        )
+                    }
                 }
             }
 
@@ -207,7 +203,6 @@ fun SharedTransitionScope.ContactViewHolder(
                         .size(40.0.dp)
                         .background(MaterialTheme.colorScheme.primary)
                 ) {
-
                     Text(
                         text = "${person.name?.firstOrNull() ?: person.address.first()}",
                         style = MaterialTheme.typography.titleMedium,
