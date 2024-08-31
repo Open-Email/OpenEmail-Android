@@ -1,5 +1,6 @@
 package com.mercata.pingworks.contacts_screen
 
+import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.viewModelScope
@@ -14,6 +15,7 @@ import com.mercata.pingworks.getProfilePublicData
 import com.mercata.pingworks.models.Person
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.safeApiCall
+import com.mercata.pingworks.uploadContact
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
@@ -47,7 +49,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     fun searchNewContact() {
         viewModelScope.launch {
             updateState(currentState.copy(loading = true))
-            val address = currentState.newContactAddressInput!!.trim()
+            val address = currentState.newContactAddressInput.trim()
             val publicData: PublicUserData? =
                 when (val call = safeApiCall { getProfilePublicData(address) }) {
                     is HttpResult.Success -> {
@@ -66,34 +68,40 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     }
 
     private fun emailValid(): Boolean {
-        if (currentState.newContactAddressInput.isNullOrBlank()) {
+        if (currentState.newContactAddressInput.isBlank()) {
             return false
         }
 
-        return currentState.newContactAddressInput!!.lowercase().matches(emailRegex)
+        return currentState.newContactAddressInput.lowercase().matches(emailRegex)
     }
 
     fun addContact() {
         viewModelScope.launch {
             updateState(currentState.copy(loading = true))
             val publicData = currentState.newContactFound!!
-            db.userDao().insertAll(
-                DBContact(
-                    timestamp = System.currentTimeMillis(),
-                    address = publicData.address,
-                    name = publicData.fullName.takeUnless { it.isBlank() },
-                    //TODO update when public profile will contain image
-                    imageUrl = null,
-                    receiveBroadcasts = true,
-                    signingKeyAlgorithm = publicData.signingKeyAlgorithm,
-                    encryptionKeyAlgorithm = publicData.encryptionKeyAlgorithm,
-                    publicSigningKey = publicData.publicSigningKey,
-                    publicEncryptionKey = publicData.publicEncryptionKey
-                )
-            )
+            when(val call = safeApiCall { uploadContact(contact = publicData, sharedPreferences = sharedPreferences) }) {
+                is HttpResult.Error -> {
+                    Log.e(ContactsViewModel::class.java.toString(), "Uploading contact failed : ${call.message}")
+                }
+                is HttpResult.Success -> {
+                    db.userDao().insertAll(
+                        DBContact(
+                            timestamp = System.currentTimeMillis(),
+                            address = publicData.address,
+                            name = publicData.fullName.takeUnless { it.isBlank() },
+                            //TODO update when public profile will contain image
+                            imageUrl = null,
+                            receiveBroadcasts = true,
+                            signingKeyAlgorithm = publicData.signingKeyAlgorithm,
+                            encryptionKeyAlgorithm = publicData.encryptionKeyAlgorithm,
+                            publicSigningKey = publicData.publicSigningKey,
+                            publicEncryptionKey = publicData.publicEncryptionKey
+                        )
+                    )
+                }
+            }
             updateState(currentState.copy(loading = false))
         }
-
     }
 
     fun updateContactSearchDialog(isShown: Boolean) {

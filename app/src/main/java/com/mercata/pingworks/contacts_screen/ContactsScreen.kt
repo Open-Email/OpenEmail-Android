@@ -184,7 +184,7 @@ fun SharedTransitionScope.ContactViewHolder(
                     )
                     .clip(CircleShape)
                     .size(40.0.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .background(MaterialTheme.colorScheme.primary)
             ) {
                 Text(
                     text = "${person.name?.firstOrNull() ?: person.address.first()}",

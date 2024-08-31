@@ -32,11 +32,11 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                 if (sharedPreferences.isBiometry()) {
                     updateState(currentState.copy(biometryShown = true))
                 } else {
-                    val keys = sharedPreferences.getUserKeys()!!
+                    val currentUser = sharedPreferences.getUserData()!!
                     updateState(
                         currentState.copy(
-                            privateSigningKeyInput = keys.privateSigningKey.toString(),
-                            privateEncryptionKeyInput = keys.privateEncryptionKey.toString()
+                            privateSigningKeyInput = currentUser.signingKeys.privateKey.toString(),
+                            privateEncryptionKeyInput = currentUser.encryptionKeys.privateKey.toString()
                         )
                     )
                     authenticateWithKeys()
@@ -46,11 +46,12 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
     }
 
     fun biometryPassed() {
-        val keys = sharedPreferences.getUserKeys()!!
+        val currentUser = sharedPreferences.getUserData()!!
         updateState(
             currentState.copy(
-                biometryShown = false, privateSigningKeyInput = keys.privateSigningKey.toString(),
-                privateEncryptionKeyInput = keys.privateEncryptionKey.toString()
+                biometryShown = false,
+                privateSigningKeyInput = currentUser.signingKeys.privateKey.toString(),
+                privateEncryptionKeyInput = currentUser.encryptionKeys.privateKey.toString()
             )
         )
         authenticateWithKeys()

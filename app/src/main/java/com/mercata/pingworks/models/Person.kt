@@ -14,8 +14,8 @@ data class Person(
     val signingKeyAlgorithm: String,
     val publicEncryptionKey: String,
     val publicSigningKey: String,
-) {
-    fun getMailHost() = "$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}"
-}
+)
 
 typealias Address = String
+
+fun Address.getMailHost() = "$DEFAULT_MAIL_SUBDOMAIN.${this.getHost()}"

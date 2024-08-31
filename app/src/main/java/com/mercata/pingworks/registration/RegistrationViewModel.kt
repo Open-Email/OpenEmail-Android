@@ -87,6 +87,4 @@ data class UserData(
     val address: String,
     val encryptionKeys: EncryptionKeys,
     val signingKeys: SigningKeys,
-) {
-    fun getMailHost() = "$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}"
-}
+)

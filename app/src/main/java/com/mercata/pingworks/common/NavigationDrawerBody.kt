@@ -110,12 +110,12 @@ fun NavigationItem(
     onClick: () -> Unit
 ) {
     val color =
-        if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+        if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
     Row(
         modifier = modifier
             .clip(shape = CircleShape)
             .clickable { onClick() }
-            .background(color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+            .background(color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
             .fillMaxWidth()
             .padding(MARGIN_DEFAULT)
 

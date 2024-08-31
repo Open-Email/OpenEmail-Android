@@ -10,12 +10,12 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
     init {
         val sharedPreferences: SharedPreferences by inject()
         val bioManager: BioManager by inject()
-        val keys = sharedPreferences.getUserKeys()
+        val userData = sharedPreferences.getUserData()!!
         updateState(
             currentState.copy(
-                address = keys?.address,
-                privateEncryptionKey = keys?.privateEncryptionKey?.toString(),
-                privateSigningKey = keys?.privateSigningKey?.toString(),
+                address = userData.address,
+                privateEncryptionKey =userData.encryptionKeys.privateKey.toString(),
+                privateSigningKey = userData.signingKeys.privateKey.toString(),
                 biometryAvailable = bioManager.isBiometricAvailable(),
                 biometryEnabled = sharedPreferences.isBiometry(),
                 autologinEnabled = sharedPreferences.isAutologin()

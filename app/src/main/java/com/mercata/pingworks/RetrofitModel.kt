@@ -1,8 +1,8 @@
 package com.mercata.pingworks
 
 import android.util.Log
-import com.mercata.pingworks.models.Person
 import com.mercata.pingworks.models.PublicUserData
+import com.mercata.pingworks.models.getMailHost
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.response_converters.UserPublicDataConverterFactory
 import com.mercata.pingworks.response_converters.WellKnownHost
@@ -17,9 +17,11 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
+import java.nio.charset.Charset
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.Base64
 
 
 private fun getInstance(baseUrl: String): RestApi {
@@ -82,8 +84,11 @@ suspend fun registerCall(user: UserData): Response<Void> {
             Signing-Key: algorithm=${SIGNING_ALGORITHM}; value=${user.signingKeys.publicKey}
             Updated: ${LocalDateTime.now().atOffset(ZoneOffset.UTC).format(formatter)}
             """.trimIndent()
-
-    return getInstance("https://${user.getMailHost()}").register(
+//Name: Anton Akimchenko
+//Encryption-Key: id=9Yw8; algorithm=curve25519xsalsa20poly1305; value=7LqZ5KzGfVTpXXRZCcItVwtnNDINiv4Qsk04F/ZoQFw=
+//Signing-Key: algorithm=ed25519; value=0vSV/BJ65mmD4pu33APAWauSWbmMhrRzPetRKCuulis=
+//Updated: 2024-08-31T12:17:23.956Z
+    return getInstance("https://${user.address.getMailHost()}").register(
         sotnHeader = authNonce,
         hostPart = user.address.getHost(),
         localPart = user.address.getLocal(),
@@ -93,7 +98,7 @@ suspend fun registerCall(user: UserData): Response<Void> {
 
 suspend fun loginCall(user: UserData): Response<Void> {
     val authNonce: String = sign(user)
-    return getInstance("https://${user.getMailHost()}").login(
+    return getInstance("https://${user.address.getMailHost()}").login(
         authNonce,
         hostPart = user.address.getHost(),
         localPart = user.address.getLocal()
@@ -101,25 +106,20 @@ suspend fun loginCall(user: UserData): Response<Void> {
 }
 
 suspend fun uploadContact(
-    contact: Person,
+    contact: PublicUserData,
     sharedPreferences: SharedPreferences
 ): Response<Void> {
     val link = contact.address.generateLink()
 
-    val keys = sharedPreferences.getUserKeys()!!
+    val currentUser = sharedPreferences.getUserData()!!
+    val authNonce = sign(currentUser)
 
-    val authNonce = sign(
-        mailHost = contact.getMailHost(),
-        privateSignKey = keys.privateSigningKey,
-        publicSignKey = keys.publicSigningKey
-    )
+    val encryptedRemoteAddress = encryptAnonymous(contact.address, currentUser.encryptionKeys.publicKey).encodeToBase64()
 
-    val encryptedRemoteAddress = encryptAnonymous(contact.address, keys.publicEncryptionKey)
-
-    return getInstance("https://${contact.getMailHost()}").uploadContact(
+    return getInstance("https://${contact.address.getMailHost()}").uploadContact(
         sotnHeader = authNonce,
-        hostPart = contact.address.getHost(),
-        localPart = contact.address.getLocal(),
+        hostPart = currentUser.address.getHost(),
+        localPart = currentUser.address.getLocal(),
         link = link,
         body = encryptedRemoteAddress.toRequestBody()
     )

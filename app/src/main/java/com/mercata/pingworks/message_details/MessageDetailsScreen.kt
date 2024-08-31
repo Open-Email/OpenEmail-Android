@@ -73,7 +73,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
             TopAppBar(
                 modifier = modifier.shadow(elevation = if (scrollState.value == 0) 0.dp else 16.dp),
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (scrollState.value == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primaryContainer,
+                    containerColor = if (scrollState.value == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.primary,
                 ),
                 title = {

@@ -26,6 +26,8 @@ const val headerFieldSeparator = "; "
 const val headerKeyValueSeparator = "="
 
 const val SP_ADDRESS = "sp_address"
+const val SP_FULL_NAME = "sp_full_name"
+const val SP_ENCRYPTION_KEY_ID = "sp_encryption_key_id"
 const val SP_PRIVATE_SIGNING_KEY = "sp_private_signing_key"
 const val SP_PUBLIC_SIGNING_KEY = "sp_public_signing_key"
 const val SP_PRIVATE_ENCRYPTION_KEY = "sp_private_encryption_key"

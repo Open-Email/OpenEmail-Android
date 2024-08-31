@@ -20,6 +20,8 @@ class SharedPreferences(applicationContext: Context) {
     fun saveUserKeys(user: UserData) {
         sharedPreferences.edit()
             .putString(SP_ADDRESS, user.address)
+            .putString(SP_FULL_NAME, user.name)
+            .putString(SP_ENCRYPTION_KEY_ID, user.encryptionKeys.id)
             .putString(SP_PRIVATE_SIGNING_KEY, user.signingKeys.privateKey.toString())
             .putString(SP_PUBLIC_SIGNING_KEY, user.signingKeys.publicKey.toString())
             .putString(SP_PRIVATE_ENCRYPTION_KEY, user.encryptionKeys.privateKey.toString())
@@ -41,8 +43,9 @@ class SharedPreferences(applicationContext: Context) {
 
     fun isBiometry() = sharedPreferences.getBoolean(SP_BIOMETRY, false)
 
-    fun getUserKeys(): UserKeys? {
+    fun getUserData(): UserData? {
         val address: String = getUserAddress() ?: return null
+        val name: String = sharedPreferences.getString(SP_FULL_NAME, null) ?: return null
         val privateSigning: String =
             sharedPreferences.getString(SP_PRIVATE_SIGNING_KEY, null) ?: return null
         val publicSigning: String =
@@ -51,13 +54,21 @@ class SharedPreferences(applicationContext: Context) {
             sharedPreferences.getString(SP_PRIVATE_ENCRYPTION_KEY, null) ?: return null
         val publicEncryption: String =
             sharedPreferences.getString(SP_PUBLIC_ENCRYPTION_KEY, null) ?: return null
+        val encryptionId: String =
+            sharedPreferences.getString(SP_ENCRYPTION_KEY_ID, null) ?: return null
 
-        return UserKeys(
+        return UserData(
             address = address,
-            privateSigningKey = PrivateKey(Key.fromBase64String(privateSigning)),
-            publicSigningKey = PublicKey(Key.fromBase64String(publicSigning)),
-            privateEncryptionKey = PrivateKey(Key.fromBase64String(privateEncryption)),
-            publicEncryptionKey = PublicKey(Key.fromBase64String(publicEncryption)),
+            name = name,
+            encryptionKeys = EncryptionKeys(
+                privateKey = PrivateKey(Key.fromBase64String(privateEncryption)),
+                publicKey = PublicKey(Key.fromBase64String(publicEncryption)),
+                id = encryptionId
+            ),
+            signingKeys = SigningKeys(
+                privateKey = PrivateKey(Key.fromBase64String(privateSigning)),
+                publicKey = PublicKey(Key.fromBase64String(publicSigning))
+            ),
         )
     }
 
@@ -68,11 +79,3 @@ class SharedPreferences(applicationContext: Context) {
     fun getSelectedNavigationScreenName(): String =
         sharedPreferences.getString(SP_SELECTED_NAV_SCREEN, null) ?: "InboxListScreen"
 }
-
-data class UserKeys(
-    val address: String,
-    val privateSigningKey: PrivateKey,
-    val publicSigningKey: PublicKey,
-    val privateEncryptionKey: PrivateKey,
-    val publicEncryptionKey: PublicKey,
-)

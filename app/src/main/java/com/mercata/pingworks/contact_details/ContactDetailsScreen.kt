@@ -61,7 +61,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     )
                     .height(imageSize)
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .background(MaterialTheme.colorScheme.primary)
             ) {
                 if (state.contact?.imageUrl == null) {
                     Box(

@@ -5,9 +5,11 @@ package com.mercata.pingworks
 import com.goterl.lazysodium.LazySodiumAndroid
 import com.goterl.lazysodium.SodiumAndroid
 import com.goterl.lazysodium.exceptions.SodiumException
+import com.goterl.lazysodium.interfaces.Box
 import com.goterl.lazysodium.interfaces.Sign
 import com.goterl.lazysodium.utils.Key
 import com.mercata.pingworks.models.Address
+import com.mercata.pingworks.models.getMailHost
 import com.mercata.pingworks.registration.UserData
 import org.koin.java.KoinJavaComponent.inject
 import java.nio.charset.StandardCharsets
@@ -15,11 +17,11 @@ import java.security.MessageDigest
 import java.util.Base64
 
 data class PrivateKey(val key: Key) {
-    override fun toString(): String = key.encodeToBase64()
+    override fun toString(): String = key.asBytes.encodeToBase64()
 }
 
 data class PublicKey(val key: Key) {
-    override fun toString(): String = key.encodeToBase64()
+    override fun toString(): String = key.asBytes.encodeToBase64()
 }
 
 data class EncryptionKeys(val privateKey: PrivateKey, val publicKey: PublicKey, val id: String)
@@ -36,7 +38,7 @@ fun generateEncryptionKeys(): EncryptionKeys {
     )
 }
 
-fun Key.encodeToBase64(): String = Base64.getEncoder().encodeToString(this.asBytes)
+fun ByteArray.encodeToBase64(): String = Base64.getEncoder().encodeToString(this)
 
 fun generateSigningKeys(): SigningKeys {
     val pair = sodium.cryptoSignKeypair()
@@ -52,19 +54,11 @@ fun generateRandomString(length: Int = 32): String {
 }
 
 fun sign(user: UserData): String {
-    return sign(
-        mailHost = user.getMailHost(),
-        privateSignKey = user.signingKeys.privateKey,
-        publicSignKey = user.signingKeys.publicKey
-    )
-}
-
-fun sign(mailHost: String, privateSignKey: PrivateKey, publicSignKey: PublicKey): String {
     val value = generateRandomString()
     val signature: String? = try {
         signData(
-            privateKey = privateSignKey.key,
-            data = (mailHost + value).toByteArray()
+            privateKey = user.signingKeys.privateKey.key,
+            data = (user.address.getMailHost() + value).toByteArray()
         )
     } catch (e: SodiumException) {
         null
@@ -73,17 +67,25 @@ fun sign(mailHost: String, privateSignKey: PrivateKey, publicSignKey: PublicKey)
     val headers = mutableListOf<String>()
 
     headers.add("$NONCE_HEADER_VALUE_KEY$headerKeyValueSeparator$value")
-    headers.add("$NONCE_HEADER_VALUE_HOST$headerKeyValueSeparator${mailHost}")
+    headers.add("$NONCE_HEADER_VALUE_HOST$headerKeyValueSeparator${user.address.getMailHost()}")
     headers.add("$NONCE_HEADER_ALGORITHM_KEY$headerKeyValueSeparator$SIGNING_ALGORITHM")
     headers.add("$NONCE_HEADER_SIGNATURE_KEY$headerKeyValueSeparator$signature")
-    headers.add("$NONCE_HEADER_PUBKEY_KEY$headerKeyValueSeparator${publicSignKey}")
-
+    headers.add("$NONCE_HEADER_PUBKEY_KEY$headerKeyValueSeparator${user.signingKeys.publicKey}")
     return headers.joinToString(prefix = "$NONCE_SCHEME ", separator = headerFieldSeparator)
 }
 
+
 @Throws(SodiumException::class)
-fun encryptAnonymous(address: Address, publicEncryptionKey: PublicKey): String {
-   return sodium.cryptoBoxSealEasy(address, publicEncryptionKey.key)
+fun encryptAnonymous(address: Address, publicEncryptionKey: PublicKey): ByteArray {
+    val keyBytes: ByteArray = publicEncryptionKey.key.asBytes
+    val addressBytes: ByteArray = address.toByteArray()
+    val cipher = ByteArray(Box.SEALBYTES + addressBytes.size)
+
+    if (!sodium.cryptoBoxSeal(cipher, addressBytes, addressBytes.size.toLong(), keyBytes)) {
+        throw SodiumException("Could not encrypt message.")
+    }
+
+    return cipher
 }
 
 fun Address.generateLink(): String {
