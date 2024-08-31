@@ -27,8 +27,8 @@ class ContactsListConverterFactory : Converter.Factory() {
     }
 }
 
-class ContactsListConverter : Converter<ResponseBody, List<Person>> {
-    override fun convert(value: ResponseBody): List<Person> {
+class ContactsListConverter : Converter<ResponseBody, List<String>> {
+    override fun convert(value: ResponseBody): List<String> {
         val sp: SharedPreferences by inject(SharedPreferences::class.java)
         val pairs: List<String> =
             value.string()
@@ -40,9 +40,10 @@ class ContactsListConverter : Converter<ResponseBody, List<Person>> {
                         .split(",")
                         .map { it.trim() }
                         .filterNot { it.isBlank() }
-                    decryptAnonymous(parts.last(), sp.getUserData()!!)
+                    val decrypted = decryptAnonymous(parts.last(), sp.getUserData()!!)
+                    decrypted
                 }
 
-        return listOf()
+        return pairs
     }
 }

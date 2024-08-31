@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme
 import com.goterl.lazysodium.utils.Key
+import com.goterl.lazysodium.utils.KeyPair
 import com.mercata.pingworks.models.Address
 import com.mercata.pingworks.registration.UserData
 
@@ -22,10 +23,17 @@ class SharedPreferences(applicationContext: Context) {
             .putString(SP_ADDRESS, user.address)
             .putString(SP_FULL_NAME, user.name)
             .putString(SP_ENCRYPTION_KEY_ID, user.encryptionKeys.id)
-            .putString(SP_PRIVATE_SIGNING_KEY, user.signingKeys.privateKey.toString())
-            .putString(SP_PUBLIC_SIGNING_KEY, user.signingKeys.publicKey.toString())
-            .putString(SP_PRIVATE_ENCRYPTION_KEY, user.encryptionKeys.privateKey.toString())
-            .putString(SP_PUBLIC_ENCRYPTION_KEY, user.encryptionKeys.publicKey.toString())
+            .putString(
+                SP_ENCRYPTION_KEYS,
+                arrayOf(
+                    user.encryptionKeys.pair.publicKey,
+                    user.encryptionKeys.pair.secretKey
+                ).joinToString(separator = ",") { it.asBytes.encodeToBase64() }
+            )
+            .putString(SP_SIGNING_KEYS, arrayOf(
+                user.signingKeys.pair.publicKey,
+                user.signingKeys.pair.secretKey
+            ).joinToString(separator = ",") { it.asBytes.encodeToBase64() })
             .apply()
     }
 
@@ -46,29 +54,32 @@ class SharedPreferences(applicationContext: Context) {
     fun getUserData(): UserData? {
         val address: String = getUserAddress() ?: return null
         val name: String = sharedPreferences.getString(SP_FULL_NAME, null) ?: return null
-        val privateSigning: String =
-            sharedPreferences.getString(SP_PRIVATE_SIGNING_KEY, null) ?: return null
-        val publicSigning: String =
-            sharedPreferences.getString(SP_PUBLIC_SIGNING_KEY, null) ?: return null
-        val privateEncryption: String =
-            sharedPreferences.getString(SP_PRIVATE_ENCRYPTION_KEY, null) ?: return null
-        val publicEncryption: String =
-            sharedPreferences.getString(SP_PUBLIC_ENCRYPTION_KEY, null) ?: return null
+        val publicPrivateSigning: String =
+            sharedPreferences.getString(SP_SIGNING_KEYS, null) ?: return null
+        val publicPrivateEncryption: String =
+            sharedPreferences.getString(SP_ENCRYPTION_KEYS, null) ?: return null
         val encryptionId: String =
             sharedPreferences.getString(SP_ENCRYPTION_KEY_ID, null) ?: return null
 
+        val signingSplit = publicPrivateSigning.split(",")
+        val encryptionSplit = publicPrivateEncryption.split(",")
+        val signingKeys = SigningKeys(
+            KeyPair(
+                Key.fromBase64String(signingSplit.first()),
+                Key.fromBase64String(signingSplit.last())
+            )
+        )
+        val encryptionKeys = EncryptionKeys(
+            KeyPair(
+                Key.fromBase64String(encryptionSplit.first()),
+                Key.fromBase64String(encryptionSplit.last())
+            ), id = encryptionId
+        )
         return UserData(
             address = address,
             name = name,
-            encryptionKeys = EncryptionKeys(
-                privateKey = PrivateKey(Key.fromBase64String(privateEncryption)),
-                publicKey = PublicKey(Key.fromBase64String(publicEncryption)),
-                id = encryptionId
-            ),
-            signingKeys = SigningKeys(
-                privateKey = PrivateKey(Key.fromBase64String(privateSigning)),
-                publicKey = PublicKey(Key.fromBase64String(publicSigning))
-            ),
+            encryptionKeys = encryptionKeys,
+            signingKeys = signingKeys
         )
     }
 

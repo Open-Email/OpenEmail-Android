@@ -2,15 +2,15 @@ package com.mercata.pingworks.sign_in
 
 import androidx.lifecycle.viewModelScope
 import com.goterl.lazysodium.utils.Key
+import com.goterl.lazysodium.utils.KeyPair
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.EncryptionKeys
 import com.mercata.pingworks.HttpResult
-import com.mercata.pingworks.PrivateKey
-import com.mercata.pingworks.PublicKey
 import com.mercata.pingworks.R
 import com.mercata.pingworks.SharedPreferences
 import com.mercata.pingworks.SigningKeys
 import com.mercata.pingworks.emailRegex
+import com.mercata.pingworks.encodeToBase64
 import com.mercata.pingworks.getHost
 import com.mercata.pingworks.getProfilePublicData
 import com.mercata.pingworks.getWellKnownHosts
@@ -35,8 +35,8 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                     val currentUser = sharedPreferences.getUserData()!!
                     updateState(
                         currentState.copy(
-                            privateSigningKeyInput = currentUser.signingKeys.privateKey.toString(),
-                            privateEncryptionKeyInput = currentUser.encryptionKeys.privateKey.toString()
+                            privateSigningKeyInput = currentUser.signingKeys.pair.secretKey.asBytes.encodeToBase64(),
+                            privateEncryptionKeyInput = currentUser.encryptionKeys.pair.secretKey.asBytes.encodeToBase64()
                         )
                     )
                     authenticateWithKeys()
@@ -50,8 +50,8 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
         updateState(
             currentState.copy(
                 biometryShown = false,
-                privateSigningKeyInput = currentUser.signingKeys.privateKey.toString(),
-                privateEncryptionKeyInput = currentUser.encryptionKeys.privateKey.toString()
+                privateSigningKeyInput = currentUser.signingKeys.pair.secretKey.asBytes.encodeToBase64(),
+                privateEncryptionKeyInput = currentUser.encryptionKeys.pair.secretKey.asBytes.encodeToBase64(),
             )
         )
         authenticateWithKeys()
@@ -174,13 +174,12 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                 name = publicData.fullName,
                 address = currentState.emailInput,
                 encryptionKeys = EncryptionKeys(
-                    privateKey = PrivateKey(Key.fromBase64String(encryptionKey)),
-                    publicKey = PublicKey(Key.fromBase64String(publicData.publicEncryptionKey)),
+                    pair = KeyPair(Key.fromBase64String(publicData.publicEncryptionKey),
+                        Key.fromBase64String(encryptionKey)),
                     id = publicData.encryptionKeyId
                 ),
                 signingKeys = SigningKeys(
-                    PrivateKey(Key.fromBase64String(signingKey)),
-                    publicKey = PublicKey(Key.fromBase64String(publicData.publicSigningKey))
+                    pair = KeyPair(Key.fromBase64String(publicData.publicSigningKey), Key.fromBase64String(signingKey))
                 )
             )
 

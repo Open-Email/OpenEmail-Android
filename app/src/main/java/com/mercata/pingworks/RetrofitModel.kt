@@ -69,10 +69,10 @@ suspend fun registerCall(user: UserData): Response<Void> {
     if (BuildConfig.DEBUG) {
         Log.i(
             "KEYS", "\n" +
-                    "signPrivate: ${user.signingKeys.privateKey}\n" +
-                    "signPublic: ${user.signingKeys.publicKey}\n" +
-                    "encryptPrivate: ${user.encryptionKeys.privateKey}\n" +
-                    "encryptPublic: ${user.encryptionKeys.publicKey}\n"
+                    "signPrivate: ${user.signingKeys.pair.secretKey}\n" +
+                    "signPublic: ${user.signingKeys.pair.publicKey}\n" +
+                    "encryptPrivate: ${user.encryptionKeys.pair.secretKey}\n" +
+                    "encryptPublic: ${user.encryptionKeys.pair.publicKey}\n"
         )
     }
 
@@ -80,10 +80,11 @@ suspend fun registerCall(user: UserData): Response<Void> {
 
     val postData = """
             Name: ${user.name}
-            Encryption-Key: id=${user.encryptionKeys.id}; algorithm=${ANONYMOUS_ENCRYPTION_CIPHER}; value=${user.encryptionKeys.publicKey}
-            Signing-Key: algorithm=${SIGNING_ALGORITHM}; value=${user.signingKeys.publicKey}
+            Encryption-Key: id=${user.encryptionKeys.id}; algorithm=${ANONYMOUS_ENCRYPTION_CIPHER}; value=${user.encryptionKeys.pair.publicKey}
+            Signing-Key: algorithm=${SIGNING_ALGORITHM}; value=${user.signingKeys.pair.publicKey}
             Updated: ${LocalDateTime.now().atOffset(ZoneOffset.UTC).format(formatter)}
             """.trimIndent()
+
     return getInstance("https://${user.address.getMailHost()}").register(
         sotnHeader = user.sign(),
         hostPart = user.address.getHost(),

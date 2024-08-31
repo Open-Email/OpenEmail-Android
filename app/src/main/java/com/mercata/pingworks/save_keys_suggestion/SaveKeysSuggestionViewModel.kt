@@ -3,6 +3,7 @@ package com.mercata.pingworks.save_keys_suggestion
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.BioManager
 import com.mercata.pingworks.SharedPreferences
+import com.mercata.pingworks.encodeToBase64
 import org.koin.core.component.inject
 
 class SaveKeysSuggestionViewModel :
@@ -15,8 +16,8 @@ class SaveKeysSuggestionViewModel :
         updateState(
             currentState.copy(
                 biometryAvailable = bioManager.isBiometricAvailable(),
-                privateEncryptionKey = currentUser.encryptionKeys.privateKey.toString(),
-                privateSigningKey = currentUser.signingKeys.privateKey.toString()
+                privateEncryptionKey = currentUser.encryptionKeys.pair.secretKey.asBytes.encodeToBase64(),
+                privateSigningKey = currentUser.signingKeys.pair.secretKey.asBytes.encodeToBase64()
             )
         )
     }

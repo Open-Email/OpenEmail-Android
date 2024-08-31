@@ -17,29 +17,15 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.Base64
 
-data class PrivateKey(val key: Key) {
-    override fun toString(): String = key.asBytes.encodeToBase64()
-}
-
-data class PublicKey(val key: Key) {
-    override fun toString(): String = key.asBytes.encodeToBase64()
-}
-
-data class EncryptionKeys(val privateKey: PrivateKey, val publicKey: PublicKey, val id: String) {
-    fun getKeyPair() = KeyPair(publicKey.key, privateKey.key)
-}
-
-data class SigningKeys(val privateKey: PrivateKey, val publicKey: PublicKey) {
-    fun getKeyPair() = KeyPair(publicKey.key, privateKey.key)
-}
+data class EncryptionKeys(val pair: KeyPair, val id: String)
+data class SigningKeys(val pair: KeyPair)
 
 val sodium = LazySodiumAndroid(SodiumAndroid(), StandardCharsets.UTF_8, Base64MessageEncoder())
 
 fun generateEncryptionKeys(): EncryptionKeys {
     val pair = sodium.cryptoBoxKeypair()
     return EncryptionKeys(
-        privateKey = PrivateKey(pair.secretKey),
-        publicKey = PublicKey(pair.publicKey),
+        pair = pair,
         id = generateRandomString(4)
     )
 }
@@ -48,11 +34,7 @@ fun ByteArray.encodeToBase64(): String = Base64.getEncoder().encodeToString(this
 //fun String.decodeToBase64(): ByteArray = Base64.getDecoder().decode(this)
 
 fun generateSigningKeys(): SigningKeys {
-    val pair = sodium.cryptoSignKeypair()
-    return SigningKeys(
-        privateKey = PrivateKey(pair.secretKey),
-        publicKey = PublicKey(pair.publicKey),
-    )
+    return SigningKeys(pair = sodium.cryptoSignKeypair())
 }
 
 fun generateRandomString(length: Int = 32): String {
@@ -64,8 +46,8 @@ fun UserData.sign(): String {
     val value = generateRandomString()
     val signature: String? = try {
         signData(
-            privateKey = this.signingKeys.privateKey.key,
-            data = (this.address.getMailHost() + value).toByteArray()
+            privateKey = this.signingKeys.pair.secretKey,
+            data = (this.address.getMailHost() + value)
         )
     } catch (e: SodiumException) {
         null
@@ -77,18 +59,18 @@ fun UserData.sign(): String {
     headers.add("$NONCE_HEADER_VALUE_HOST$headerKeyValueSeparator${this.address.getMailHost()}")
     headers.add("$NONCE_HEADER_ALGORITHM_KEY$headerKeyValueSeparator$SIGNING_ALGORITHM")
     headers.add("$NONCE_HEADER_SIGNATURE_KEY$headerKeyValueSeparator$signature")
-    headers.add("$NONCE_HEADER_PUBKEY_KEY$headerKeyValueSeparator${this.signingKeys.publicKey}")
+    headers.add("$NONCE_HEADER_PUBKEY_KEY$headerKeyValueSeparator${this.signingKeys.pair.publicKey.asBytes.encodeToBase64()}")
     return headers.joinToString(prefix = "$NONCE_SCHEME ", separator = headerFieldSeparator)
 }
 
 @Throws(SodiumException::class)
 fun encryptAnonymous(address: Address, currentUser: UserData): String {
-    return sodium.cryptoBoxSealEasy(address, currentUser.encryptionKeys.publicKey.key)
+    return sodium.cryptoBoxSealEasy(address, currentUser.encryptionKeys.pair.publicKey)
 }
 
 @Throws(SodiumException::class)
 fun decryptAnonymous(cipherText: String, currentUser: UserData): String {
-    return sodium.cryptoBoxSealOpenEasy(cipherText, currentUser.encryptionKeys.getKeyPair())
+    return sodium.cryptoBoxSealOpenEasy(cipherText, currentUser.encryptionKeys.pair)
 }
 
 fun Address.generateLink(): String {
@@ -103,8 +85,9 @@ fun String.hashedWithSha256() =
         .toHexString()
 
 @Throws(SodiumException::class)
-fun signData(privateKey: Key, data: ByteArray): String {
-    val signature = ByteArray(size = Sign.ED25519_BYTES)
-    sodium.cryptoSignDetached(signature, data, data.size.toLong(), privateKey.asBytes)
-    return Base64.getEncoder().encodeToString(signature)
+fun signData(privateKey: Key, data: String): String {
+    //val signature = ByteArray(size = Sign.ED25519_BYTES)
+    return  sodium.cryptoSignDetached(data, privateKey)
+    //sodium.cryptoSignDetached(signature, data, data.size.toLong(), privateKey.asBytes)
+    //return signature.encodeToBase64()
 }

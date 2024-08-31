@@ -3,6 +3,7 @@ package com.mercata.pingworks.settings_screen
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.BioManager
 import com.mercata.pingworks.SharedPreferences
+import com.mercata.pingworks.encodeToBase64
 import org.koin.core.component.inject
 
 class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
@@ -14,8 +15,8 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
         updateState(
             currentState.copy(
                 address = userData.address,
-                privateEncryptionKey =userData.encryptionKeys.privateKey.toString(),
-                privateSigningKey = userData.signingKeys.privateKey.toString(),
+                privateEncryptionKey =userData.encryptionKeys.pair.secretKey.asBytes.encodeToBase64(),
+                privateSigningKey = userData.signingKeys.pair.secretKey.asBytes.encodeToBase64(),
                 biometryAvailable = bioManager.isBiometricAvailable(),
                 biometryEnabled = sharedPreferences.isBiometry(),
                 autologinEnabled = sharedPreferences.isAutologin()
