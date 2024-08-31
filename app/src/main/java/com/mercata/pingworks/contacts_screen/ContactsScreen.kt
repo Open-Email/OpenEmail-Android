@@ -39,6 +39,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -54,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -79,8 +82,21 @@ fun SharedTransitionScope.ContactsScreen(
     viewModel: ContactsViewModel = viewModel()
 ) {
 
+    val context = LocalContext.current
     val state by viewModel.state.collectAsState()
+    val snackBarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(key1 = state.snackBarTextResId) {
+        if (state.snackBarTextResId != null) {
+            snackBarHostState.showSnackbar(
+                message = context.getString(state.snackBarTextResId!!),
+                withDismissAction = true,
+                duration = viewModel.snackBarDuration
+            )
+        }
+    }
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -133,7 +149,8 @@ fun SharedTransitionScope.ContactsScreen(
                         modifier = modifier,
                         navController = navController,
                         animatedVisibilityScope = animatedVisibilityScope,
-                        person = item
+                        person = item,
+                        uploading = item.address == state.loadingContactAddress
                     )
                     //HorizontalDivider(color = MaterialTheme.colorScheme.primary, thickness = 1.dp)
                 }
@@ -152,7 +169,8 @@ fun SharedTransitionScope.ContactViewHolder(
     modifier: Modifier = Modifier,
     navController: NavController,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    person: Person
+    person: Person,
+    uploading: Boolean
 ) {
     Row(verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -172,40 +190,46 @@ fun SharedTransitionScope.ContactViewHolder(
             }
             .padding(horizontal = MARGIN_DEFAULT)
     ) {
-        if (person.imageUrl == null) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = modifier
-                    .sharedBounds(
-                        sharedContentState = rememberSharedContentState(
-                            key = "contact_image/${person.address}"
-                        ),
-                        animatedVisibilityScope = animatedVisibilityScope,
+        if (uploading) {
+            CircularProgressIndicator(modifier.size(40.0.dp))
+        } else {
+            if (person.imageUrl == null) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = modifier
+                        .sharedBounds(
+                            sharedContentState = rememberSharedContentState(
+                                key = "contact_image/${person.address}"
+                            ),
+                            animatedVisibilityScope = animatedVisibilityScope,
+                        )
+                        .clip(CircleShape)
+                        .size(40.0.dp)
+                        .background(MaterialTheme.colorScheme.primary)
+                ) {
+
+                    Text(
+                        text = "${person.name?.firstOrNull() ?: person.address.first()}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
-                    .clip(CircleShape)
-                    .size(40.0.dp)
-                    .background(MaterialTheme.colorScheme.primary)
-            ) {
-                Text(
-                    text = "${person.name?.firstOrNull() ?: person.address.first()}",
-                    style = MaterialTheme.typography.titleMedium
+                }
+            } else {
+                AsyncImage(
+                    contentScale = ContentScale.Crop,
+                    modifier = modifier
+                        .sharedBounds(
+                            sharedContentState = rememberSharedContentState(
+                                key = "contact_image/${person.address}"
+                            ),
+                            animatedVisibilityScope = animatedVisibilityScope,
+                        )
+                        .size(40.0.dp)
+                        .clip(CircleShape),
+                    model = person.imageUrl,
+                    contentDescription = stringResource(id = R.string.profile_image)
                 )
             }
-        } else {
-            AsyncImage(
-                contentScale = ContentScale.Crop,
-                modifier = modifier
-                    .sharedBounds(
-                        sharedContentState = rememberSharedContentState(
-                            key = "contact_image/${person.address}"
-                        ),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                    )
-                    .size(40.0.dp)
-                    .clip(CircleShape),
-                model = person.imageUrl,
-                contentDescription = stringResource(id = R.string.profile_image)
-            )
         }
 
         Spacer(modifier = modifier.width(MARGIN_DEFAULT))
@@ -312,7 +336,6 @@ fun AddContactDialog(
                             viewModel.searchNewContact()
                         } else {
                             viewModel.addContact()
-                            viewModel.updateContactSearchDialog(false)
                         }
                     }
                 ) {

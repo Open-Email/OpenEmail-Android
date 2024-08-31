@@ -340,8 +340,8 @@ fun DeleteBackground(
     val deleteSwipe = swipeValue == SwipeToDismissBoxValue.EndToStart
 
     val color = when (swipeValue) {
-        SwipeToDismissBoxValue.StartToEnd -> Color.Blue
-        SwipeToDismissBoxValue.EndToStart -> Color.Red
+        SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary
+        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
         SwipeToDismissBoxValue.Settled -> Color.Transparent
     }
 
@@ -355,7 +355,7 @@ fun DeleteBackground(
         Icon(
             imageVector = if (deleteSwipe) Icons.Default.Delete else Icons.Default.Favorite,
             contentDescription = null,
-            tint = Color.White
+            tint = if (deleteSwipe) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary,
         )
     }
 }

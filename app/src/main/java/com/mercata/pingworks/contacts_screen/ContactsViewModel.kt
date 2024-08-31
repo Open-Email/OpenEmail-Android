@@ -1,11 +1,12 @@
 package com.mercata.pingworks.contacts_screen
 
-import android.util.Log
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.HttpResult
+import com.mercata.pingworks.R
 import com.mercata.pingworks.SharedPreferences
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.DBContact
@@ -16,7 +17,7 @@ import com.mercata.pingworks.models.Person
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.safeApiCall
 import com.mercata.pingworks.uploadContact
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
@@ -35,7 +36,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
 
     }
 
-    private var searchJob: Job? = null
+    val snackBarDuration = SnackbarDuration.Short
 
     fun onNewContactAddressInput(str: String) {
         updateState(
@@ -77,30 +78,40 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
 
     fun addContact() {
         viewModelScope.launch {
-            updateState(currentState.copy(loading = true))
             val publicData = currentState.newContactFound!!
-            when(val call = safeApiCall { uploadContact(contact = publicData, sharedPreferences = sharedPreferences) }) {
+            updateState(currentState.copy(loadingContactAddress = publicData.address))
+            val dbContact = DBContact(
+                timestamp = System.currentTimeMillis(),
+                address = publicData.address,
+                name = publicData.fullName.takeUnless { it.isBlank() },
+                //TODO update when public profile will contain image
+                imageUrl = null,
+                receiveBroadcasts = true,
+                signingKeyAlgorithm = publicData.signingKeyAlgorithm,
+                encryptionKeyAlgorithm = publicData.encryptionKeyAlgorithm,
+                publicSigningKey = publicData.publicSigningKey,
+                publicEncryptionKey = publicData.publicEncryptionKey
+            )
+            db.userDao().insertAll(dbContact)
+            updateContactSearchDialog(false)
+            when (safeApiCall {
+                uploadContact(
+                    contact = publicData,
+                    sharedPreferences = sharedPreferences
+                )
+            }) {
                 is HttpResult.Error -> {
-                    Log.e(ContactsViewModel::class.java.toString(), "Uploading contact failed : ${call.message}")
+                    db.userDao().delete(dbContact)
+                    updateState(currentState.copy(snackBarTextResId = R.string.uploading_contact_failed))
+                    delay(4000L)
+                    updateState(currentState.copy(snackBarTextResId = null))
                 }
+
                 is HttpResult.Success -> {
-                    db.userDao().insertAll(
-                        DBContact(
-                            timestamp = System.currentTimeMillis(),
-                            address = publicData.address,
-                            name = publicData.fullName.takeUnless { it.isBlank() },
-                            //TODO update when public profile will contain image
-                            imageUrl = null,
-                            receiveBroadcasts = true,
-                            signingKeyAlgorithm = publicData.signingKeyAlgorithm,
-                            encryptionKeyAlgorithm = publicData.encryptionKeyAlgorithm,
-                            publicSigningKey = publicData.publicSigningKey,
-                            publicEncryptionKey = publicData.publicEncryptionKey
-                        )
-                    )
+                    println()
                 }
             }
-            updateState(currentState.copy(loading = false))
+            updateState(currentState.copy(loadingContactAddress = null))
         }
     }
 
@@ -109,7 +120,6 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         if (!isShown) {
             updateState(currentState.copy(newContactAddressInput = ""))
             clearFoundContact()
-            searchJob?.cancel()
         }
     }
 
@@ -123,6 +133,8 @@ data class ContactsState(
     val searchInput: String = "",
     val newContactAddressInput: String = "",
     val loggedInPersonAddress: String = "",
+    val loadingContactAddress: String? = null,
+    val snackBarTextResId: Int? = null,
     val newContactFound: PublicUserData? = null,
     val searchButtonActive: Boolean = false,
     val loading: Boolean = false,

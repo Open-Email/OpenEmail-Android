@@ -10,9 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -47,7 +44,8 @@ fun NavigationDrawerBody(
             text = stringResource(id = R.string.app_name),
             style = MaterialTheme.typography.titleMedium,
             modifier = modifier.padding(MARGIN_DEFAULT),
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
         )
         HomeScreen.entries.forEach { screen ->
             NavigationItem(
@@ -122,6 +120,7 @@ fun NavigationItem(
     ) {
         Icon(
             icon,
+            tint =  if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
             contentDescription = stringResource(id = titleResId)
         )
         Spacer(modifier = modifier.width(MARGIN_SMALLER))
