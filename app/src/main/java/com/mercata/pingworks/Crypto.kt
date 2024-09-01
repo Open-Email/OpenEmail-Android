@@ -5,12 +5,9 @@ package com.mercata.pingworks
 import com.goterl.lazysodium.LazySodiumAndroid
 import com.goterl.lazysodium.SodiumAndroid
 import com.goterl.lazysodium.exceptions.SodiumException
-import com.goterl.lazysodium.interfaces.Sign
 import com.goterl.lazysodium.utils.Base64MessageEncoder
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
-import com.mercata.pingworks.models.Address
-import com.mercata.pingworks.models.getMailHost
 import com.mercata.pingworks.registration.UserData
 import org.koin.java.KoinJavaComponent.inject
 import java.nio.charset.StandardCharsets

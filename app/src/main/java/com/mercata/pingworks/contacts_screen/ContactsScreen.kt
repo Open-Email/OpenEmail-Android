@@ -1,5 +1,4 @@
 @file:OptIn(
-    ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class,
     ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class
 )
 
@@ -39,8 +38,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -56,7 +53,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -72,9 +68,8 @@ import coil.compose.AsyncImage
 import com.mercata.pingworks.CONTACT_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
-import com.mercata.pingworks.home_screen.MessageViewHolder
+import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.home_screen.SwipeContainer
-import com.mercata.pingworks.models.Person
 
 @Composable
 fun SharedTransitionScope.ContactsScreen(
@@ -165,7 +160,7 @@ fun SharedTransitionScope.ContactViewHolder(
     modifier: Modifier = Modifier,
     navController: NavController,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    person: Person,
+    person: DBContact,
     uploading: Boolean
 ) {
     Row(verticalAlignment = Alignment.CenterVertically,

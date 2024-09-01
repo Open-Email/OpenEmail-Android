@@ -2,7 +2,6 @@ package com.mercata.pingworks.response_converters
 
 import com.mercata.pingworks.SharedPreferences
 import com.mercata.pingworks.decryptAnonymous
-import com.mercata.pingworks.models.Person
 import okhttp3.ResponseBody
 import org.koin.java.KoinJavaComponent.inject
 import retrofit2.Converter

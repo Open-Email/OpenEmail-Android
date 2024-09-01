@@ -4,8 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.db.AppDatabase
-import com.mercata.pingworks.db.contacts.toPerson
-import com.mercata.pingworks.models.Person
+import com.mercata.pingworks.db.contacts.DBContact
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
@@ -23,7 +22,6 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
             updateState(
                 currentState.copy(
                     contact = db.userDao().loadAllByIds(listOf(currentState.address)).first()
-                        .toPerson()
                 )
             )
         }
@@ -31,4 +29,4 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
 
 }
 
-data class ContactDetailsState(val address: String, val contact: Person?)
+data class ContactDetailsState(val address: String, val contact: DBContact?)

@@ -5,7 +5,6 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
-import com.mercata.pingworks.models.Address
 import com.mercata.pingworks.registration.UserData
 
 class SharedPreferences(applicationContext: Context) {

@@ -85,7 +85,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         contentDescription = stringResource(id = R.string.profile_image)
                     )
                 }
-                if (state.contact?.imageUrl != null && state.contact?.name != null) {
+                if (state.contact?.name != null) {
                     Text(text = state.contact?.name!!)
                 }
 

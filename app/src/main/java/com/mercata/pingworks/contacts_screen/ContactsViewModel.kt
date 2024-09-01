@@ -1,5 +1,6 @@
 package com.mercata.pingworks.contacts_screen
 
+import android.util.Log
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -10,15 +11,12 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.SharedPreferences
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.DBContact
-import com.mercata.pingworks.db.contacts.toDbContact
-import com.mercata.pingworks.db.contacts.toPerson
 import com.mercata.pingworks.deleteContact
 import com.mercata.pingworks.emailRegex
-import com.mercata.pingworks.getAllContacts
 import com.mercata.pingworks.getProfilePublicData
-import com.mercata.pingworks.models.Person
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.safeApiCall
+import com.mercata.pingworks.syncContacts
 import com.mercata.pingworks.uploadContact
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -29,21 +27,15 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     init {
         val db: AppDatabase by inject()
         val sp: SharedPreferences by inject()
+
         viewModelScope.launch {
-            when(val call = safeApiCall { getAllContacts(sharedPreferences) }) {
-                is HttpResult.Error -> {
-                    println(call.message)
-                }
-                is HttpResult.Success -> {
-                    println(call.data)
-                }
-            }
+            syncContacts(sp, db.userDao())
         }
 
         viewModelScope.launch {
-            db.userDao().getAll().collect { dbEntities ->
+            db.userDao().getAllAsFlow().collect { dbEntities ->
                 currentState.contacts.clear()
-                currentState.contacts.addAll(dbEntities.map { it.toPerson() })
+                currentState.contacts.addAll(dbEntities)
             }
         }
 
@@ -96,7 +88,6 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
             val publicData = currentState.newContactFound!!
             updateState(currentState.copy(loadingContactAddress = publicData.address))
             val dbContact = DBContact(
-                timestamp = System.currentTimeMillis(),
                 address = publicData.address,
                 name = publicData.fullName.takeUnless { it.isBlank() },
                 //TODO update when public profile will contain image
@@ -105,9 +96,11 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
                 signingKeyAlgorithm = publicData.signingKeyAlgorithm,
                 encryptionKeyAlgorithm = publicData.encryptionKeyAlgorithm,
                 publicSigningKey = publicData.publicSigningKey,
-                publicEncryptionKey = publicData.publicEncryptionKey
+                publicEncryptionKey = publicData.publicEncryptionKey,
+                lastSeen = publicData.lastSeen?.toString(),
+                updated = publicData.updated?.toString()
             )
-            db.userDao().insertAll(dbContact)
+            db.userDao().insert(dbContact)
             updateContactSearchDialog(false)
             when (safeApiCall {
                 uploadContact(
@@ -142,17 +135,16 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         updateState(currentState.copy(newContactFound = null))
     }
 
-    fun removeItem(item: Person) {
+    fun removeItem(dbContact: DBContact) {
         viewModelScope.launch {
-            val dbContact = item.toDbContact()
             db.userDao().delete(dbContact)
-            when(val call = safeApiCall { deleteContact(item, sharedPreferences) }) {
+            when (val call = safeApiCall { deleteContact(dbContact, sharedPreferences) }) {
                 is HttpResult.Error -> {
-                    db.userDao().insertAll(dbContact)
+                    db.userDao().insert(dbContact)
                 }
+
                 is HttpResult.Success -> {
-                    println()
-                    //ignore
+                    Log.e("REMOVE CONTACT ERROR", call.message ?: call.code.toString())
                 }
             }
         }
@@ -166,7 +158,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
 }
 
 data class ContactsState(
-    val contacts: SnapshotStateList<Person> = mutableStateListOf(),
+    val contacts: SnapshotStateList<DBContact> = mutableStateListOf(),
     val searchInput: String = "",
     val newContactAddressInput: String = "",
     val loggedInPersonAddress: String = "",

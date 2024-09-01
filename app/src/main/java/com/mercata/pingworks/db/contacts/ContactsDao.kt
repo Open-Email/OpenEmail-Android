@@ -12,7 +12,10 @@ import kotlinx.coroutines.flow.Flow
 interface ContactsDao {
 
     @Query("SELECT * FROM dbcontact")
-    fun getAll(): Flow<List<DBContact>>
+    fun getAllAsFlow(): Flow<List<DBContact>>
+
+    @Query("SELECT * FROM dbcontact")
+    fun getAll(): List<DBContact>
 
     @Query("SELECT * FROM dbcontact WHERE address IN (:userAddresses)")
     suspend fun loadAllByIds(userAddresses: List<String>): List<DBContact>
@@ -21,10 +24,16 @@ interface ContactsDao {
     suspend fun findByName(name: String): DBContact?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(vararg contact: DBContact)
+    suspend fun insertAll(contacts: List<DBContact>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(vararg contact: DBContact)
 
     @Delete
     suspend fun delete(contact: DBContact)
+
+    @Query("DELETE FROM dbcontact")
+    suspend fun deleteAll()
 
     @Update
     suspend fun update(contact: DBContact)

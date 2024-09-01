@@ -2,9 +2,9 @@ package com.mercata.pingworks.message_details
 
 import androidx.lifecycle.SavedStateHandle
 import com.mercata.pingworks.AbstractViewModel
+import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.models.BroadcastMessage
 import com.mercata.pingworks.models.Message
-import com.mercata.pingworks.models.Person
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 
@@ -19,16 +19,17 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) : AbstractView
                 message = BroadcastMessage(
                     id = 11.toString(),
                     subject = "Some message subject might be longer then expected so here we are",
-                    person = Person(
+                    person = DBContact(
                         name = "Joanno Dopelhetz",
                         address = "some.address@ping.works",
                         imageUrl = "https://cdn.lospec.com/avatar/smilingdog.png",
-                        createdAt = LocalDateTime.now(),
                         receiveBroadcasts = true,
                         publicEncryptionKey = "",
                         publicSigningKey = "",
                         encryptionKeyAlgorithm = "",
-                        signingKeyAlgorithm = ""
+                        signingKeyAlgorithm = "",
+                        updated = ZonedDateTime.now().toString(),
+                        lastSeen = ZonedDateTime.now().toString()
                     ),
                     date = ZonedDateTime.now(),
                     body = "The giant panda (Ailuropoda melanoleuca), also known as the panda bear or simply panda, is a bear species endemic to China. It is characterised by its white coat with black patches around the eyes, ears, legs and shoulders. Its body is rotund; adult individuals weigh 100 to 115 kg (220 to 254 lb) and are typically 1.2 to 1.9 m (3 ft 11 in to 6 ft 3 in) long. It is sexually dimorphic, with males being typically 10 to 20% larger than females. A thumb is visible on its forepaw, which helps in holding bamboo in place for feeding. It has large molar teeth and expanded temporal fossa to meet its dietary requirements. It can digest starch and is mostly herbivorous with a diet consisting almost entirely of bamboo and bamboo shoots.\n" +

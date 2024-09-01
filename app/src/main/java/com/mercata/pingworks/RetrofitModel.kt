@@ -1,15 +1,17 @@
 package com.mercata.pingworks
 
 import android.util.Log
-import com.mercata.pingworks.models.Person
+import com.mercata.pingworks.db.contacts.ContactsDao
+import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.models.PublicUserData
-import com.mercata.pingworks.models.getMailHost
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.response_converters.ContactsListConverterFactory
 import com.mercata.pingworks.response_converters.UserPublicDataConverterFactory
 import com.mercata.pingworks.response_converters.WellKnownHost
 import com.mercata.pingworks.response_converters.WellKnownHostsConverterFactory
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import okhttp3.Headers
@@ -23,6 +25,9 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
+typealias Address = String
+
+fun Address.getMailHost() = "$DEFAULT_MAIL_SUBDOMAIN.${this.getHost()}"
 
 private fun getInstance(baseUrl: String): RestApi {
 
@@ -69,10 +74,10 @@ suspend fun registerCall(user: UserData): Response<Void> {
     if (BuildConfig.DEBUG) {
         Log.i(
             "KEYS", "\n" +
-                    "signPrivate: ${user.signingKeys.pair.secretKey}\n" +
-                    "signPublic: ${user.signingKeys.pair.publicKey}\n" +
-                    "encryptPrivate: ${user.encryptionKeys.pair.secretKey}\n" +
-                    "encryptPublic: ${user.encryptionKeys.pair.publicKey}\n"
+                    "signPrivate: ${user.signingKeys.pair.secretKey.asBytes.encodeToBase64()}\n" +
+                    "signPublic: ${user.signingKeys.pair.publicKey.asBytes.encodeToBase64()}\n" +
+                    "encryptPrivate: ${user.encryptionKeys.pair.secretKey.asBytes.encodeToBase64()}\n" +
+                    "encryptPublic: ${user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64()}\n"
         )
     }
 
@@ -80,8 +85,8 @@ suspend fun registerCall(user: UserData): Response<Void> {
 
     val postData = """
             Name: ${user.name}
-            Encryption-Key: id=${user.encryptionKeys.id}; algorithm=${ANONYMOUS_ENCRYPTION_CIPHER}; value=${user.encryptionKeys.pair.publicKey}
-            Signing-Key: algorithm=${SIGNING_ALGORITHM}; value=${user.signingKeys.pair.publicKey}
+            Encryption-Key: id=${user.encryptionKeys.id}; algorithm=${ANONYMOUS_ENCRYPTION_CIPHER}; value=${user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64()}
+            Signing-Key: algorithm=${SIGNING_ALGORITHM}; value=${user.signingKeys.pair.publicKey.asBytes.encodeToBase64()}
             Updated: ${LocalDateTime.now().atOffset(ZoneOffset.UTC).format(formatter)}
             """.trimIndent()
 
@@ -129,7 +134,10 @@ suspend fun getAllContacts(sharedPreferences: SharedPreferences): Response<List<
     )
 }
 
-suspend fun deleteContact(contact: Person, sharedPreferences: SharedPreferences): Response<Void> {
+suspend fun deleteContact(
+    contact: DBContact,
+    sharedPreferences: SharedPreferences
+): Response<Void> {
     val currentUser = sharedPreferences.getUserData()!!
     return getInstance("https://${currentUser.address.getMailHost()}").deleteContact(
         sotnHeader = currentUser.sign(),
@@ -137,6 +145,73 @@ suspend fun deleteContact(contact: Person, sharedPreferences: SharedPreferences)
         localPart = currentUser.address.getLocal(),
         linkAddr = contact.address.generateLink()
     )
+}
+
+suspend fun syncContacts(sharedPreferences: SharedPreferences, dao: ContactsDao) {
+    withContext(Dispatchers.IO) {
+        when (val remoteAddressesCall = safeApiCall { getAllContacts(sharedPreferences) }) {
+            is HttpResult.Error -> {
+                Log.e(
+                    "HTTP ERROR",
+                    remoteAddressesCall.message ?: remoteAddressesCall.code.toString()
+                )
+            }
+
+            is HttpResult.Success -> {
+                remoteAddressesCall.data?.let {
+                    val remotes = remoteAddressesCall.data
+
+                    val broadcastReceivingAddresses =
+                        dao.getAll().filter { it.receiveBroadcasts }.map { it.address }
+
+                    val result: List<PublicUserData> = remotes.map { remoteAddress ->
+                        async {
+                            when (val publicCall =
+                                safeApiCall { getProfilePublicData(remoteAddress) }) {
+                                is HttpResult.Error -> {
+                                    Log.e(
+                                        "HTTP ERROR",
+                                        publicCall.message ?: publicCall.code.toString()
+                                    )
+                                }
+
+                                is HttpResult.Success -> return@async publicCall.data
+                            }
+                            null
+                        }
+                    }.awaitAll().filterNotNull()
+
+                    //deleting local contacts, which isn't present on remote
+                    dao.getAll().map { local ->
+                        async {
+                            if (result.any { remote -> remote.address == local.address }.not()) {
+                                dao.delete(local)
+                            }
+                        }
+                    }.awaitAll()
+
+                    //inserting new and updating old local contacts
+                    dao.insertAll(result.map { publicData ->
+                        DBContact(
+                            lastSeen = publicData.lastSeen?.toString(),
+                            updated = publicData.updated?.toString(),
+                            address = publicData.address,
+                            name = publicData.fullName,
+                            receiveBroadcasts = broadcastReceivingAddresses.contains(
+                                publicData.address
+                            ),
+                            signingKeyAlgorithm = publicData.signingKeyAlgorithm,
+                            encryptionKeyAlgorithm = publicData.encryptionKeyAlgorithm,
+                            publicEncryptionKey = publicData.publicEncryptionKey,
+                            publicSigningKey = publicData.publicSigningKey,
+                            //TODO get image
+                            imageUrl = null
+                        )
+                    })
+                }
+            }
+        }
+    }
 }
 
 suspend fun <T : Any> safeApiCall(call: suspend () -> Response<T>): HttpResult<T> =
