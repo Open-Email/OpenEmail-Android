@@ -1,10 +1,11 @@
 [versions]
 activityCompose = "1.9.1"
 agp = "8.5.2"
-animation = "1.7.0-rc01"
+animation = "1.6.8"
 biometric = "1.1.0"
 coilCompose = "2.7.0"
 datastorePreferences = "1.1.1"
+foundationAndroid = "1.6.8"
 koinAndroid = "4.0.0-RC1"
 kotlin = "2.0.20"
 ksp = "2.0.20-1.0.24"
@@ -31,6 +32,7 @@ androidx-animation = { module = "androidx.compose.animation:animation", version.
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
+androidx-foundation-android = { module = "androidx.compose.foundation:foundation-android", version.ref = "foundationAndroid" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 androidx-material3 = { module = "androidx.compose.material3:material3" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }

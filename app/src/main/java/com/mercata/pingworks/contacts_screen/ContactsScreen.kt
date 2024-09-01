@@ -1,5 +1,6 @@
 @file:OptIn(
-    ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class
+    ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
+    ExperimentalFoundationApi::class
 )
 
 package com.mercata.pingworks.contacts_screen
@@ -7,6 +8,8 @@ package com.mercata.pingworks.contacts_screen
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -21,7 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -38,6 +41,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -47,12 +54,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -62,6 +71,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -70,6 +80,7 @@ import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.home_screen.SwipeContainer
+import kotlinx.coroutines.launch
 
 @Composable
 fun SharedTransitionScope.ContactsScreen(
@@ -80,8 +91,36 @@ fun SharedTransitionScope.ContactsScreen(
 ) {
 
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current as FragmentActivity
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+
+    LaunchedEffect(state.showUndoDeleteSnackBar) {
+        if (state.showUndoDeleteSnackBar) {
+            coroutineScope.launch {
+                val snackbarResult = snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.contact_deleted),
+                    actionLabel = context.getString(R.string.undo_button),
+                    duration = SnackbarDuration.Short
+                )
+                when (snackbarResult) {
+                    SnackbarResult.Dismissed -> {
+                        viewModel.onDeleteWaitComplete()
+                    }
+
+                    SnackbarResult.ActionPerformed -> {
+                        viewModel.onUndoDeletePressed()
+                    }
+                }
+            }
+        }
+    }
 
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -126,15 +165,17 @@ fun SharedTransitionScope.ContactsScreen(
                     end = padding.calculateRightPadding(LayoutDirection.Ltr),
                     bottom = padding.calculateBottomPadding() + (MARGIN_DEFAULT.value * 1.5).dp + 52.dp
                 ),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .animateContentSize()
             ) {
-                items(items = state.contacts,
-                    key = { it.address }) { item ->
+                itemsIndexed(items = state.contacts,
+                    key = { _, contact -> contact.address }) { index, item ->
 
                     SwipeContainer(
                         item = item,
                         onDelete = {
-                            viewModel.removeItem(item)
+                            viewModel.removeItem(index)
                         }) {
                         ContactViewHolder(
                             modifier = modifier,

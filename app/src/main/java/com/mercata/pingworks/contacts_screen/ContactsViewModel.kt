@@ -1,13 +1,10 @@
 package com.mercata.pingworks.contacts_screen
 
-import android.util.Log
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.HttpResult
-import com.mercata.pingworks.R
 import com.mercata.pingworks.SharedPreferences
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.DBContact
@@ -18,7 +15,6 @@ import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.safeApiCall
 import com.mercata.pingworks.syncContacts
 import com.mercata.pingworks.uploadContact
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
@@ -40,10 +36,10 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         }
 
         updateState(currentState.copy(loggedInPersonAddress = sp.getUserAddress()!!))
-
     }
 
-    val snackBarDuration = SnackbarDuration.Short
+    private var itemToDeleteIndex: Int? = null
+    private var itemToDelete: DBContact? = null
 
     fun onNewContactAddressInput(str: String) {
         updateState(
@@ -110,13 +106,11 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
             }) {
                 is HttpResult.Error -> {
                     db.userDao().delete(dbContact)
-                    updateState(currentState.copy(snackBarTextResId = R.string.uploading_contact_failed))
-                    delay(4000L)
-                    updateState(currentState.copy(snackBarTextResId = null))
+                    updateState(currentState.copy(showUploadExceptionSnackBar = true))
                 }
 
                 is HttpResult.Success -> {
-                    println()
+                    //ignore
                 }
             }
             updateState(currentState.copy(loadingContactAddress = null))
@@ -135,27 +129,43 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         updateState(currentState.copy(newContactFound = null))
     }
 
-    fun removeItem(dbContact: DBContact) {
+    fun onUndoDeletePressed() {
+        currentState.contacts.add(itemToDeleteIndex!!, itemToDelete!!)
+        itemToDeleteIndex = null
+        itemToDelete = null
+        updateState(currentState.copy(showUndoDeleteSnackBar = false))
+    }
+
+    fun onDeleteWaitComplete() {
         viewModelScope.launch {
-            db.userDao().delete(dbContact)
-            when (val call = safeApiCall { deleteContact(dbContact, sharedPreferences) }) {
+            when (safeApiCall { deleteContact(itemToDelete!!, sharedPreferences) }) {
                 is HttpResult.Error -> {
-                    db.userDao().insert(dbContact)
+                    //ignore
                 }
 
                 is HttpResult.Success -> {
-                    Log.e("REMOVE CONTACT ERROR", call.message ?: call.code.toString())
+                    db.userDao().delete(itemToDelete!!)
                 }
             }
+            itemToDeleteIndex = null
+            itemToDelete = null
         }
-        viewModelScope.launch {
-            updateState(currentState.copy(snackBarTextResId = R.string.contact_deleted))
-            delay(4000L)
-            updateState(currentState.copy(snackBarTextResId = null))
-        }
+        updateState(currentState.copy(showUndoDeleteSnackBar = false))
     }
 
+    fun removeItem(index: Int) {
+        itemToDeleteIndex = index
+        itemToDelete = currentState.contacts[index]
+        currentState.contacts.removeAt(index)
+        updateState(currentState.copy(showUndoDeleteSnackBar = false))
+        updateState(currentState.copy(showUndoDeleteSnackBar = true))
+    }
+
+    fun onErrorDismissed() {
+        updateState(currentState.copy(showUploadExceptionSnackBar = false))
+    }
 }
+
 
 data class ContactsState(
     val contacts: SnapshotStateList<DBContact> = mutableStateListOf(),
@@ -163,8 +173,8 @@ data class ContactsState(
     val newContactAddressInput: String = "",
     val loggedInPersonAddress: String = "",
     val loadingContactAddress: String? = null,
-    val snackBarTextResId: Int? = null,
-    val snackBarActionResId: Int? = null,
+    val showUploadExceptionSnackBar: Boolean = false,
+    val showUndoDeleteSnackBar: Boolean = false,
     val newContactFound: PublicUserData? = null,
     val searchButtonActive: Boolean = false,
     val loading: Boolean = false,

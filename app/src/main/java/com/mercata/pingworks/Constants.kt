@@ -8,6 +8,7 @@ val CONTACT_LIST_ITEM_HEIGHT = 72.dp
 val MARGIN_DEFAULT = 16.dp
 val MARGIN_SMALLER = 12.dp
 const val animationDuration = 500
+const val snackBarDuration = 4000L
 
 val emailRegex = Regex("^[a-z0-9][a-z0-9\\.\\-_\\+]{2,}@[a-z0-9.-]+\\.[a-z]{2,}|xn--[a-z0-9]{2,}$")
 const val WELL_KNOWN_URI = ".well-known/mail.txt"

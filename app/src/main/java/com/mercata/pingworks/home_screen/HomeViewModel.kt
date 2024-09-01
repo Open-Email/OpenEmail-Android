@@ -7,12 +7,17 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
+import com.mercata.pingworks.SharedPreferences
+import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.models.BroadcastMessage
 import com.mercata.pingworks.models.Message
-import java.time.LocalDateTime
+import com.mercata.pingworks.syncContacts
+import kotlinx.coroutines.launch
+import org.koin.java.KoinJavaComponent.inject
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -46,6 +51,12 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 )
             )
             updateState(currentState)
+
+            val sp: SharedPreferences by inject(SharedPreferences::class.java)
+            val db: AppDatabase by inject(AppDatabase::class.java)
+            viewModelScope.launch {
+                syncContacts(sp, db.userDao())
+            }
         }
     }
 
