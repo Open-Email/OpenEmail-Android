@@ -103,7 +103,7 @@ fun SharedTransitionScope.ContactsScreen(
                 )
                 when (snackbarResult) {
                     SnackbarResult.Dismissed -> {
-                        viewModel.onDeleteWaitComplete()
+                        viewModel.onDeleteWaitComplete(state.itemToDelete!!)
                     }
 
                     SnackbarResult.ActionPerformed -> {

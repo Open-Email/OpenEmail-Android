@@ -15,6 +15,9 @@ import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.safeApiCall
 import com.mercata.pingworks.syncContacts
 import com.mercata.pingworks.uploadContact
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
@@ -37,9 +40,6 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
 
         updateState(currentState.copy(loggedInPersonAddress = sp.getUserAddress()!!))
     }
-
-    private var itemToDeleteIndex: Int? = null
-    private var itemToDelete: DBContact? = null
 
     fun onNewContactAddressInput(str: String) {
         updateState(
@@ -130,32 +130,45 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     }
 
     fun onUndoDeletePressed() {
-        currentState.contacts.add(itemToDeleteIndex!!, itemToDelete!!)
-        itemToDeleteIndex = null
-        itemToDelete = null
-        updateState(currentState.copy(showUndoDeleteSnackBar = false))
+        currentState.contacts.add(currentState.itemToDeleteIndex!!, currentState.itemToDelete!!)
+        updateState(
+            currentState.copy(
+                itemToDelete = null,
+                itemToDeleteIndex = null,
+                showUndoDeleteSnackBar = false
+            )
+        )
     }
 
-    fun onDeleteWaitComplete() {
-        viewModelScope.launch {
-            when (safeApiCall { deleteContact(itemToDelete!!, sharedPreferences) }) {
-                is HttpResult.Error -> {
-                    //ignore
-                }
+    @OptIn(DelicateCoroutinesApi::class)
+    fun onDeleteWaitComplete(item: DBContact) {
+        updateState(currentState.copy(showUndoDeleteSnackBar = false))
+        GlobalScope.launch(Dispatchers.IO) {
+            launch { db.userDao().delete(item) }
+            launch {
+                when (safeApiCall { deleteContact(item, sharedPreferences) }) {
+                    is HttpResult.Error -> {
+                        //ignore
+                    }
 
-                is HttpResult.Success -> {
-                    db.userDao().delete(itemToDelete!!)
+                    is HttpResult.Success -> {
+
+                    }
                 }
             }
-            itemToDeleteIndex = null
-            itemToDelete = null
         }
-        updateState(currentState.copy(showUndoDeleteSnackBar = false))
     }
 
     fun removeItem(index: Int) {
-        itemToDeleteIndex = index
-        itemToDelete = currentState.contacts[index]
+        currentState.itemToDelete?.run {
+            onDeleteWaitComplete(this)
+        }
+        updateState(
+            currentState.copy(
+                itemToDelete = currentState.contacts[index],
+                itemToDeleteIndex = index,
+            )
+        )
         currentState.contacts.removeAt(index)
         updateState(currentState.copy(showUndoDeleteSnackBar = false))
         updateState(currentState.copy(showUndoDeleteSnackBar = true))
@@ -164,11 +177,20 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     fun onErrorDismissed() {
         updateState(currentState.copy(showUploadExceptionSnackBar = false))
     }
+
+    override fun onCleared() {
+        currentState.itemToDelete?.run {
+            onDeleteWaitComplete(this)
+        }
+        super.onCleared()
+    }
 }
 
 
 data class ContactsState(
     val contacts: SnapshotStateList<DBContact> = mutableStateListOf(),
+    val itemToDeleteIndex: Int? = null,
+    val itemToDelete: DBContact? = null,
     val searchInput: String = "",
     val newContactAddressInput: String = "",
     val loggedInPersonAddress: String = "",
