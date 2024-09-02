@@ -1,6 +1,5 @@
 @file:OptIn(
-    ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
-    ExperimentalFoundationApi::class
+    ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class
 )
 
 package com.mercata.pingworks.contacts_screen
@@ -8,8 +7,6 @@ package com.mercata.pingworks.contacts_screen
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -167,12 +164,12 @@ fun SharedTransitionScope.ContactsScreen(
                 ),
                 modifier = Modifier
                     .fillMaxSize()
-                    .animateContentSize()
             ) {
                 itemsIndexed(items = state.contacts,
                     key = { _, contact -> contact.address }) { index, item ->
 
                     SwipeContainer(
+                        modifier = modifier.animateItem(),
                         item = item,
                         onDelete = {
                             viewModel.removeItem(index)

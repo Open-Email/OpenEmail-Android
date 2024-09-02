@@ -2,13 +2,9 @@
 
 package com.mercata.pingworks.home_screen
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -75,7 +71,6 @@ import com.mercata.pingworks.MESSAGE_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.NavigationDrawerBody
 import com.mercata.pingworks.models.Message
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -181,6 +176,7 @@ fun SharedTransitionScope.HomeScreen(
                 items(items = state.messages,
                     key = { it.id }) { item ->
                     SwipeContainer(
+                        modifier = modifier.animateItem(),
                         item = item,
                         onDelete = {
                             viewModel.removeItem(item)
@@ -271,10 +267,10 @@ enum class SwipeAction {
 
 @Composable
 fun <T> SwipeContainer(
+    modifier: Modifier = Modifier,
     item: T,
     onDelete: ((T) -> Unit)? = null,
     onUpdateReadState: ((T) -> Unit)? = null,
-    animationDuration: Int = 500,
     content: @Composable (T) -> Unit
 ) {
     var actionState by remember { mutableStateOf(SwipeAction.Idle) }
@@ -303,7 +299,6 @@ fun <T> SwipeContainer(
     )
 
     LaunchedEffect(key1 = actionState) {
-        delay(animationDuration.toLong())
         when (actionState) {
             SwipeAction.Deleted -> onDelete?.invoke(item)
             SwipeAction.UpdatedRead -> {
@@ -315,27 +310,20 @@ fun <T> SwipeContainer(
         }
     }
 
-    AnimatedVisibility(
-        visible = actionState != SwipeAction.Deleted,
-        exit = shrinkVertically(
-            animationSpec = tween(durationMillis = animationDuration),
-            shrinkTowards = Alignment.Top
-        ) + fadeOut()
-    ) {
-        SwipeToDismissBox(
-            state = state,
-            backgroundContent = {
-                DeleteBackground(swipeValue = state.targetValue)
-            },
-            content = { content(item) },
-            enableDismissFromEndToStart = onDelete != null,
-            enableDismissFromStartToEnd = onUpdateReadState != null,
-        )
-    }
+    SwipeToDismissBox(
+        modifier = modifier,
+        state = state,
+        backgroundContent = {
+            SwipeBackground(swipeValue = state.targetValue)
+        },
+        content = { content(item) },
+        enableDismissFromEndToStart = onDelete != null,
+        enableDismissFromStartToEnd = onUpdateReadState != null,
+    )
 }
 
 @Composable
-fun DeleteBackground(
+fun SwipeBackground(
     swipeValue: SwipeToDismissBoxValue
 ) {
     val deleteSwipe = swipeValue == SwipeToDismissBoxValue.EndToStart
