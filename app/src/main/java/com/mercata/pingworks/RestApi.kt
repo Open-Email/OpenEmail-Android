@@ -69,6 +69,29 @@ interface RestApi {
         @Path("localPart") localPart: String,
     ): Response<List<String>>
 
+    @GET("/mail/{hostPart}/{localPart}/messages/{messageId}")
+    suspend fun getAllBroadcastMessagesForContact(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+        @Path("messageId") messageId: String,
+    ): Response<String>
+
+    @GET("/mail/{hostPart}/{localPart}/messages")
+    suspend fun getAllBroadcastMessagesIdsForContact(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+    ): Response<String>
+
+    @HEAD("/mail/{hostPart}/{localPart}/messages/{messageId}")
+    suspend fun fetchEnvelope(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+        @Path("messageId") messageId: String,
+    ): Response<Void>
+
     @DELETE("/home/{hostPart}/{localPart}/links/{linkAddr}")
     suspend fun deleteContact(
         @Header("Authorization") sotnHeader: String,

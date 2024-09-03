@@ -3,6 +3,7 @@ package com.mercata.pingworks
 import android.util.Log
 import com.mercata.pingworks.db.contacts.ContactsDao
 import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.models.Envelope
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.response_converters.ContactsListConverterFactory
@@ -145,6 +146,136 @@ suspend fun deleteContact(
         localPart = currentUser.address.getLocal(),
         linkAddr = contact.address.generateLink()
     )
+}
+
+suspend fun syncBroadcasts(sharedPreferences: SharedPreferences, contactsDao: ContactsDao) {
+    withContext(Dispatchers.IO) {
+        val currentUser = sharedPreferences.getUserData()!!
+        contactsDao.getAll().map { contact ->
+            async {
+                when (val idsCall = safeApiCall {
+                    getInstance("https://${currentUser.address.getMailHost()}").getAllBroadcastMessagesIdsForContact(
+                        sotnHeader = currentUser.sign(),
+                        hostPart = contact.address.getHost(),
+                        localPart = contact.address.getLocal()
+                    )
+                }) {
+                    is HttpResult.Error -> {
+                        null
+                    }
+
+                    is HttpResult.Success -> {
+                        val envelopeResults = idsCall.data?.split("\n")?.map { it.trim() }
+                            ?.filterNot { it.isBlank() }?.let { ids ->
+
+                                fetchEnvelope(ids, currentUser, contact)
+                            }
+
+                        println(envelopeResults)
+                    }
+                }
+
+            }
+        }.awaitAll()
+
+    }
+}
+
+suspend fun fetchEnvelope(
+    messageIds: List<String>,
+    currentUser: UserData,
+    contact: DBContact,
+): List<Envelope?> {
+
+    return withContext(Dispatchers.IO) {
+        messageIds.map { messageId ->
+            async {
+                when (val envelopeCall = safeApiCall {
+                    getInstance("https://${currentUser.address.getMailHost()}").fetchEnvelope(
+                        currentUser.sign(),
+                        contact.address.getHost(),
+                        contact.address.getLocal(),
+                        messageId
+                    )
+                }) {
+                    is HttpResult.Error -> {
+                        null
+                    }
+
+                    is HttpResult.Success -> {
+
+                        envelopeCall.headers ?: run {
+                            return@async null
+                        }
+
+                        val envelope =
+                            Envelope(messageId, currentUser, contact, envelopeCall.headers!!)
+
+                        envelope.assertEnvelopeAuthenticity()
+                        envelope.openContentHeaders()
+
+                        envelope
+                    }
+                }
+            }
+        }.awaitAll()
+    }
+}
+
+private suspend fun getAllMessagesForContact(
+    currentUser: UserData,
+    contact: DBContact,
+    ids: List<String>
+) {
+    withContext(Dispatchers.IO) {
+
+        val messages: List<String?> = ids.map { id ->
+            async {
+                val instance = getInstance("https://${currentUser.address.getMailHost()}")
+                val sign = currentUser.sign()
+                val hostPart = contact.address.getHost()
+                val localPart = contact.address.getLocal()
+
+                when (val envelopeCall = safeApiCall {
+                    instance.fetchEnvelope(
+                        sotnHeader = sign,
+                        hostPart = hostPart,
+                        localPart = localPart,
+                        messageId = id
+                    )
+                }) {
+                    is HttpResult.Error -> {
+                        println(envelopeCall.message)
+                        null
+                    }
+
+                    is HttpResult.Success -> {
+                        val envelopeData = envelopeCall.data
+                        println(envelopeData)
+                        when (val messageCall = safeApiCall {
+                            instance.getAllBroadcastMessagesForContact(
+                                sotnHeader = sign,
+                                hostPart = hostPart,
+                                localPart = localPart,
+                                messageId = id
+                            )
+                        }) {
+                            is HttpResult.Error -> {
+                                println(envelopeCall.message)
+                                null
+                            }
+
+                            is HttpResult.Success -> messageCall.data
+                        }
+                    }
+                }
+
+
+            }
+        }.awaitAll()
+
+        println(messages)
+    }
 }
 
 suspend fun syncContacts(sharedPreferences: SharedPreferences, dao: ContactsDao) {

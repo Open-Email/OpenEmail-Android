@@ -178,9 +178,6 @@ fun SharedTransitionScope.HomeScreen(
                     SwipeContainer(
                         modifier = modifier.animateItem(),
                         item = item,
-                        onDelete = {
-                            viewModel.removeItem(item)
-                        },
                         onUpdateReadState = { i ->
                             //TODO change read state
                         }) {
