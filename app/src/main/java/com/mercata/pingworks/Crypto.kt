@@ -75,8 +75,8 @@ fun decryptAnonymous(cipherText: String, currentUser: UserData): String {
 }
 
 @Throws(SodiumException::class)
-fun verifySignature(signature: ByteArray, message: ByteArray, publicKey: Key): Boolean {
-    return sodium.cryptoSignVerifyDetached(signature, message, message.size, publicKey.asBytes)
+fun verifySignature( publicKey: Key, signature: String, originData: ByteArray): Boolean {
+    return sodium.cryptoSignVerifyDetached(Base64.getDecoder().decode(signature), originData, originData.size, publicKey.asBytes)
 }
 
 fun Address.generateLink(): String {

@@ -112,15 +112,16 @@ class Envelope(
 
         streamId = envelopeHeadersMap[HEADER_MESSAGE_STREAM]
 
-        headersSignature = envelopeHeadersMap[HEADER_MESSAGE_ENVELOPE_SIGNATURE]!!.let { headerVal ->
-            val sigMap = parseHeaderAttributes(headerVal)
-            val algorithm = sigMap["algorithm"]
-            val data = sigMap["value"]
-            if (algorithm?.lowercase() != SIGNING_ALGORITHM) {
-                throw AlgorithmMissMatch(algorithm.toString())
+        headersSignature =
+            envelopeHeadersMap[HEADER_MESSAGE_ENVELOPE_SIGNATURE]!!.let { headerVal ->
+                val sigMap = parseHeaderAttributes(headerVal)
+                val algorithm = sigMap["algorithm"]
+                val data = sigMap["value"]
+                if (algorithm?.lowercase() != SIGNING_ALGORITHM) {
+                    throw AlgorithmMissMatch(algorithm.toString())
+                }
+                data!!
             }
-            data!!
-        }
 
         payloadCipher = envelopeHeadersMap[HEADER_MESSAGE_ENCRYPTION]
 
@@ -330,35 +331,44 @@ class Envelope(
     }
 
     private fun parseHeaderAttributes(header: String): Map<String, String> =
-        header.split(";").associate {
-            val kv = it.trim().split("=")
+        header.split(";").associate { attribute ->
+            val kv = attribute.trim().split("=").filterNot { it.isBlank() }
             kv.first().trim().lowercase() to kv.last().trim()
         }
 
+
     @Throws(EnvelopeAuthenticity::class, SignatureMismatch::class)
     fun assertEnvelopeAuthenticity() {
-        var data = ""
+        val headerData = mutableListOf<Byte>()
 
-        headersOrder.lowercase().split(":").map { it.trim() }.forEach { headerKey ->
-            if (CHECKSUM_HEADERS.contains(headerKey)) {
+        headersOrder.lowercase().split(":").map { it.trim() }.filterNot { it.isBlank() }
+            .forEach { headerKey ->
+                if (CHECKSUM_HEADERS.contains(headerKey)) {
+                    val value = envelopeHeadersMap[headerKey]
+                    if (value != null) {
+                        headerData.addAll(value.toByteArray().toList())
+                    }
+                }
+            }
 
-                data += headerKey
+        // Verify headers checksum
+        val (headersSum, headersSumBytes) = headerData.toByteArray().hashedWithSha256()
+
+        if (headersChecksum != headersSum) {
+            throw EnvelopeAuthenticity(headersChecksum)
+        }
+
+        // Verify checksum signature
+        headersSignature.takeIf { it.isNotEmpty() }?.let { signature ->
+            val isSignatureValid = verifySignature(
+                publicKey = Key.fromBase64String(contact.publicSigningKey),
+                signature = signature,
+                originData = headersSumBytes
+            )
+
+            if (!isSignatureValid) {
+                throw SignatureMismatch(signature)
             }
         }
-
-        val headerSum = data.hashedWithSha256() //headerSum.first == headerCheckSum == "376c8e1cca087ccfb390bac289de54a55231714b603ba0e1b89708bcf3f66449"
-        if (headersChecksum != headerSum.first) {
-            throw EnvelopeAuthenticity(headerSum.first)
-        }
-
-        if (!verifySignature(
-                signature = headersSignature.toByteArray(),
-                message = headerSum.second,
-                publicKey = currentUser.signingKeys.pair.publicKey
-            )
-        ) {
-            throw SignatureMismatch(headersSignature ?: "")
-        }
     }
-
 }
