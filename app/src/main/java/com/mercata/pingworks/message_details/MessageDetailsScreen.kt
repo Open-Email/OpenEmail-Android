@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.DEFAULT_DATE_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import kotlin.math.roundToInt
@@ -140,7 +141,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                                 animatedVisibilityScope = animatedVisibilityScope,
                             )
                             .size(width = 72.0.dp, height = 72.0.dp)
-                            .clip(RoundedCornerShape(16.0.dp)),
+                            .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
                         model = contact.imageUrl,
                         contentDescription = null
                     )

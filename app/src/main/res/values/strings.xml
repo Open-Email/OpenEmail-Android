@@ -54,4 +54,5 @@
     <string name="uploading_contact_failed">Uploading contact process has failed!</string>
     <string name="contact_deleted">Contact deleted</string>
     <string name="undo_button">Undo</string>
+    <string name="clear_button">Clear</string>
 </resources>

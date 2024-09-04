@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter
 val MESSAGE_LIST_ITEM_HEIGHT = 88.dp
 val CONTACT_LIST_ITEM_HEIGHT = 72.dp
 val MARGIN_DEFAULT = 16.dp
+val DEFAULT_CORNER_RADIUS = 16.dp
 val MARGIN_SMALLER = 12.dp
 const val animationDuration = 500
 const val snackBarDuration = 4000L

@@ -2,6 +2,7 @@
 
 package com.mercata.pingworks.home_screen
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -21,12 +22,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -40,7 +44,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -56,17 +59,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.R
@@ -86,9 +94,19 @@ fun SharedTransitionScope.HomeScreen(
     val scrollBehavior =
         TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val focusManager = LocalFocusManager.current
+    val searchFocusRequester = remember { FocusRequester() }
 
     val state by viewModel.state.collectAsState()
 
+
+    LaunchedEffect(key1 = state.searchOpened) {
+        if (state.searchOpened) {
+            searchFocusRequester.requestFocus()
+        } else {
+            focusManager.clearFocus()
+        }
+    }
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = drawerState.isOpen,
@@ -144,15 +162,55 @@ fun SharedTransitionScope.HomeScreen(
                         }
                     },
                     actions = {
-                         IconButton(onClick = {    }) {
-                            Icon(
-                                imageVector = Icons.Filled.Search,
-                                contentDescription = stringResource(id = R.string.search)
-                            )
+                        Row {
+                            AnimatedVisibility(
+                                visible = state.searchOpened,
+                                modifier = modifier.weight(1f)
+                            ) {
+                                Row(modifier = modifier.fillMaxWidth()) {
+                                    Spacer(modifier = modifier.width(MARGIN_DEFAULT + 42.dp))
+                                    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                                        BasicTextField(
+                                            keyboardOptions = KeyboardOptions(
+                                                imeAction = ImeAction.Search,
+                                                showKeyboardOnFocus = true,
+                                            ),
+                                            singleLine = true,
+                                            modifier = modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                                                .background(MaterialTheme.colorScheme.surface)
+                                                .padding(
+                                                    start = MARGIN_DEFAULT,
+                                                    top = MARGIN_DEFAULT,
+                                                    bottom = MARGIN_DEFAULT,
+                                                    end = 48.dp
+                                                )
+                                                .focusRequester(searchFocusRequester),
+                                            textStyle = MaterialTheme.typography.bodySmall,
+                                            value = state.query,
+                                            onValueChange = {
+                                                viewModel.onSearchQuery(it)
+                                            })
+                                        IconButton(onClick = { viewModel.onSearchQuery("") }) {
+                                            Icon(
+                                                Icons.Rounded.Clear,
+                                                stringResource(id = R.string.clear_button),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = modifier.width(8.dp))
+                                }
+                            }
+                            IconButton(onClick = { viewModel.toggleSearch() }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Search,
+                                    contentDescription = stringResource(id = R.string.search)
+                                )
+                            }
                         }
-                        /*TextField(
-                            value = state.query,
-                            onValueChange = { viewModel.onSearchQuery(it) })*/
+
                     },
                     scrollBehavior = scrollBehavior
                 )
@@ -240,7 +298,7 @@ fun SharedTransitionScope.MessageViewHolder(
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
                     .size(width = 72.0.dp, height = 72.0.dp)
-                    .clip(RoundedCornerShape(16.0.dp)),
+                    .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
                 model = item.first.contact.imageUrl,
                 contentDescription = stringResource(id = R.string.profile_image)
             )

@@ -62,6 +62,13 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         currentState.messages.remove(item)
     }
 
+    fun toggleSearch() {
+        updateState(currentState.copy(searchOpened = !currentState.searchOpened, query = ""))
+        if (currentState.searchOpened.not()) {
+            updateList()
+        }
+    }
+
     private fun updateList() {
         currentState.messages.clear()
         currentState.messages.addAll(allMessages.asSequence().filter {
@@ -78,6 +85,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 }
 
 data class HomeState(
+    val searchOpened: Boolean = false,
     val query: String = "",
     val screen: HomeScreen = HomeScreen.Broadcast,
     val messages: SnapshotStateList<Pair<Envelope, String>> = mutableStateListOf(),
