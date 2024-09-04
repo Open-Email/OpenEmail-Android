@@ -111,13 +111,15 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                         composable(
-                            route = "MessageDetailsScreen/{messageId}",
-                            arguments = listOf(
+                            route = "MessageDetailsScreen",
+                            //route = "MessageDetailsScreen/{messageId}",
+                            //TODO
+                            /*arguments = listOf(
                                 navArgument("messageId") {
                                     type = NavType.StringType
                                     nullable = false
                                 }
-                            ),
+                            ),*/
                             enterTransition = {
                                 fadeIn()
                             },

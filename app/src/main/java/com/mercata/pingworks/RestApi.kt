@@ -6,6 +6,7 @@ import com.mercata.pingworks.response_converters.UserPublicData
 import com.mercata.pingworks.response_converters.WellKnownHost
 import com.mercata.pingworks.response_converters.WellKnownHosts
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -15,7 +16,7 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
-import retrofit2.http.Url
+import retrofit2.http.Streaming
 
 interface RestApi {
 
@@ -84,13 +85,13 @@ interface RestApi {
         @Path("localPart") localPart: String,
     ): Response<String>
 
-    @HEAD("/mail/{hostPart}/{localPart}/messages/{messageId}")
-    suspend fun fetchEnvelope(
+    @GET("/mail/{hostPart}/{localPart}/link/{connectionLink}/messages")
+    suspend fun getAllPrivateMessagesIdsForContact(
         @Header("Authorization") sotnHeader: String,
         @Path("hostPart") hostPart: String,
         @Path("localPart") localPart: String,
-        @Path("messageId") messageId: String,
-    ): Response<Void>
+        @Path("connectionLink") connectionLink: String,
+    ): Response<String>
 
     @DELETE("/home/{hostPart}/{localPart}/links/{linkAddr}")
     suspend fun deleteContact(
@@ -99,5 +100,22 @@ interface RestApi {
         @Path("localPart") localPart: String,
         @Path("linkAddr") linkAddr: String,
     ): Response<Void>
+
+    @HEAD("/mail/{hostPart}/{localPart}/messages/{messageId}")
+    suspend fun fetchEnvelope(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+        @Path("messageId") messageId: String,
+    ): Response<Void>
+
+    @Streaming
+    @GET("/mail/{hostPart}/{localPart}/messages/{messageId}")
+    suspend fun downloadMessage(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+        @Path("messageId") messageId: String
+    ): Response<ResponseBody>
 }
 

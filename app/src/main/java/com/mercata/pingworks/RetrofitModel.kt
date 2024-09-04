@@ -3,6 +3,8 @@ package com.mercata.pingworks
 import android.util.Log
 import com.mercata.pingworks.db.contacts.ContactsDao
 import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.exceptions.EnvelopeAuthenticity
+import com.mercata.pingworks.exceptions.SignatureMismatch
 import com.mercata.pingworks.models.Envelope
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
@@ -18,6 +20,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
 import retrofit2.Retrofit
@@ -148,10 +151,13 @@ suspend fun deleteContact(
     )
 }
 
-suspend fun syncBroadcasts(sharedPreferences: SharedPreferences, contactsDao: ContactsDao) {
-    withContext(Dispatchers.IO) {
+suspend fun getAllEnvelopes(
+    sharedPreferences: SharedPreferences,
+    contactsDao: ContactsDao
+): List<Envelope> {
+    return withContext(Dispatchers.IO) {
         val currentUser = sharedPreferences.getUserData()!!
-        contactsDao.getAll().map { contact ->
+        val ids: List<Pair<DBContact, List<String>>> = contactsDao.getAll().map { contact ->
             async {
                 when (val idsCall = safeApiCall {
                     getInstance("https://${currentUser.address.getMailHost()}").getAllBroadcastMessagesIdsForContact(
@@ -161,31 +167,59 @@ suspend fun syncBroadcasts(sharedPreferences: SharedPreferences, contactsDao: Co
                     )
                 }) {
                     is HttpResult.Error -> {
-                        null
+                        contact to listOf()
                     }
 
                     is HttpResult.Success -> {
-                        val envelopeResults = idsCall.data?.split("\n")?.map { it.trim() }
-                            ?.filterNot { it.isBlank() }?.let { ids ->
+                        contact to (idsCall.data
+                            ?.split("\n")
+                            ?.map { it.trim() }
+                            ?.filterNot { it.isBlank() } ?: listOf())
 
-                                fetchEnvelope(ids, currentUser, contact)
-                            }
-
-                        println(envelopeResults)
                     }
                 }
 
             }
         }.awaitAll()
 
+        val envelopes: ArrayList<Envelope> = arrayListOf()
+
+        ids.map {
+            async {
+                fetchEnvelopesForContact(
+                    messageIds = it.second,
+                    currentUser = currentUser,
+                    contact = it.first
+                )
+            }
+        }
+            .awaitAll()
+            .forEach { envelopes.addAll(it) }
+
+        println()
+        println(ids.toString())
+        envelopes
     }
 }
 
-suspend fun fetchEnvelope(
+suspend fun downloadMessage(
+    currentUser: UserData,
+    contact: DBContact,
+    messageId: String
+): Response<ResponseBody> {
+    return getInstance("https://${currentUser.address.getMailHost()}").downloadMessage(
+        sotnHeader = currentUser.sign(),
+        hostPart = contact.address.getHost(),
+        localPart = contact.address.getLocal(),
+        messageId = messageId
+    )
+}
+
+private suspend fun fetchEnvelopesForContact(
     messageIds: List<String>,
     currentUser: UserData,
     contact: DBContact,
-): List<Envelope?> {
+): List<Envelope> {
 
     return withContext(Dispatchers.IO) {
         messageIds.map { messageId ->
@@ -211,70 +245,20 @@ suspend fun fetchEnvelope(
                         val envelope =
                             Envelope(messageId, currentUser, contact, envelopeCall.headers!!)
 
-                        envelope.assertEnvelopeAuthenticity()
-                        envelope.openContentHeaders()
-
-                        envelope
-                    }
-                }
-            }
-        }.awaitAll()
-    }
-}
-
-private suspend fun getAllMessagesForContact(
-    currentUser: UserData,
-    contact: DBContact,
-    ids: List<String>
-) {
-    withContext(Dispatchers.IO) {
-
-        val messages: List<String?> = ids.map { id ->
-            async {
-                val instance = getInstance("https://${currentUser.address.getMailHost()}")
-                val sign = currentUser.sign()
-                val hostPart = contact.address.getHost()
-                val localPart = contact.address.getLocal()
-
-                when (val envelopeCall = safeApiCall {
-                    instance.fetchEnvelope(
-                        sotnHeader = sign,
-                        hostPart = hostPart,
-                        localPart = localPart,
-                        messageId = id
-                    )
-                }) {
-                    is HttpResult.Error -> {
-                        println(envelopeCall.message)
-                        null
-                    }
-
-                    is HttpResult.Success -> {
-                        val envelopeData = envelopeCall.data
-                        println(envelopeData)
-                        when (val messageCall = safeApiCall {
-                            instance.getAllBroadcastMessagesForContact(
-                                sotnHeader = sign,
-                                hostPart = hostPart,
-                                localPart = localPart,
-                                messageId = id
-                            )
-                        }) {
-                            is HttpResult.Error -> {
-                                println(envelopeCall.message)
-                                null
-                            }
-
-                            is HttpResult.Success -> messageCall.data
+                        val authentic: Boolean = try {
+                            envelope.assertEnvelopeAuthenticity()
+                            true
+                        } catch (e: EnvelopeAuthenticity) {
+                            false
+                        } catch (e: SignatureMismatch) {
+                            false
                         }
+
+                        envelope.takeIf { authentic }
                     }
                 }
-
-
             }
-        }.awaitAll()
-
-        println(messages)
+        }.awaitAll().filterNotNull()
     }
 }
 

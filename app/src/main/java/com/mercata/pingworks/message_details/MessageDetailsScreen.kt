@@ -82,7 +82,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         exit = fadeOut() + slideOutVertically { 100.dp.value.roundToInt() }
                     ) {
                         Text(
-                            state.message?.subject ?: "",
+                            state.message?.contentHeaders?.subject ?: "",
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.labelMedium
@@ -118,13 +118,13 @@ fun SharedTransitionScope.MessageDetailsScreen(
                 .padding(MARGIN_DEFAULT)
         ) {
             Text(
-                text = state.message?.subject ?: "",
+                text = state.message?.contentHeaders?.subject ?: "",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = modifier.height(MARGIN_DEFAULT))
 
-            state.message?.person?.run {
+            state.message?.contact?.let { contact ->
                 Row(
                     modifier = modifier
                         .fillMaxWidth()
@@ -134,18 +134,19 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         modifier = modifier
                             .sharedBounds(
                                 sharedContentState = rememberSharedContentState(
-                                    key = "message_image/${state.messageId}"
+                                    //key = "message_image/${state.messageId}"
+                                    key = "message_image"
                                 ),
                                 animatedVisibilityScope = animatedVisibilityScope,
                             )
                             .size(width = 72.0.dp, height = 72.0.dp)
                             .clip(RoundedCornerShape(16.0.dp)),
-                        model = state.message!!.person!!.imageUrl,
+                        model = contact.imageUrl,
                         contentDescription = null
                     )
                     Spacer(modifier = modifier.width(MARGIN_DEFAULT))
                     Column {
-                        state.message!!.person!!.name?.let { name ->
+                        contact.name?.let { name ->
                             Text(
                                 text = name,
                                 maxLines = 2,
@@ -155,20 +156,21 @@ fun SharedTransitionScope.MessageDetailsScreen(
                             )
                         }
                         Text(
-                            text = state.message!!.person!!.address,
+                            text = contact.address,
                             maxLines = 2,
                             style = MaterialTheme.typography.bodyMedium,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
                     Spacer(modifier.weight(1f))
-                    Text(state.message?.date?.format(DEFAULT_DATE_FORMAT) ?: "")
+                    Text(state.message?.contentHeaders?.date?.toLocalDateTime()?.format(DEFAULT_DATE_FORMAT) ?: "")
                 }
             }
             Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-            Text(
+            //TODO body
+           /* Text(
                 text = state.message?.body ?: "",
-            )
+            )*/
         }
     }
 }

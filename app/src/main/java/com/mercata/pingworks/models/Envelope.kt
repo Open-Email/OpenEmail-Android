@@ -28,8 +28,10 @@ import com.mercata.pingworks.SIGNING_ALGORITHM
 import com.mercata.pingworks.SYMMETRIC_CIPHER
 import com.mercata.pingworks.SYMMETRIC_FILE_CIPHER
 import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.decodeToBase64
 import com.mercata.pingworks.decryptAnonymous
 import com.mercata.pingworks.decrypt_xchacha20poly1305
+import com.mercata.pingworks.encodeToBase64
 import com.mercata.pingworks.exceptions.AlgorithmMissMatch
 import com.mercata.pingworks.exceptions.BadChecksum
 import com.mercata.pingworks.exceptions.BadChunkSize
@@ -40,15 +42,16 @@ import com.mercata.pingworks.exceptions.SignatureMismatch
 import com.mercata.pingworks.exceptions.TooLargeEnvelope
 import com.mercata.pingworks.generateLink
 import com.mercata.pingworks.hashedWithSha256
-import com.mercata.pingworks.parseDate
+import com.mercata.pingworks.parseServerDate
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.verifySignature
 import okhttp3.Headers
 import java.time.ZonedDateTime
+import kotlin.text.Charsets.UTF_8
 
 class Envelope(
     messageId: String,
-    private val currentUser: UserData,
+    val currentUser: UserData,
     val contact: DBContact,
     headers: Headers
 ) {
@@ -57,25 +60,13 @@ class Envelope(
     private val streamId: String?
     private val accessLinks: String?
     private var accessKey: Key? = null
-    private val contentHeader: String
+    private val contentHeadersBytes: ByteArray
     private val headersOrder: String
     private val headersChecksum: String
-    private val headersSignature: String
+    val headersSignature: String
     private val payloadCipher: String?
     private val payloadCipherInfo: PayloadSeal?
-    private var contentHeaders: ContentHeaders? = null
-
-    /*  date=Tue, 03 Sep 2024 12:54:31 GMT
-        message-checksum=algorithm=sha256; order=message-headers:message-id; value=f64715b249e3d33bb4e19e0b4e25ab779810469cbdc15ecd17b41bd5dd35e626
-        message-headers=value=aWQ6IDcwZjM1ODk4MGIyMzBlMzg1NmFiZjQxNWI4ZDUxOGUxMmY4YzExZjY1MDgyNzFiNzI3YjBjMzZiNGE2YmMzYjAKYXV0aG9yOiBhbnRvbi5ha2ltY2hlbmtvQHBpbmcud29ya3MKc2l6ZTogMTIKY2hlY2tzdW06IGFsZ29yaXRobT1zaGEyNTY7IHZhbHVlPWI0NzVjOTUyY2VhYzZmMjIyNGI0NjdhMzFiNmNjMmU3ZTRmMTFiMmEwM2M0NWQwNDhlZjZmZjg2ZmNmY2U0ZjMKY2F0ZWdvcnk6IHBlcnNvbmFsCmRhdGU6IDIwMjQtMDgtMTNUMTU6NTY6NTRaCnN1YmplY3Q6IEJyb2FkY2FzdGluZyB0aXRsZQpzdWJqZWN0LWlkOiA3MGYzNTg5ODBiMjMwZTM4NTZhYmY0MTViOGQ1MThlMTJmOGMxMWY2NTA4MjcxYjcyN2IwYzM2YjRhNmJjM2Iw
-        message-id=70f358980b230e3856abf415b8d518e12f8c11f6508271b727b0c36b4a6bc3b0
-        message-signature=algorithm=ed25519; value=mmrdx/XJV8Ifm7M2am3BtIgRBRoYoMo2pshjjvwgPyP39XJDL1XlwAZVG71byu5ynodpMOODCYOdoCO9TNpbDw==; id=Upxi
-        report-to={"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=i5M9AVevYhTYM6njpnqxF2I80MdVCAHtrMxTvQ8TRL6TL6VeZUUh9fNqOpvcwNlomzegcFyjlXOBHm15DfvKlyAQ4V5NDaybm1ZpqoWbR0cl1pbX3nwRcizSi6s2he5ZQEE%3D"}],"group":"cf-nel","max_age":604800}
-        nel={"success_fraction":0,"report_to":"cf-nel","max_age":604800}
-        vary=Accept-Encoding
-        server=cloudflare
-        cf-ray=8bd5e389cdd095a9-TBS
-        alt-svc=h3=":443"; ma=86400*/
+    val contentHeaders: ContentHeaders
 
     init {
         if (envelopeHeadersMap.entries.any { it.key.length + it.value.length > MAX_HEADERS_SIZE }) {
@@ -94,14 +85,15 @@ class Envelope(
             headersChecksum = sum
         }
 
-        envelopeHeadersMap[HEADER_MESSAGE_HEADERS]!!.let { headerVal ->
+        contentHeaders = envelopeHeadersMap[HEADER_MESSAGE_HEADERS]!!.let { headerVal ->
             val contentHeaderMap = parseHeaderAttributes(headerVal)
             contentHeaderMap["algorithm"]?.let { algorithm ->
                 if (algorithm != SYMMETRIC_CIPHER) {
                     throw AlgorithmMissMatch(algorithm)
                 }
             }
-            contentHeader = contentHeaderMap["value"]!!
+            contentHeadersBytes = contentHeaderMap["value"]!!.decodeToBase64()
+            openContentHeaders()
         }
 
         envelopeHeadersMap[HEADER_MESSAGE_ID]!!.let { headerVal ->
@@ -156,13 +148,13 @@ class Envelope(
         }
     }
 
-    fun openContentHeaders() {
+    private fun openContentHeaders(): ContentHeaders {
         if (isBroadcast()) {
-            this.contentHeaders = contentFromHeaders(contentHeader)
+            return contentFromHeaders(String(contentHeadersBytes, charset = UTF_8))
         } else {
-            contentHeaders = contentFromHeaders(
-                decrypt_xchacha20poly1305(contentHeader, accessKey!!)
-            )
+            val result =
+                decrypt_xchacha20poly1305(contentHeadersBytes.encodeToBase64(), accessKey!!)
+            return contentFromHeaders(result)
         }
     }
 
@@ -174,23 +166,24 @@ class Envelope(
                 .filterNot { it.isBlank() }
                 .associate { header ->
                     val parts = header
-                        .split(":")
+                        .split(":", limit = 2)
                         .map { it.trim() }
                         .filterNot { it.isBlank() }
 
                     parts.first() to parts.last()
                 }
 
+        val parsedFiles = headersMap[HEADER_CONTENT_FILES]?.let { parseFilesHeader(it) }
+            ?: (listOf<MessageFilePartInfo>() to listOf())
 
-        val parsedFiles = parseFilesHeader(headersMap[HEADER_CONTENT_FILES]!!)
         return ContentHeaders(
             messageID = headersMap[HEADER_CONTENT_MESSAGE_ID]!!,
-            date = headersMap[HEADER_CONTENT_DATE]!!.parseDate(),
+            date = headersMap[HEADER_CONTENT_DATE]!!.parseServerDate(),
             subject = headersMap[HEADER_CONTENT_SUBJECT]!!,
             subjectId = headersMap[HEADER_CONTENT_SUBJECT_ID]!!,
             parentId = headersMap[HEADER_CONTENT_PARENT_ID],
             files = parsedFiles.second,
-            filesHeader = headersMap[HEADER_CONTENT_FILES]!!,
+            filesHeader = headersMap[HEADER_CONTENT_FILES],
             fileParts = parsedFiles.first,
             category = MessageCategory.entries.firstOrNull {
                 it.name == (headersMap[HEADER_CONTENT_CATEGORY] ?: "")
@@ -211,9 +204,10 @@ class Envelope(
         )
     }
 
-    fun parseFilesHeader(filesHeader: String): Pair<List<MessageFilePartInfo>, List<MessageFileInfo>> {
+    private fun parseFilesHeader(filesHeader: String): Pair<List<MessageFilePartInfo>, List<MessageFileInfo>> {
         val fileStrings = filesHeader.split(",")
         val fileParts = mutableListOf<MessageFilePartInfo>()
+
 
         for (fileString in fileStrings) {
             val urlInfoDict = mutableMapOf<String, String>()
@@ -245,7 +239,7 @@ class Envelope(
                         }
 
                         "modified" -> {
-                            value.parseDate()
+                            value.parseServerDate()
                         }
                     }
                 }

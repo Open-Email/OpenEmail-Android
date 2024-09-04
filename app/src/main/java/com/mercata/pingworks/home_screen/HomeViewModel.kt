@@ -9,12 +9,12 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
+import com.mercata.pingworks.Downloader
 import com.mercata.pingworks.R
 import com.mercata.pingworks.SharedPreferences
 import com.mercata.pingworks.db.AppDatabase
-import com.mercata.pingworks.models.BroadcastMessage
-import com.mercata.pingworks.models.Message
-import com.mercata.pingworks.syncBroadcasts
+import com.mercata.pingworks.getAllEnvelopes
+import com.mercata.pingworks.models.Envelope
 import com.mercata.pingworks.syncContacts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -25,25 +25,62 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     init {
         val sp: SharedPreferences by inject(SharedPreferences::class.java)
         val db: AppDatabase by inject(AppDatabase::class.java)
+        val dl: Downloader by inject(Downloader::class.java)
         viewModelScope.launch(Dispatchers.IO) {
-            syncContacts(sp, db.userDao())
-
-            syncBroadcasts(sp, db.userDao())
+            launch {
+                syncContacts(sp, db.userDao())
+            }
+            launch {
+                //TODO save attachments links
+                val envelopes = getAllEnvelopes(
+                    sp,
+                    db.userDao()
+                ).filter { it.contentHeaders.parentId.isNullOrBlank() }
+                val envelopesWithBody: List<Pair<Envelope, String>> =
+                    dl.downloadFilesAndGetFolder(envelopes)
+                allMessages.clear()
+                allMessages.addAll(envelopesWithBody)
+                updateList()
+            }
         }
+    }
+
+    private val allMessages: ArrayList<Pair<Envelope, String>> = arrayListOf()
+
+
+    fun onSearchQuery(query: String) {
+        updateState(currentState.copy(query = query))
+        updateList()
     }
 
     fun selectScreen(screen: HomeScreen) {
         updateState(currentState.copy(screen = screen))
+        updateList()
     }
 
-    fun removeItem(item: Message) {
+    fun removeItem(item: Pair<Envelope, String>) {
         currentState.messages.remove(item)
+    }
+
+    private fun updateList() {
+        currentState.messages.clear()
+        currentState.messages.addAll(allMessages.asSequence().filter {
+            when (currentState.screen) {
+                HomeScreen.Broadcast -> it.first.isBroadcast()
+                HomeScreen.Inbox -> false //TODO
+                HomeScreen.Outbox -> false //TODO
+            } && (it.first.contentHeaders.subject.lowercase()
+                .contains(currentState.query.lowercase()) || it.second.lowercase()
+                .contains(currentState.query.lowercase()))
+
+        })
     }
 }
 
 data class HomeState(
-    val screen: HomeScreen = HomeScreen.Inbox,
-    val messages: SnapshotStateList<BroadcastMessage> = mutableStateListOf(),
+    val query: String = "",
+    val screen: HomeScreen = HomeScreen.Broadcast,
+    val messages: SnapshotStateList<Pair<Envelope, String>> = mutableStateListOf(),
     //TODO get unread statuses from DB
     val unread: Map<HomeScreen, Int> = mapOf()
 )

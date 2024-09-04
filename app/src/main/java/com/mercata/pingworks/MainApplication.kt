@@ -14,6 +14,7 @@ class MainApplication : Application() {
     private val appModule = module {
         single { SharedPreferences(get()) }
         single { BioManager(get()) }
+        single { Downloader(get()) }
         single {
             Room.databaseBuilder(
                 get(),

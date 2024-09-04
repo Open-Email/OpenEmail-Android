@@ -40,6 +40,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -70,7 +71,7 @@ import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.NavigationDrawerBody
-import com.mercata.pingworks.models.Message
+import com.mercata.pingworks.models.Envelope
 import kotlinx.coroutines.launch
 
 @Composable
@@ -111,6 +112,7 @@ fun SharedTransitionScope.HomeScreen(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
                 LargeTopAppBar(
+
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -142,12 +144,15 @@ fun SharedTransitionScope.HomeScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { /* do something */ }) {
+                         IconButton(onClick = {    }) {
                             Icon(
                                 imageVector = Icons.Filled.Search,
                                 contentDescription = stringResource(id = R.string.search)
                             )
                         }
+                        /*TextField(
+                            value = state.query,
+                            onValueChange = { viewModel.onSearchQuery(it) })*/
                     },
                     scrollBehavior = scrollBehavior
                 )
@@ -174,7 +179,7 @@ fun SharedTransitionScope.HomeScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(items = state.messages,
-                    key = { it.id }) { item ->
+                    key = { it.first.headersSignature }) { item ->
                     SwipeContainer(
                         modifier = modifier.animateItem(),
                         item = item,
@@ -186,7 +191,9 @@ fun SharedTransitionScope.HomeScreen(
                             animatedVisibilityScope = animatedVisibilityScope,
                             onMessageClicked = { message ->
                                 navController.navigate(
-                                    "MessageDetailsScreen/${message.id}"
+                                    //TODO
+                                    //"MessageDetailsScreen/${message.first.headersSignature}"
+                                    "MessageDetailsScreen"
                                 )
                             })
                     }
@@ -198,17 +205,17 @@ fun SharedTransitionScope.HomeScreen(
 
 @Composable
 fun SharedTransitionScope.MessageViewHolder(
-    item: Message,
+    item: Pair<Envelope, String>,
     modifier: Modifier = Modifier,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    onMessageClicked: (message: Message) -> Unit
+    onMessageClicked: (message: Pair<Envelope, String>) -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .sharedBounds(
                 sharedContentState = rememberSharedContentState(
-                    key = "message_bounds/${item.id}"
+                    key = "message_bounds/${item.first.headersSignature}"
                 ),
                 animatedVisibilityScope = animatedVisibilityScope,
             )
@@ -221,33 +228,34 @@ fun SharedTransitionScope.MessageViewHolder(
             .padding(horizontal = MARGIN_DEFAULT)
 
     ) {
-        if (item.person?.imageUrl != null) {
+        if (item.first.contact.imageUrl != null) {
             AsyncImage(
                 contentScale = ContentScale.Crop,
                 modifier = modifier
                     .sharedBounds(
                         sharedContentState = rememberSharedContentState(
-                            key = "message_image/${item.id}"
+                            //key = "message_image/${item.first.headersSignature}"
+                            key = "message_image"
                         ),
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
                     .size(width = 72.0.dp, height = 72.0.dp)
                     .clip(RoundedCornerShape(16.0.dp)),
-                model = item.person?.imageUrl,
+                model = item.first.contact.imageUrl,
                 contentDescription = stringResource(id = R.string.profile_image)
             )
             Spacer(modifier = modifier.width(MARGIN_DEFAULT))
         }
         Column {
             Text(
-                text = item.id + item.subject,
+                text = item.first.contentHeaders.subject,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = item.body,
+                text = item.second,
                 maxLines = 2,
                 style = MaterialTheme.typography.bodyMedium,
                 overflow = TextOverflow.Ellipsis,

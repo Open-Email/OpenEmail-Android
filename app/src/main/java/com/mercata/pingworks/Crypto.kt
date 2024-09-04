@@ -5,7 +5,6 @@ package com.mercata.pingworks
 import com.goterl.lazysodium.LazySodiumAndroid
 import com.goterl.lazysodium.SodiumAndroid
 import com.goterl.lazysodium.exceptions.SodiumException
-import com.goterl.lazysodium.interfaces.AEAD
 import com.goterl.lazysodium.utils.Base64MessageEncoder
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
@@ -30,7 +29,7 @@ fun generateEncryptionKeys(): EncryptionKeys {
 }
 
 fun ByteArray.encodeToBase64(): String = Base64.getEncoder().encodeToString(this)
-//fun String.decodeToBase64(): ByteArray = Base64.getDecoder().decode(this)
+fun String.decodeToBase64(): ByteArray = Base64.getDecoder().decode(this)
 
 @Throws(SodiumException::class)
 fun generateSigningKeys(): SigningKeys {
@@ -75,8 +74,13 @@ fun decryptAnonymous(cipherText: String, currentUser: UserData): String {
 }
 
 @Throws(SodiumException::class)
-fun verifySignature( publicKey: Key, signature: String, originData: ByteArray): Boolean {
-    return sodium.cryptoSignVerifyDetached(Base64.getDecoder().decode(signature), originData, originData.size, publicKey.asBytes)
+fun verifySignature(publicKey: Key, signature: String, originData: ByteArray): Boolean {
+    return sodium.cryptoSignVerifyDetached(
+        signature.decodeToBase64(),
+        originData,
+        originData.size,
+        publicKey.asBytes
+    )
 }
 
 fun Address.generateLink(): String {
@@ -97,7 +101,7 @@ fun Address.generateLink(): String {
 @Throws(SodiumException::class)
 fun decrypt_xchacha20poly1305(cipher: String, accessKey: Key): String {
     //val nonceBytes = AEAD.XCHACHA20POLY1305_IETF_ABYTES
-    return  sodium.cryptoSecretBoxOpenEasy(cipher, cipher.toByteArray(), accessKey)
+    return sodium.cryptoSecretBoxOpenEasy(cipher, cipher.toByteArray(), accessKey)
 }
 
 fun String.hashedWithSha256(): Pair<String, ByteArray> = toByteArray().hashedWithSha256()
