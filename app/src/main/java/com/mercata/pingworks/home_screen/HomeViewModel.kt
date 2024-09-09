@@ -13,7 +13,8 @@ import com.mercata.pingworks.Downloader
 import com.mercata.pingworks.R
 import com.mercata.pingworks.SharedPreferences
 import com.mercata.pingworks.db.AppDatabase
-import com.mercata.pingworks.getAllEnvelopes
+import com.mercata.pingworks.getAllBroadcastEnvelopes
+import com.mercata.pingworks.getAllPrivateEnvelopes
 import com.mercata.pingworks.models.Envelope
 import com.mercata.pingworks.syncContacts
 import kotlinx.coroutines.Dispatchers
@@ -32,15 +33,23 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             }
             launch {
                 //TODO save attachments links
-                val envelopes = getAllEnvelopes(
+
+                val privateEnvelopes = getAllPrivateEnvelopes(
+                    sp,
+                    db.userDao()
+                ).filter { it.contentHeaders.parentId.isNullOrBlank() }
+
+
+                val broadcastEnvelopes = getAllBroadcastEnvelopes(
                     sp,
                     db.userDao()
                 ).filter { it.contentHeaders.parentId.isNullOrBlank() }
                 val envelopesWithBody: List<Pair<Envelope, String>> =
-                    dl.downloadFilesAndGetFolder(envelopes)
+                    dl.downloadFilesAndGetFolder(broadcastEnvelopes)
                 allMessages.clear()
                 allMessages.addAll(envelopesWithBody)
                 updateList()
+                println(privateEnvelopes)
             }
         }
     }

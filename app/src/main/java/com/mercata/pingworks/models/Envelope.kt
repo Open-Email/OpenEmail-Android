@@ -73,6 +73,12 @@ class Envelope(
             throw TooLargeEnvelope(envelopeHeadersMap.toString())
         }
 
+        payloadCipher = envelopeHeadersMap[HEADER_MESSAGE_ENCRYPTION]
+        payloadCipherInfo = if (payloadCipher == null) null else cipherInfoFromHeader(payloadCipher)
+
+        accessLinks = envelopeHeadersMap[HEADER_MESSAGE_ACCESS]
+        accessLinks?.run { parseAccessLink() }
+
         envelopeHeadersMap[HEADER_MESSAGE_ENVELOPE_CHECKSUM]!!.let { headerVal ->
             val checksumMap = parseHeaderAttributes(headerVal)
             val algorithm = checksumMap["algorithm"] ?: throw BadChecksum(checksumMap.toString())
@@ -114,19 +120,11 @@ class Envelope(
                 }
                 data!!
             }
-
-        payloadCipher = envelopeHeadersMap[HEADER_MESSAGE_ENCRYPTION]
-
-        payloadCipherInfo = if (payloadCipher == null) null else cipherInfoFromHeader(payloadCipher)
-
-        accessLinks = envelopeHeadersMap[HEADER_MESSAGE_ACCESS]
-        accessLinks?.run { parseAccessLink() }
     }
 
     @Throws(FingerprintMismatch::class)
     private fun parseAccessLink() {
-        val connectionLink = currentUser.address.generateLink()
-
+        val connectionLink = contact.address.generateLink()
         val readerLinks = accessLinks?.split(",")?.map { it.trim() } ?: listOf()
 
         for (readerLink in readerLinks) {
@@ -138,13 +136,16 @@ class Envelope(
             readerMap["id"] ?: continue
             if (link != connectionLink) continue
 
+
             if (!currentUser.signingKeys.pair.publicKey.asBytes.hashedWithSha256().first.startsWith(
                     accessKeyFp
                 )
             ) {
                 throw FingerprintMismatch(accessKeyFp)
             }
-            this.accessKey = Key.fromBase64String(decryptAnonymous(value, currentUser))
+
+            val decrypted = decryptAnonymous(value, currentUser)
+            this.accessKey = Key.fromBytes(decrypted)
         }
     }
 
@@ -153,8 +154,8 @@ class Envelope(
             return contentFromHeaders(String(contentHeadersBytes, charset = UTF_8))
         } else {
             val result =
-                decrypt_xchacha20poly1305(contentHeadersBytes.encodeToBase64(), accessKey!!)
-            return contentFromHeaders(result)
+                decrypt_xchacha20poly1305(contentHeadersBytes, accessKey!!)
+            return contentFromHeaders(String(result, UTF_8))
         }
     }
 
@@ -304,7 +305,10 @@ class Envelope(
         return fileInfoArray
     }
 
-    fun isBroadcast(): Boolean = accessLinks.isNullOrBlank()
+    fun isBroadcast(): Boolean {
+        val accessLinks = accessLinks
+        return accessLinks.isNullOrEmpty()
+    }
 
     private fun cipherInfoFromHeader(header: String): PayloadSeal {
         val attributes = parseHeaderAttributes(header)

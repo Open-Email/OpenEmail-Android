@@ -151,13 +151,13 @@ suspend fun deleteContact(
     )
 }
 
-suspend fun getAllEnvelopes(
+suspend fun getAllBroadcastEnvelopes(
     sharedPreferences: SharedPreferences,
     contactsDao: ContactsDao
 ): List<Envelope> {
     return withContext(Dispatchers.IO) {
         val currentUser = sharedPreferences.getUserData()!!
-        val ids: List<Pair<DBContact, List<String>>> = contactsDao.getAll().map { contact ->
+        val contactsEnvelopes: List<Pair<DBContact, List<String>>> = contactsDao.getAll().map { contact ->
             async {
                 when (val idsCall = safeApiCall {
                     getInstance("https://${currentUser.address.getMailHost()}").getAllBroadcastMessagesIdsForContact(
@@ -178,26 +178,71 @@ suspend fun getAllEnvelopes(
 
                     }
                 }
-
             }
         }.awaitAll()
 
-        val envelopes: ArrayList<Envelope> = arrayListOf()
-
-        ids.map {
+        val envelopes: ArrayList<Envelope> = contactsEnvelopes.map {
             async {
                 fetchEnvelopesForContact(
                     messageIds = it.second,
                     currentUser = currentUser,
-                    contact = it.first
+                    contact = it.first,
+                    link = null
                 )
             }
-        }
-            .awaitAll()
-            .forEach { envelopes.addAll(it) }
+        }.awaitAll().fold(initial = arrayListOf(), operation = { initial, new ->
+            initial.apply { addAll(new) }
+        })
 
-        println()
-        println(ids.toString())
+        envelopes
+    }
+}
+
+suspend fun getAllPrivateEnvelopes(
+    sharedPreferences: SharedPreferences,
+    contactsDao: ContactsDao
+): List<Envelope> {
+    return withContext(Dispatchers.IO) {
+        val currentUser = sharedPreferences.getUserData()!!
+        val contactsEnvelopes: List<Pair<DBContact, List<String>>> = contactsDao.getAll().filter { it.address == "anton@ping.works" }.map { contact ->
+            async {
+                when (val idsCall = safeApiCall {
+                    getInstance("https://${currentUser.address.getMailHost()}").getAllPrivateMessagesIdsForContact(
+                        sotnHeader = currentUser.sign(),
+                        hostPart = contact.address.getHost(),
+                        localPart = contact.address.getLocal(),
+                        connectionLink = contact.address.generateLink()
+                    )
+                }) {
+                    is HttpResult.Error -> {
+                        contact to listOf()
+                    }
+
+                    is HttpResult.Success -> {
+                        contact to (idsCall.data
+                            ?.split("\n")
+                            ?.map { it.trim() }
+                            ?.filterNot { it.isBlank() } ?: listOf())
+
+                    }
+                }
+            }
+        }.awaitAll()
+
+        val envelopes: ArrayList<Envelope> = contactsEnvelopes.map {
+            async {
+                fetchEnvelopesForContact(
+                    messageIds = it.second,
+                    currentUser = currentUser,
+                    contact = it.first,
+                    link = it.first.address.generateLink()
+
+                )
+            }
+        }.awaitAll().fold(initial = arrayListOf(), operation = { initial, new ->
+            initial.apply { addAll(new) }
+        })
+
         envelopes
     }
 }
@@ -219,18 +264,30 @@ private suspend fun fetchEnvelopesForContact(
     messageIds: List<String>,
     currentUser: UserData,
     contact: DBContact,
+    link: String?
 ): List<Envelope> {
 
     return withContext(Dispatchers.IO) {
         messageIds.map { messageId ->
             async {
                 when (val envelopeCall = safeApiCall {
-                    getInstance("https://${currentUser.address.getMailHost()}").fetchEnvelope(
-                        currentUser.sign(),
-                        contact.address.getHost(),
-                        contact.address.getLocal(),
-                        messageId
-                    )
+                    if (link == null) {
+                        getInstance("https://${currentUser.address.getMailHost()}").fetchBroadcastEnvelope(
+                            currentUser.sign(),
+                            contact.address.getHost(),
+                            contact.address.getLocal(),
+                            messageId
+                        )
+                    } else {
+                        getInstance("https://${currentUser.address.getMailHost()}").fetchPrivateEnvelope(
+                            currentUser.sign(),
+                            contact.address.getHost(),
+                            contact.address.getLocal(),
+                            messageId,
+                            link
+                        )
+                    }
+
                 }) {
                     is HttpResult.Error -> {
                         null

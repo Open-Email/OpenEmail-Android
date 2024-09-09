@@ -5,6 +5,9 @@ package com.mercata.pingworks
 import com.goterl.lazysodium.LazySodiumAndroid
 import com.goterl.lazysodium.SodiumAndroid
 import com.goterl.lazysodium.exceptions.SodiumException
+import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_ABYTES
+import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_NPUBBYTES
+import com.goterl.lazysodium.interfaces.Box
 import com.goterl.lazysodium.utils.Base64MessageEncoder
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
@@ -69,8 +72,21 @@ fun encryptAnonymous(address: Address, currentUser: UserData): String {
 }
 
 @Throws(SodiumException::class)
-fun decryptAnonymous(cipherText: String, currentUser: UserData): String {
-    return sodium.cryptoBoxSealOpenEasy(cipherText, currentUser.encryptionKeys.pair)
+fun decryptAnonymous(cipherText: String, currentUser: UserData): ByteArray {
+    val cipher: ByteArray = cipherText.decodeToBase64()
+    val message = ByteArray(cipher.size - Box.SEALBYTES)
+
+    val res: Boolean = sodium.cryptoBoxSealOpen(
+        message,
+        cipher,
+        cipher.size.toLong(),
+        currentUser.encryptionKeys.pair.publicKey.asBytes,
+        currentUser.encryptionKeys.pair.secretKey.asBytes
+    )
+    if (!res) {
+        throw SodiumException("Could not decrypt your message.")
+    }
+    return message
 }
 
 @Throws(SodiumException::class)
@@ -89,19 +105,33 @@ fun Address.generateLink(): String {
     return addresses.hashedWithSha256().first
 }
 
-/*static func decrypt_xchacha20poly1305(cipherData: [UInt8], secretKey: [UInt8]) throws -> [UInt8]{
-        let sodium = Sodium()
-
-        guard let decrypted = sodium.aead.xchacha20poly1305ietf.decrypt(nonceAndAuthenticatedCipherText: cipherData, secretKey: secretKey) else {
-            throw CryptoError.decryptionError
-        }
-        return decrypted
-    }*/
 
 @Throws(SodiumException::class)
-fun decrypt_xchacha20poly1305(cipher: String, accessKey: Key): String {
-    //val nonceBytes = AEAD.XCHACHA20POLY1305_IETF_ABYTES
-    return sodium.cryptoSecretBoxOpenEasy(cipher, cipher.toByteArray(), accessKey)
+fun decrypt_xchacha20poly1305(cipherBytes: ByteArray, accessKey: Key): ByteArray {
+
+    val valid = cipherBytes.size >= XCHACHA20POLY1305_IETF_NPUBBYTES + XCHACHA20POLY1305_IETF_ABYTES
+
+    val nonce = cipherBytes.sliceArray(0 until XCHACHA20POLY1305_IETF_NPUBBYTES)
+    val message = cipherBytes.sliceArray(XCHACHA20POLY1305_IETF_NPUBBYTES until cipherBytes.size)
+    val decryptedMessage = ByteArray(cipherBytes.size - XCHACHA20POLY1305_IETF_ABYTES)
+
+    val success = sodium.cryptoAeadXChaCha20Poly1305IetfDecrypt(
+        decryptedMessage,  // The output buffer where the message will be written
+        null,              // Message length, if you don't need to capture it
+        null,              // Secret nonce (optional, generally null)
+        message,        // Ciphertext (input encrypted data)
+        message.size.toLong(),  // Ciphertext length
+        null,    // Optional additional authenticated data (AAD)
+        0,          // Length of AAD
+        nonce,             // Public nonce used during encryption
+        accessKey.asBytes          // Secret key used to encrypt
+    )
+
+    if (!valid || !success) {
+        throw SodiumException("Couldn't decrypt")
+    }
+
+    return decryptedMessage
 }
 
 fun String.hashedWithSha256(): Pair<String, ByteArray> = toByteArray().hashedWithSha256()
@@ -114,8 +144,5 @@ fun ByteArray.hashedWithSha256(): Pair<String, ByteArray> {
 
 @Throws(SodiumException::class)
 fun signData(privateKey: Key, data: String): String {
-    //val signature = ByteArray(size = Sign.ED25519_BYTES)
     return sodium.cryptoSignDetached(data, privateKey)
-    //sodium.cryptoSignDetached(signature, data, data.size.toLong(), privateKey.asBytes)
-    //return signature.encodeToBase64()
 }

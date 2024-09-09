@@ -70,14 +70,6 @@ interface RestApi {
         @Path("localPart") localPart: String,
     ): Response<List<String>>
 
-    @GET("/mail/{hostPart}/{localPart}/messages/{messageId}")
-    suspend fun getAllBroadcastMessagesForContact(
-        @Header("Authorization") sotnHeader: String,
-        @Path("hostPart") hostPart: String,
-        @Path("localPart") localPart: String,
-        @Path("messageId") messageId: String,
-    ): Response<String>
-
     @GET("/mail/{hostPart}/{localPart}/messages")
     suspend fun getAllBroadcastMessagesIdsForContact(
         @Header("Authorization") sotnHeader: String,
@@ -102,11 +94,20 @@ interface RestApi {
     ): Response<Void>
 
     @HEAD("/mail/{hostPart}/{localPart}/messages/{messageId}")
-    suspend fun fetchEnvelope(
+    suspend fun fetchBroadcastEnvelope(
         @Header("Authorization") sotnHeader: String,
         @Path("hostPart") hostPart: String,
         @Path("localPart") localPart: String,
         @Path("messageId") messageId: String,
+    ): Response<Void>
+
+    @HEAD("/mail/{hostPart}/{localPart}/link/{connectionLink}/messages/{messageId}")
+    suspend fun fetchPrivateEnvelope(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+        @Path("messageId") messageId: String,
+        @Path("connectionLink") connectionLink: String,
     ): Response<Void>
 
     @Streaming

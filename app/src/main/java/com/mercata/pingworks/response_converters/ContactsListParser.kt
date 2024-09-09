@@ -7,6 +7,7 @@ import org.koin.java.KoinJavaComponent.inject
 import retrofit2.Converter
 import retrofit2.Retrofit
 import java.lang.reflect.Type
+import kotlin.text.Charsets.UTF_8
 
 
 annotation class ContactsList
@@ -40,7 +41,7 @@ class ContactsListConverter : Converter<ResponseBody, List<String>> {
                         .map { it.trim() }
                         .filterNot { it.isBlank() }
                     val decrypted = decryptAnonymous(parts.last(), sp.getUserData()!!)
-                    decrypted
+                    String(decrypted, charset = UTF_8)
                 }
 
         return pairs
