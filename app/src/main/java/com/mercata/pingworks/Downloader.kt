@@ -7,8 +7,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileOutputStream
+import kotlin.text.Charsets.UTF_8
 
 class Downloader(val context: Context) {
 
@@ -20,7 +21,7 @@ class Downloader(val context: Context) {
         File(context.filesDir, FOLDER_NAME).delete()
     }
 
-    suspend fun downloadFilesAndGetFolder(
+    suspend fun downloadMessagesPayload(
         envelopes: List<Envelope>
     ): ArrayList<Pair<Envelope, String>> {
         val folder = File(context.filesDir, FOLDER_NAME)
@@ -42,13 +43,26 @@ class Downloader(val context: Context) {
 
                         is HttpResult.Success -> {
                             call.data?.byteStream()?.let { stream ->
-                                val file = File(folder, envelope.contentHeaders.messageID)
-                                file.createNewFile()
+                                val buffer = ByteArray(1024) // 1KB buffer
+                                val outputStream = ByteArrayOutputStream()
 
-                                val out = FileOutputStream(file)
-                                stream.copyTo(out)
-                                out.close()
-                                rv.add(envelope to file.readText())
+                                var bytesRead: Int
+                                while (stream.read(buffer).also { bytesRead = it } != -1) {
+                                    outputStream.write(buffer, 0, bytesRead)
+                                }
+
+                                val allBytes = outputStream.toByteArray()
+
+                                val result = String(
+                                    if (envelope.accessKey == null) {
+                                        allBytes
+                                    } else {
+                                        decrypt_xchacha20poly1305(allBytes, envelope.accessKey!!)
+                                    }, UTF_8
+                                )
+
+                                rv.add(envelope to result)
+
                             }
                         }
                     }

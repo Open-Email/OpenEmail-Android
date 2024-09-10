@@ -111,6 +111,10 @@ fun decrypt_xchacha20poly1305(cipherBytes: ByteArray, accessKey: Key): ByteArray
 
     val valid = cipherBytes.size >= XCHACHA20POLY1305_IETF_NPUBBYTES + XCHACHA20POLY1305_IETF_ABYTES
 
+    if (!valid) {
+        throw SodiumException("invalid cipher")
+    }
+
     val nonce = cipherBytes.sliceArray(0 until XCHACHA20POLY1305_IETF_NPUBBYTES)
     val message = cipherBytes.sliceArray(XCHACHA20POLY1305_IETF_NPUBBYTES until cipherBytes.size)
     val decryptedMessage = ByteArray(cipherBytes.size - XCHACHA20POLY1305_IETF_ABYTES)
@@ -127,7 +131,7 @@ fun decrypt_xchacha20poly1305(cipherBytes: ByteArray, accessKey: Key): ByteArray
         accessKey.asBytes          // Secret key used to encrypt
     )
 
-    if (!valid || !success) {
+    if (!success) {
         throw SodiumException("Couldn't decrypt")
     }
 

@@ -31,7 +31,6 @@ import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.decodeToBase64
 import com.mercata.pingworks.decryptAnonymous
 import com.mercata.pingworks.decrypt_xchacha20poly1305
-import com.mercata.pingworks.encodeToBase64
 import com.mercata.pingworks.exceptions.AlgorithmMissMatch
 import com.mercata.pingworks.exceptions.BadChecksum
 import com.mercata.pingworks.exceptions.BadChunkSize
@@ -59,7 +58,8 @@ class Envelope(
     private val envelopeHeadersMap = headers.associate { it.first to it.second }
     private val streamId: String?
     private val accessLinks: String?
-    private var accessKey: Key? = null
+    var accessKey: Key? = null
+        private set
     private val contentHeadersBytes: ByteArray
     private val headersOrder: String
     private val headersChecksum: String

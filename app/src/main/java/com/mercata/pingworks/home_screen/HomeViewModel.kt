@@ -44,8 +44,9 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                     sp,
                     db.userDao()
                 ).filter { it.contentHeaders.parentId.isNullOrBlank() }
+
                 val envelopesWithBody: List<Pair<Envelope, String>> =
-                    dl.downloadFilesAndGetFolder(broadcastEnvelopes)
+                    dl.downloadMessagesPayload(broadcastEnvelopes + privateEnvelopes)
                 allMessages.clear()
                 allMessages.addAll(envelopesWithBody)
                 updateList()
@@ -83,8 +84,8 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         currentState.messages.addAll(allMessages.asSequence().filter {
             when (currentState.screen) {
                 HomeScreen.Broadcast -> it.first.isBroadcast()
-                HomeScreen.Inbox -> false //TODO
-                HomeScreen.Outbox -> false //TODO
+                HomeScreen.Outbox -> it.first.contact.address == sharedPreferences.getUserAddress()
+                HomeScreen.Inbox -> it.first.isBroadcast().not() && it.first.contact.address != sharedPreferences.getUserAddress()
             } && (it.first.contentHeaders.subject.lowercase()
                 .contains(currentState.query.lowercase()) || it.second.lowercase()
                 .contains(currentState.query.lowercase()))
