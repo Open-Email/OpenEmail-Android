@@ -2,6 +2,7 @@ package com.mercata.pingworks
 
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.response_converters.ContactsList
+import com.mercata.pingworks.response_converters.EnvelopeIdsList
 import com.mercata.pingworks.response_converters.UserPublicData
 import com.mercata.pingworks.response_converters.WellKnownHost
 import com.mercata.pingworks.response_converters.WellKnownHosts
@@ -71,19 +72,21 @@ interface RestApi {
     ): Response<List<String>>
 
     @GET("/mail/{hostPart}/{localPart}/messages")
+    @EnvelopeIdsList
     suspend fun getAllBroadcastMessagesIdsForContact(
         @Header("Authorization") sotnHeader: String,
         @Path("hostPart") hostPart: String,
         @Path("localPart") localPart: String,
-    ): Response<String>
+    ): Response<List<String>>
 
     @GET("/mail/{hostPart}/{localPart}/link/{connectionLink}/messages")
+    @EnvelopeIdsList
     suspend fun getAllPrivateMessagesIdsForContact(
         @Header("Authorization") sotnHeader: String,
         @Path("hostPart") hostPart: String,
         @Path("localPart") localPart: String,
         @Path("connectionLink") connectionLink: String,
-    ): Response<String>
+    ): Response<List<String>>
 
     @DELETE("/home/{hostPart}/{localPart}/links/{linkAddr}")
     suspend fun deleteContact(

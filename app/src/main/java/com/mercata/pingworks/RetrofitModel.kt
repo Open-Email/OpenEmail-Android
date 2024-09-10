@@ -9,6 +9,7 @@ import com.mercata.pingworks.models.Envelope
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.response_converters.ContactsListConverterFactory
+import com.mercata.pingworks.response_converters.EnvelopeIdsListConverterFactory
 import com.mercata.pingworks.response_converters.UserPublicDataConverterFactory
 import com.mercata.pingworks.response_converters.WellKnownHost
 import com.mercata.pingworks.response_converters.WellKnownHostsConverterFactory
@@ -37,6 +38,7 @@ private fun getInstance(baseUrl: String): RestApi {
 
     val rv = Retrofit.Builder()
         .baseUrl(baseUrl)
+        .addConverterFactory(EnvelopeIdsListConverterFactory())
         .addConverterFactory(ContactsListConverterFactory())
         .addConverterFactory(UserPublicDataConverterFactory())
         .addConverterFactory(WellKnownHostsConverterFactory())
@@ -157,29 +159,27 @@ suspend fun getAllBroadcastEnvelopes(
 ): List<Envelope> {
     return withContext(Dispatchers.IO) {
         val currentUser = sharedPreferences.getUserData()!!
-        val contactsEnvelopes: List<Pair<DBContact, List<String>>> = contactsDao.getAll().map { contact ->
-            async {
-                when (val idsCall = safeApiCall {
-                    getInstance("https://${currentUser.address.getMailHost()}").getAllBroadcastMessagesIdsForContact(
-                        sotnHeader = currentUser.sign(),
-                        hostPart = contact.address.getHost(),
-                        localPart = contact.address.getLocal()
-                    )
-                }) {
-                    is HttpResult.Error -> {
-                        contact to listOf()
-                    }
+        val contactsEnvelopes: List<Pair<DBContact, List<String>>> =
+            contactsDao.getAll().map { contact ->
+                async {
+                    when (val idsCall = safeApiCall {
+                        getInstance("https://${currentUser.address.getMailHost()}").getAllBroadcastMessagesIdsForContact(
+                            sotnHeader = currentUser.sign(),
+                            hostPart = contact.address.getHost(),
+                            localPart = contact.address.getLocal()
+                        )
+                    }) {
+                        is HttpResult.Error -> {
+                            contact to listOf()
+                        }
 
-                    is HttpResult.Success -> {
-                        contact to (idsCall.data
-                            ?.split("\n")
-                            ?.map { it.trim() }
-                            ?.filterNot { it.isBlank() } ?: listOf())
+                        is HttpResult.Success -> {
+                            contact to (idsCall.data ?: listOf())
 
+                        }
                     }
                 }
-            }
-        }.awaitAll()
+            }.awaitAll()
 
         val envelopes: ArrayList<Envelope> = contactsEnvelopes.map {
             async {
@@ -204,30 +204,27 @@ suspend fun getAllPrivateEnvelopes(
 ): List<Envelope> {
     return withContext(Dispatchers.IO) {
         val currentUser = sharedPreferences.getUserData()!!
-        val contactsEnvelopes: List<Pair<DBContact, List<String>>> = contactsDao.getAll().filter { it.address == "anton@ping.works" }.map { contact ->
-            async {
-                when (val idsCall = safeApiCall {
-                    getInstance("https://${currentUser.address.getMailHost()}").getAllPrivateMessagesIdsForContact(
-                        sotnHeader = currentUser.sign(),
-                        hostPart = contact.address.getHost(),
-                        localPart = contact.address.getLocal(),
-                        connectionLink = contact.address.generateLink()
-                    )
-                }) {
-                    is HttpResult.Error -> {
-                        contact to listOf()
-                    }
+        val contactsEnvelopes: List<Pair<DBContact, List<String>>> =
+            contactsDao.getAll().filter { it.address == "anton@ping.works" }.map { contact ->
+                async {
+                    when (val idsCall = safeApiCall {
+                        getInstance("https://${currentUser.address.getMailHost()}").getAllPrivateMessagesIdsForContact(
+                            sotnHeader = currentUser.sign(),
+                            hostPart = contact.address.getHost(),
+                            localPart = contact.address.getLocal(),
+                            connectionLink = contact.address.generateLink()
+                        )
+                    }) {
+                        is HttpResult.Error -> {
+                            contact to listOf()
+                        }
 
-                    is HttpResult.Success -> {
-                        contact to (idsCall.data
-                            ?.split("\n")
-                            ?.map { it.trim() }
-                            ?.filterNot { it.isBlank() } ?: listOf())
-
+                        is HttpResult.Success -> {
+                            contact to (idsCall.data ?: listOf())
+                        }
                     }
                 }
-            }
-        }.awaitAll()
+            }.awaitAll()
 
         val envelopes: ArrayList<Envelope> = contactsEnvelopes.map {
             async {
