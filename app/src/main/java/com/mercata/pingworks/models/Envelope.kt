@@ -49,7 +49,7 @@ import java.time.ZonedDateTime
 import kotlin.text.Charsets.UTF_8
 
 class Envelope(
-    messageId: String,
+    val messageId: String,
     val currentUser: UserData,
     val contact: DBContact,
     headers: Headers
@@ -63,7 +63,7 @@ class Envelope(
     private val contentHeadersBytes: ByteArray
     private val headersOrder: String
     private val headersChecksum: String
-    val headersSignature: String
+    private val headersSignature: String
     private val payloadCipher: String?
     private val payloadCipherInfo: PayloadSeal?
     val contentHeaders: ContentHeaders

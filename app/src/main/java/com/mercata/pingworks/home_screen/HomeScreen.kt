@@ -79,7 +79,7 @@ import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.NavigationDrawerBody
-import com.mercata.pingworks.models.Envelope
+import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import kotlinx.coroutines.launch
 
 @Composable
@@ -169,7 +169,10 @@ fun SharedTransitionScope.HomeScreen(
                             ) {
                                 Row(modifier = modifier.fillMaxWidth()) {
                                     Spacer(modifier = modifier.width(MARGIN_DEFAULT + 42.dp))
-                                    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                                    Box(
+                                        modifier = modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
                                         BasicTextField(
                                             keyboardOptions = KeyboardOptions(
                                                 imeAction = ImeAction.Search,
@@ -237,7 +240,7 @@ fun SharedTransitionScope.HomeScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(items = state.messages,
-                    key = { it.first.headersSignature }) { item ->
+                    key = { it.message.message.messageId }) { item ->
                     SwipeContainer(
                         modifier = modifier.animateItem(),
                         item = item,
@@ -263,17 +266,17 @@ fun SharedTransitionScope.HomeScreen(
 
 @Composable
 fun SharedTransitionScope.MessageViewHolder(
-    item: Pair<Envelope, String>,
+    item: DBMessageWithDBAttachments,
     modifier: Modifier = Modifier,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    onMessageClicked: (message: Pair<Envelope, String>) -> Unit
+    onMessageClicked: (message: DBMessageWithDBAttachments) -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .sharedBounds(
                 sharedContentState = rememberSharedContentState(
-                    key = "message_bounds/${item.first.headersSignature}"
+                    key = "message_bounds/${item.message.message.messageId}"
                 ),
                 animatedVisibilityScope = animatedVisibilityScope,
             )
@@ -286,7 +289,7 @@ fun SharedTransitionScope.MessageViewHolder(
             .padding(horizontal = MARGIN_DEFAULT)
 
     ) {
-        if (item.first.contact.imageUrl != null) {
+        if (item.message.author?.imageUrl != null) {
             AsyncImage(
                 contentScale = ContentScale.Crop,
                 modifier = modifier
@@ -299,21 +302,21 @@ fun SharedTransitionScope.MessageViewHolder(
                     )
                     .size(width = 72.0.dp, height = 72.0.dp)
                     .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
-                model = item.first.contact.imageUrl,
+                model = item.message.author.imageUrl,
                 contentDescription = stringResource(id = R.string.profile_image)
             )
             Spacer(modifier = modifier.width(MARGIN_DEFAULT))
         }
         Column {
             Text(
-                text = item.first.contentHeaders.subject,
+                text = item.message.message.subject,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = item.second,
+                text = item.message.message.textBody,
                 maxLines = 2,
                 style = MaterialTheme.typography.bodyMedium,
                 overflow = TextOverflow.Ellipsis,

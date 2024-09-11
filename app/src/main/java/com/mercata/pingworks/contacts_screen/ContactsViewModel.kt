@@ -4,6 +4,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
+import com.mercata.pingworks.Downloader
 import com.mercata.pingworks.HttpResult
 import com.mercata.pingworks.SharedPreferences
 import com.mercata.pingworks.db.AppDatabase
@@ -14,6 +15,7 @@ import com.mercata.pingworks.getProfilePublicData
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.safeApiCall
 import com.mercata.pingworks.syncContacts
+import com.mercata.pingworks.syncMessagesForContact
 import com.mercata.pingworks.uploadContact
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +42,8 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
 
         updateState(currentState.copy(loggedInPersonAddress = sp.getUserAddress()!!))
     }
+
+    val downloader: Downloader by inject()
 
     fun onNewContactAddressInput(str: String) {
         updateState(
@@ -110,7 +114,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
                 }
 
                 is HttpResult.Success -> {
-                    //ignore
+                    syncMessagesForContact(dbContact, db, sharedPreferences, downloader)
                 }
             }
             updateState(currentState.copy(loadingContactAddress = null))
@@ -144,7 +148,9 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     fun onDeleteWaitComplete(item: DBContact) {
         updateState(currentState.copy(showUndoDeleteSnackBar = false))
         GlobalScope.launch(Dispatchers.IO) {
-            launch { db.userDao().delete(item) }
+            launch {
+                db.userDao().delete(item)
+            }
             launch {
                 when (safeApiCall { deleteContact(item, sharedPreferences) }) {
                     is HttpResult.Error -> {
@@ -152,7 +158,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
                     }
 
                     is HttpResult.Success -> {
-
+                        //ignore
                     }
                 }
             }

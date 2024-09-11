@@ -13,10 +13,9 @@ import com.mercata.pingworks.Downloader
 import com.mercata.pingworks.R
 import com.mercata.pingworks.SharedPreferences
 import com.mercata.pingworks.db.AppDatabase
-import com.mercata.pingworks.getAllBroadcastEnvelopes
-import com.mercata.pingworks.getAllPrivateEnvelopes
-import com.mercata.pingworks.models.Envelope
+import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.syncContacts
+import com.mercata.pingworks.syncAllMessages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.java.KoinJavaComponent.inject
@@ -28,34 +27,19 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         val db: AppDatabase by inject(AppDatabase::class.java)
         val dl: Downloader by inject(Downloader::class.java)
         viewModelScope.launch(Dispatchers.IO) {
-            launch {
-                syncContacts(sp, db.userDao())
-            }
-            launch {
-                //TODO save attachments links
-
-                val privateEnvelopes = getAllPrivateEnvelopes(
-                    sp,
-                    db.userDao()
-                ).filter { it.contentHeaders.parentId.isNullOrBlank() }
-
-
-                val broadcastEnvelopes = getAllBroadcastEnvelopes(
-                    sp,
-                    db.userDao()
-                ).filter { it.contentHeaders.parentId.isNullOrBlank() }
-
-                val envelopesWithBody: List<Pair<Envelope, String>> =
-                    dl.downloadMessagesPayload(broadcastEnvelopes + privateEnvelopes)
+            syncContacts(sp, db.userDao())
+            syncAllMessages(db, sp, dl)
+        }
+        viewModelScope.launch {
+            db.messagesDao().getAllAsFlowWithAttachments().collect { dbEntities ->
                 allMessages.clear()
-                allMessages.addAll(envelopesWithBody)
+                allMessages.addAll(dbEntities)
                 updateList()
-                println(privateEnvelopes)
             }
         }
     }
 
-    private val allMessages: ArrayList<Pair<Envelope, String>> = arrayListOf()
+    private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
 
 
     fun onSearchQuery(query: String) {
@@ -68,8 +52,8 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         updateList()
     }
 
-    fun removeItem(item: Pair<Envelope, String>) {
-        currentState.messages.remove(item)
+    fun removeItem(item: DBMessageWithDBAttachments) {
+        //TODO remove from DB (outbox only)
     }
 
     fun toggleSearch() {
@@ -83,13 +67,12 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         currentState.messages.clear()
         currentState.messages.addAll(allMessages.asSequence().filter {
             when (currentState.screen) {
-                HomeScreen.Broadcast -> it.first.isBroadcast()
-                HomeScreen.Outbox -> it.first.contact.address == sharedPreferences.getUserAddress()
-                HomeScreen.Inbox -> it.first.isBroadcast().not() && it.first.contact.address != sharedPreferences.getUserAddress()
-            } && (it.first.contentHeaders.subject.lowercase()
-                .contains(currentState.query.lowercase()) || it.second.lowercase()
-                .contains(currentState.query.lowercase()))
-
+                HomeScreen.Broadcast -> it.message.message.isBroadcast
+                HomeScreen.Outbox -> it.message.author?.address == null
+                HomeScreen.Inbox -> it.message.message.isBroadcast.not() &&
+                        it.message.author?.address != null
+            } && (it.message.message.subject.lowercase().contains(currentState.query.lowercase()) ||
+                    it.message.message.textBody.lowercase().contains(currentState.query.lowercase()))
         })
     }
 }
@@ -98,7 +81,7 @@ data class HomeState(
     val searchOpened: Boolean = false,
     val query: String = "",
     val screen: HomeScreen = HomeScreen.Broadcast,
-    val messages: SnapshotStateList<Pair<Envelope, String>> = mutableStateListOf(),
+    val messages: SnapshotStateList<DBMessageWithDBAttachments> = mutableStateListOf(),
     //TODO get unread statuses from DB
     val unread: Map<HomeScreen, Int> = mapOf()
 )

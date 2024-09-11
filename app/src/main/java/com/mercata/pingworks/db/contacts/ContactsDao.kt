@@ -15,7 +15,7 @@ interface ContactsDao {
     fun getAllAsFlow(): Flow<List<DBContact>>
 
     @Query("SELECT * FROM dbcontact")
-    fun getAll(): List<DBContact>
+    suspend fun getAll(): List<DBContact>
 
     @Query("SELECT * FROM dbcontact WHERE address IN (:userAddresses)")
     suspend fun loadAllByIds(userAddresses: List<String>): List<DBContact>
