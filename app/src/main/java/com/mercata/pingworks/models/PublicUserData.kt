@@ -1,6 +1,6 @@
 package com.mercata.pingworks.models
 
-import com.mercata.pingworks.Address
+import com.mercata.pingworks.utils.Address
 import java.time.ZonedDateTime
 
 

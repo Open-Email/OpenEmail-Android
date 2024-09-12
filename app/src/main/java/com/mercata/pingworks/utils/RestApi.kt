@@ -1,5 +1,6 @@
-package com.mercata.pingworks
+package com.mercata.pingworks.utils
 
+import com.mercata.pingworks.WELL_KNOWN_URI
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.response_converters.ContactsList
 import com.mercata.pingworks.response_converters.EnvelopeIdsList

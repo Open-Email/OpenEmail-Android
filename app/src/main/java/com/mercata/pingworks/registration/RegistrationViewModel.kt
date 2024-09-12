@@ -2,17 +2,15 @@ package com.mercata.pingworks.registration
 
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
-import com.mercata.pingworks.DEFAULT_MAIL_SUBDOMAIN
-import com.mercata.pingworks.EncryptionKeys
-import com.mercata.pingworks.HttpResult
-import com.mercata.pingworks.SigningKeys
+import com.mercata.pingworks.utils.EncryptionKeys
+import com.mercata.pingworks.utils.HttpResult
+import com.mercata.pingworks.utils.SigningKeys
 import com.mercata.pingworks.availableHosts
-import com.mercata.pingworks.generateEncryptionKeys
-import com.mercata.pingworks.generateSigningKeys
-import com.mercata.pingworks.getHost
-import com.mercata.pingworks.isAddressAvailable
-import com.mercata.pingworks.registerCall
-import com.mercata.pingworks.safeApiCall
+import com.mercata.pingworks.utils.generateEncryptionKeys
+import com.mercata.pingworks.utils.generateSigningKeys
+import com.mercata.pingworks.utils.isAddressAvailable
+import com.mercata.pingworks.utils.registerCall
+import com.mercata.pingworks.utils.safeApiCall
 import kotlinx.coroutines.launch
 
 

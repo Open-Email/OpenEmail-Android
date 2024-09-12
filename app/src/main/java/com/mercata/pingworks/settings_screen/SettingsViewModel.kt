@@ -1,9 +1,9 @@
 package com.mercata.pingworks.settings_screen
 
 import com.mercata.pingworks.AbstractViewModel
-import com.mercata.pingworks.BioManager
-import com.mercata.pingworks.SharedPreferences
-import com.mercata.pingworks.encodeToBase64
+import com.mercata.pingworks.utils.BioManager
+import com.mercata.pingworks.utils.SharedPreferences
+import com.mercata.pingworks.utils.encodeToBase64
 import org.koin.core.component.inject
 
 class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {

@@ -9,13 +9,13 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
-import com.mercata.pingworks.Downloader
+import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.R
-import com.mercata.pingworks.SharedPreferences
+import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
-import com.mercata.pingworks.syncContacts
-import com.mercata.pingworks.syncAllMessages
+import com.mercata.pingworks.utils.syncContacts
+import com.mercata.pingworks.utils.syncAllMessages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.java.KoinJavaComponent.inject

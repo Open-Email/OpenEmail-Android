@@ -17,7 +17,10 @@ import androidx.room.PrimaryKey
 )
 data class DBAttachment(
     @PrimaryKey @ColumnInfo("attachment_id") val attachmentMessageId: String,
+    @ColumnInfo("author_address") val authorAddress: String,
     @ColumnInfo("parent_id") val parentId: String,
-    @ColumnInfo("download_link") val downloadLink: String,
-    @ColumnInfo("file_name") val name: String
+    @ColumnInfo("file_name") val name: String,
+    @ColumnInfo("file_type") val type: String,
+    @ColumnInfo("file_size") val size: Long,
+    @ColumnInfo("created_timestamp") val createdTimestamp: String,
 )

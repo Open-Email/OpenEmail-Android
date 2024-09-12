@@ -4,19 +4,19 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
-import com.mercata.pingworks.Downloader
-import com.mercata.pingworks.HttpResult
-import com.mercata.pingworks.SharedPreferences
+import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.HttpResult
+import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.DBContact
-import com.mercata.pingworks.deleteContact
+import com.mercata.pingworks.utils.deleteContact
 import com.mercata.pingworks.emailRegex
-import com.mercata.pingworks.getProfilePublicData
+import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.models.PublicUserData
-import com.mercata.pingworks.safeApiCall
-import com.mercata.pingworks.syncContacts
-import com.mercata.pingworks.syncMessagesForContact
-import com.mercata.pingworks.uploadContact
+import com.mercata.pingworks.utils.safeApiCall
+import com.mercata.pingworks.utils.syncContacts
+import com.mercata.pingworks.utils.syncMessagesForContact
+import com.mercata.pingworks.utils.uploadContact
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -35,8 +35,10 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
 
         viewModelScope.launch {
             db.userDao().getAllAsFlow().collect { dbEntities ->
-                currentState.contacts.clear()
-                currentState.contacts.addAll(dbEntities)
+                if (currentState.itemToDelete == null) {
+                    currentState.contacts.clear()
+                    currentState.contacts.addAll(dbEntities)
+                }
             }
         }
 

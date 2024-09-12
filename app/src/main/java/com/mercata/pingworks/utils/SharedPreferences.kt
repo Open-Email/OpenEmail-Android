@@ -1,10 +1,18 @@
-package com.mercata.pingworks
+package com.mercata.pingworks.utils
 
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
+import com.mercata.pingworks.SP_ADDRESS
+import com.mercata.pingworks.SP_AUTOLOGIN
+import com.mercata.pingworks.SP_BIOMETRY
+import com.mercata.pingworks.SP_ENCRYPTION_KEYS
+import com.mercata.pingworks.SP_ENCRYPTION_KEY_ID
+import com.mercata.pingworks.SP_FULL_NAME
+import com.mercata.pingworks.SP_SELECTED_NAV_SCREEN
+import com.mercata.pingworks.SP_SIGNING_KEYS
 import com.mercata.pingworks.registration.UserData
 
 class SharedPreferences(applicationContext: Context) {
@@ -29,7 +37,8 @@ class SharedPreferences(applicationContext: Context) {
                     user.encryptionKeys.pair.secretKey
                 ).joinToString(separator = ",") { it.asBytes.encodeToBase64() }
             )
-            .putString(SP_SIGNING_KEYS, arrayOf(
+            .putString(
+                SP_SIGNING_KEYS, arrayOf(
                 user.signingKeys.pair.publicKey,
                 user.signingKeys.pair.secretKey
             ).joinToString(separator = ",") { it.asBytes.encodeToBase64() })

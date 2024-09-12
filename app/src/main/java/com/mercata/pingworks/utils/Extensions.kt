@@ -1,4 +1,4 @@
-package com.mercata.pingworks
+package com.mercata.pingworks.utils
 
 import java.time.Instant
 import java.time.ZoneId

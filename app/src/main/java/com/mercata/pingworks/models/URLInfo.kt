@@ -8,5 +8,5 @@ data class URLInfo(
     val name: String,
     val mimeType: String,
     val size: Long,
-    val modifiedAt: ZonedDateTime,
+    val modifiedAt: String,
 )

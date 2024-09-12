@@ -1,4 +1,4 @@
-package com.mercata.pingworks
+package com.mercata.pingworks.utils
 
 import android.content.Context
 import androidx.biometric.BiometricManager

@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalStdlibApi::class)
 
-package com.mercata.pingworks
+package com.mercata.pingworks.utils
 
 import com.goterl.lazysodium.LazySodiumAndroid
 import com.goterl.lazysodium.SodiumAndroid
@@ -11,6 +11,15 @@ import com.goterl.lazysodium.interfaces.Box
 import com.goterl.lazysodium.utils.Base64MessageEncoder
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
+import com.mercata.pingworks.NONCE_HEADER_ALGORITHM_KEY
+import com.mercata.pingworks.NONCE_HEADER_PUBKEY_KEY
+import com.mercata.pingworks.NONCE_HEADER_SIGNATURE_KEY
+import com.mercata.pingworks.NONCE_HEADER_VALUE_HOST
+import com.mercata.pingworks.NONCE_HEADER_VALUE_KEY
+import com.mercata.pingworks.NONCE_SCHEME
+import com.mercata.pingworks.SIGNING_ALGORITHM
+import com.mercata.pingworks.headerFieldSeparator
+import com.mercata.pingworks.headerKeyValueSeparator
 import com.mercata.pingworks.registration.UserData
 import org.koin.java.KoinJavaComponent.inject
 import java.nio.charset.StandardCharsets

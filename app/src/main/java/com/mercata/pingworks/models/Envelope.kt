@@ -28,9 +28,6 @@ import com.mercata.pingworks.SIGNING_ALGORITHM
 import com.mercata.pingworks.SYMMETRIC_CIPHER
 import com.mercata.pingworks.SYMMETRIC_FILE_CIPHER
 import com.mercata.pingworks.db.contacts.DBContact
-import com.mercata.pingworks.decodeToBase64
-import com.mercata.pingworks.decryptAnonymous
-import com.mercata.pingworks.decrypt_xchacha20poly1305
 import com.mercata.pingworks.exceptions.AlgorithmMissMatch
 import com.mercata.pingworks.exceptions.BadChecksum
 import com.mercata.pingworks.exceptions.BadChunkSize
@@ -39,13 +36,15 @@ import com.mercata.pingworks.exceptions.EnvelopeAuthenticity
 import com.mercata.pingworks.exceptions.FingerprintMismatch
 import com.mercata.pingworks.exceptions.SignatureMismatch
 import com.mercata.pingworks.exceptions.TooLargeEnvelope
-import com.mercata.pingworks.generateLink
-import com.mercata.pingworks.hashedWithSha256
-import com.mercata.pingworks.parseServerDate
 import com.mercata.pingworks.registration.UserData
-import com.mercata.pingworks.verifySignature
+import com.mercata.pingworks.utils.decodeToBase64
+import com.mercata.pingworks.utils.decryptAnonymous
+import com.mercata.pingworks.utils.decrypt_xchacha20poly1305
+import com.mercata.pingworks.utils.generateLink
+import com.mercata.pingworks.utils.hashedWithSha256
+import com.mercata.pingworks.utils.parseServerDate
+import com.mercata.pingworks.utils.verifySignature
 import okhttp3.Headers
-import java.time.ZonedDateTime
 import kotlin.text.Charsets.UTF_8
 
 class Envelope(
@@ -55,17 +54,17 @@ class Envelope(
     headers: Headers
 ) {
 
-    private val envelopeHeadersMap = headers.associate { it.first to it.second }
-    private val streamId: String?
-    private val accessLinks: String?
+    val envelopeHeadersMap = headers.associate { it.first to it.second }
+    val streamId: String?
+    val accessLinks: String?
     var accessKey: Key? = null
         private set
-    private val contentHeadersBytes: ByteArray
-    private val headersOrder: String
-    private val headersChecksum: String
-    private val headersSignature: String
-    private val payloadCipher: String?
-    private val payloadCipherInfo: PayloadSeal?
+    val contentHeadersBytes: ByteArray
+    val headersOrder: String
+    val headersChecksum: String
+    val headersSignature: String
+    val payloadCipher: String?
+    val payloadCipherInfo: PayloadSeal?
     val contentHeaders: ContentHeaders
 
     init {
@@ -182,7 +181,7 @@ class Envelope(
             date = headersMap[HEADER_CONTENT_DATE]!!.parseServerDate(),
             subject = headersMap[HEADER_CONTENT_SUBJECT]!!,
             subjectId = headersMap[HEADER_CONTENT_SUBJECT_ID]!!,
-            parentId = headersMap[HEADER_CONTENT_PARENT_ID],
+            parentId = headersMap[HEADER_CONTENT_PARENT_ID]?.trim()?.replace("\u0000", ""),
             files = parsedFiles.second,
             filesHeader = headersMap[HEADER_CONTENT_FILES],
             fileParts = parsedFiles.first,
@@ -215,7 +214,7 @@ class Envelope(
             var messageId: String? = null
             var part: Long = 0
             var totalParts: Long = 0
-            var modifiedAt: ZonedDateTime = ZonedDateTime.now()
+            var modifiedAt: String = ""
 
             val keyValuePairs = fileString.split(";").map { it.trim() }
             for (pair in keyValuePairs) {
@@ -240,7 +239,7 @@ class Envelope(
                         }
 
                         "modified" -> {
-                            value.parseServerDate()
+                            modifiedAt = value
                         }
                     }
                 }
@@ -309,6 +308,8 @@ class Envelope(
         val accessLinks = accessLinks
         return accessLinks.isNullOrEmpty()
     }
+
+    fun isRootMessage(): Boolean = contentHeaders.parentId == null
 
     private fun cipherInfoFromHeader(header: String): PayloadSeal {
         val attributes = parseHeaderAttributes(header)

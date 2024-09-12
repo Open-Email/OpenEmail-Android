@@ -2,6 +2,7 @@ package com.mercata.pingworks
 
 import androidx.lifecycle.ViewModel
 import com.mercata.pingworks.db.AppDatabase
+import com.mercata.pingworks.utils.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

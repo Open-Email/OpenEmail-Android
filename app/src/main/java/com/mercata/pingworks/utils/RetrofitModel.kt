@@ -1,9 +1,15 @@
-package com.mercata.pingworks
+package com.mercata.pingworks.utils
 
 import android.util.Log
+import com.mercata.pingworks.ANONYMOUS_ENCRYPTION_CIPHER
+import com.mercata.pingworks.BuildConfig
+import com.mercata.pingworks.DEFAULT_MAIL_SUBDOMAIN
+import com.mercata.pingworks.SIGNING_ALGORITHM
 import com.mercata.pingworks.db.AppDatabase
+import com.mercata.pingworks.db.contacts.AttachmentsDao
 import com.mercata.pingworks.db.contacts.ContactsDao
 import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.db.messages.DBAttachment
 import com.mercata.pingworks.db.messages.DBMessage
 import com.mercata.pingworks.db.messages.MessagesDao
 import com.mercata.pingworks.exceptions.EnvelopeAuthenticity
@@ -21,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Headers
 import okhttp3.OkHttpClient
@@ -95,8 +102,8 @@ suspend fun registerCall(user: UserData): Response<Void> {
 
     val postData = """
             Name: ${user.name}
-            Encryption-Key: id=${user.encryptionKeys.id}; algorithm=${ANONYMOUS_ENCRYPTION_CIPHER}; value=${user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64()}
-            Signing-Key: algorithm=${SIGNING_ALGORITHM}; value=${user.signingKeys.pair.publicKey.asBytes.encodeToBase64()}
+            Encryption-Key: id=${user.encryptionKeys.id}; algorithm=$ANONYMOUS_ENCRYPTION_CIPHER; value=${user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64()}
+            Signing-Key: algorithm=$SIGNING_ALGORITHM; value=${user.signingKeys.pair.publicKey.asBytes.encodeToBase64()}
             Updated: ${LocalDateTime.now().atOffset(ZoneOffset.UTC).format(formatter)}
             """.trimIndent()
 
@@ -253,15 +260,23 @@ suspend fun getAllPrivateEnvelopes(
 
 suspend fun downloadMessage(
     currentUser: UserData,
-    contact: DBContact,
+    contactAddress: Address,
     messageId: String
 ): Response<ResponseBody> {
     return getInstance("https://${currentUser.address.getMailHost()}").downloadMessage(
         sotnHeader = currentUser.sign(),
-        hostPart = contact.address.getHost(),
-        localPart = contact.address.getLocal(),
+        hostPart = contactAddress.getHost(),
+        localPart = contactAddress.getLocal(),
         messageId = messageId
     )
+}
+
+suspend fun downloadMessage(
+    currentUser: UserData,
+    contact: DBContact,
+    messageId: String
+): Response<ResponseBody> {
+    return downloadMessage(currentUser, contact.address, messageId)
 }
 
 private suspend fun fetchEnvelopesForContact(
@@ -330,7 +345,7 @@ suspend fun syncMessagesForContact(
 ) {
     withContext(Dispatchers.IO) {
         val privateEnvelopes: Deferred<List<Envelope>> = async {
-            getAllBroadcastEnvelopesForContact(
+            getAllPrivateEnvelopesForContact(
                 sp,
                 contact
             )
@@ -347,7 +362,7 @@ suspend fun syncMessagesForContact(
                 initial = arrayListOf(),
                 operation = { initial, new -> initial.apply { addAll(new) } })
 
-        saveMessagesToDb(dl, results, db.messagesDao())
+        saveMessagesToDb(dl, results, db.messagesDao(), db.attachmentsDao())
     }
 }
 
@@ -373,36 +388,50 @@ suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: Download
                 initial = arrayListOf(),
                 operation = { initial, new -> initial.apply { addAll(new) } })
 
-        saveMessagesToDb(dl, results, db.messagesDao())
+        saveMessagesToDb(dl, results, db.messagesDao(), db.attachmentsDao())
     }
 }
 
-suspend fun saveMessagesToDb(dl: Downloader, results: List<Envelope>, messagesDao: MessagesDao) {
+suspend fun saveMessagesToDb(
+    dl: Downloader,
+    results: List<Envelope>,
+    messagesDao: MessagesDao,
+    attachmentsDao: AttachmentsDao
+) {
     withContext(Dispatchers.IO) {
-        val parentEnvelopesWithBody: List<Pair<Envelope, String>> =
-            dl.downloadMessagesPayload(
-                results.filter { it.contentHeaders.parentId == null }
-            )
-
-        val attachmentEnvelopesWithDownloadLink: List<Pair<Envelope, String>> =
-            dl.getDownloadLinksForAttachments(
-                results.filter { it.contentHeaders.parentId != null }
-            )
-
-        messagesDao.insertAll(
-            parentEnvelopesWithBody.map {
-                DBMessage(
-                    messageId = it.first.messageId,
-                    authorAddress = it.first.contact.address,
-                    subject = it.first.contentHeaders.subject,
-                    textBody = it.second,
-                    isBroadcast = it.first.isBroadcast()
-                )
+        launch {
+            val rootMessages =
+                dl.downloadMessagesPayload(results.filter { it.isRootMessage() }).awaitAll()
+            val attachments: ArrayList<DBAttachment> = arrayListOf()
+            rootMessages.forEach { root ->
+                val headers = root.first.contentHeaders
+                headers.files.map { fileInfo ->
+                    attachments.add(
+                        DBAttachment(
+                            //TODO multipart
+                            attachmentMessageId = fileInfo.messageIds.first(),
+                            authorAddress = root.first.contact.address,
+                            parentId = root.first.messageId,
+                            name = fileInfo.name,
+                            type = fileInfo.mimeType,
+                            size = fileInfo.size,
+                            createdTimestamp = fileInfo.modifiedAt
+                        )
+                    )
+                }
             }
-        )
-
-        //TODO remove
-        println(attachmentEnvelopesWithDownloadLink)
+            messagesDao.insertAll(
+                rootMessages.map {
+                    DBMessage(
+                        messageId = it.first.messageId,
+                        authorAddress = it.first.contact.address,
+                        subject = it.first.contentHeaders.subject,
+                        textBody = it.second ?: "",
+                        isBroadcast = it.first.isBroadcast()
+                    )
+                })
+            attachmentsDao.insertAll(attachments)
+        }
     }
 }
 
@@ -419,9 +448,6 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
             is HttpResult.Success -> {
                 remoteAddressesCall.data?.let {
                     val remotes = remoteAddressesCall.data
-
-                    val broadcastReceivingAddresses =
-                        dao.getAll().filter { it.receiveBroadcasts }.map { it.address }
 
                     val result: List<PublicUserData> = remotes.map { remoteAddress ->
                         async {
@@ -441,15 +467,13 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
                     }.awaitAll().filterNotNull()
 
                     //deleting local contacts, which isn't present on remote
-                    dao.getAll().map { local ->
-                        async {
-                            if (result.any { remote -> remote.address == local.address }.not()) {
-                                dao.delete(local)
-                            }
-                        }
-                    }.awaitAll()
+                    dao.deleteList(dao.getAll().filterNot { local ->
+                        result.any { remote -> remote.address == local.address }
+                    })
 
                     //inserting new and updating old local contacts
+                    val broadcastReceivingAddresses =
+                        dao.getAll().filter { it.receiveBroadcasts }.map { it.address }
                     dao.insertAll(result.map { publicData ->
                         DBContact(
                             lastSeen = publicData.lastSeen?.toString(),
