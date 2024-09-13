@@ -23,10 +23,10 @@ interface ContactsDao {
     @Query("SELECT * FROM DBContact WHERE name LIKE :name LIMIT 1")
     suspend fun findByName(name: String): DBContact?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(contacts: List<DBContact>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(vararg contact: DBContact)
 
     @Delete

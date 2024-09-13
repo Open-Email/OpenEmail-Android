@@ -255,9 +255,7 @@ fun SharedTransitionScope.HomeScreen(
                             animatedVisibilityScope = animatedVisibilityScope,
                             onMessageClicked = { message ->
                                 navController.navigate(
-                                    //TODO
-                                    //"MessageDetailsScreen/${message.first.headersSignature}"
-                                    "MessageDetailsScreen"
+                                    "MessageDetailsScreen/${item.message.message.messageId}",
                                 )
                             })
                     }
@@ -294,35 +292,20 @@ fun SharedTransitionScope.MessageViewHolder(
             .padding(horizontal = MARGIN_DEFAULT)
 
     ) {
-        imageUrl?.let {
-            AsyncImage(
-                contentScale = ContentScale.Crop,
-                modifier = modifier
-                    .sharedBounds(
-                        sharedContentState = rememberSharedContentState(
-                            key = "message_image/${item.message.message.messageId}"
-                        ),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                    )
-                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                    .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
-                model = it,
-                contentDescription = stringResource(id = R.string.profile_image)
-            )
-        } ?: run {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = modifier
-                    .sharedBounds(
-                        sharedContentState = rememberSharedContentState(
-                            key = "message_image/${item.message.message.messageId}"
-                        ),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                    )
-                    .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
-                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                    .background(MaterialTheme.colorScheme.primary)
-            ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = modifier
+                .sharedBounds(
+                    sharedContentState = rememberSharedContentState(
+                        key = "message_image/${item.message.message.messageId}"
+                    ),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                )
+                .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                .background(MaterialTheme.colorScheme.primary)
+        ) {
+            if (imageUrl == null) {
                 Text(
                     text = "${
                         if (item.message.author == null) {
@@ -333,6 +316,21 @@ fun SharedTransitionScope.MessageViewHolder(
                     }",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                AsyncImage(
+                    contentScale = ContentScale.Crop,
+                    modifier = modifier
+                        .sharedBounds(
+                            sharedContentState = rememberSharedContentState(
+                                key = "message_image/${item.message.message.messageId}"
+                            ),
+                            animatedVisibilityScope = animatedVisibilityScope,
+                        )
+                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                        .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
+                    model = imageUrl,
+                    contentDescription = stringResource(id = R.string.profile_image)
                 )
             }
         }

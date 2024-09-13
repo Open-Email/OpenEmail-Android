@@ -22,10 +22,13 @@ interface MessagesDao {
     @Query("SELECT * FROM dbmessage ORDER BY timestamp DESC")
     suspend fun getAllWithAttachments(): List<DBMessageWithDBAttachments>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Query("SELECT * FROM dbmessage WHERE message_id = :id")
+    suspend fun getById(id: String): DBMessageWithDBAttachments
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(messages: List<DBMessage>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(vararg message: DBMessage)
 
     @Delete

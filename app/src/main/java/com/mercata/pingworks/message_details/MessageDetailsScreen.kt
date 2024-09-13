@@ -10,6 +10,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,19 +38,27 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.mercata.pingworks.CONTACT_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.DEFAULT_DATE_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
+import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
+import com.mercata.pingworks.R
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import kotlin.math.roundToInt
 
 @Composable
@@ -61,6 +71,18 @@ fun SharedTransitionScope.MessageDetailsScreen(
 
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
+
+    val messageWithAttachments = state.message
+    val messageWithAuthor = messageWithAttachments?.message
+    val message = messageWithAuthor?.message
+
+    val date: String = message?.timestamp?.let {
+        ZonedDateTime.ofInstant(
+            Instant.ofEpochMilli(it), ZoneId.systemDefault()
+        ).format(DEFAULT_DATE_FORMAT)
+    } ?: ""
+
+    val subject = message?.subject ?: ""
 
     Scaffold(
         modifier = modifier
@@ -83,7 +105,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         exit = fadeOut() + slideOutVertically { 100.dp.value.roundToInt() }
                     ) {
                         Text(
-                            state.message?.contentHeaders?.subject ?: "",
+                            subject,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.labelMedium
@@ -119,35 +141,63 @@ fun SharedTransitionScope.MessageDetailsScreen(
                 .padding(MARGIN_DEFAULT)
         ) {
             Text(
-                text = state.message?.contentHeaders?.subject ?: "",
+                text = subject,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = modifier.height(MARGIN_DEFAULT))
 
-            state.message?.contact?.let { contact ->
-                Row(
+            Row(
+                modifier = modifier
+                    .fillMaxWidth()
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = modifier
-                        .fillMaxWidth()
+                        .sharedBounds(
+                            sharedContentState = rememberSharedContentState(
+                                key = "message_image/${state.messageId}"
+                            ),
+                            animatedVisibilityScope = animatedVisibilityScope,
+                        )
+                        .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                        .background(MaterialTheme.colorScheme.primary)
                 ) {
-                    AsyncImage(
-                        contentScale = ContentScale.Crop,
-                        modifier = modifier
-                            .sharedBounds(
-                                sharedContentState = rememberSharedContentState(
-                                    //key = "message_image/${state.messageId}"
-                                    key = "message_image"
-                                ),
-                                animatedVisibilityScope = animatedVisibilityScope,
-                            )
-                            .size(width = 72.0.dp, height = 72.0.dp)
-                            .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
-                        model = contact.imageUrl,
-                        contentDescription = null
-                    )
-                    Spacer(modifier = modifier.width(MARGIN_DEFAULT))
+                    if (messageWithAuthor?.author?.imageUrl == null) {
+                        Text(
+                            text = "${
+                                if (messageWithAuthor?.author == null) {
+                                    //outbox message
+                                    state.currentUser?.name?.first() ?: ""
+                                } else {
+                                    messageWithAuthor.author.name?.firstOrNull() ?: messageWithAuthor.author.address.first()
+                                }
+                            }",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        AsyncImage(
+                            contentScale = ContentScale.Crop,
+                            modifier = modifier
+                                .sharedBounds(
+                                    sharedContentState = rememberSharedContentState(
+                                        key = "message_image/${state.messageId}"
+                                    ),
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                )
+                                .size(CONTACT_LIST_ITEM_HEIGHT)
+                                .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
+                            model = messageWithAuthor.author.imageUrl,
+                            contentDescription = stringResource(id = R.string.profile_image)
+                        )
+                    }
+                }
+                Spacer(modifier = modifier.width(MARGIN_DEFAULT))
+                messageWithAuthor?.author?.let { author ->
                     Column {
-                        contact.name?.let { name ->
+                        author.name?.let { name ->
                             Text(
                                 text = name,
                                 maxLines = 2,
@@ -157,22 +207,20 @@ fun SharedTransitionScope.MessageDetailsScreen(
                             )
                         }
                         Text(
-                            text = contact.address,
+                            text = author.address,
                             maxLines = 2,
                             style = MaterialTheme.typography.bodyMedium,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Spacer(modifier.weight(1f))
-                    //TODO uncomment
-                    //Text(state.message?.contentHeaders?.date?.toLocalDateTime()?.format(DEFAULT_DATE_FORMAT) ?: "")
                 }
+
+                Spacer(modifier.weight(1f))
+
+                Text(date)
             }
             Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-            //TODO body
-           /* Text(
-                text = state.message?.body ?: "",
-            )*/
+            Text(text = message?.textBody ?: "")
         }
     }
 }
