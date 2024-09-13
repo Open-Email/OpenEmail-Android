@@ -5,6 +5,8 @@ import java.time.format.DateTimeFormatter
 
 val MESSAGE_LIST_ITEM_HEIGHT = 88.dp
 val CONTACT_LIST_ITEM_HEIGHT = 72.dp
+val CONTACT_LIST_ITEM_IMAGE_SIZE = 40.dp
+val MESSAGE_LIST_ITEM_IMAGE_SIZE = 56.dp
 val MARGIN_DEFAULT = 16.dp
 val DEFAULT_CORNER_RADIUS = 16.dp
 val MARGIN_SMALLER = 12.dp
@@ -62,6 +64,7 @@ val CHECKSUM_HEADERS = arrayOf(
 
 
 const val SP_ADDRESS = "sp_address"
+const val SP_AVATAR_LINK = "sp_avatar_link"
 const val SP_FULL_NAME = "sp_full_name"
 const val SP_ENCRYPTION_KEY_ID = "sp_encryption_key_id"
 const val SP_SIGNING_KEYS = "sp_signing_keys"

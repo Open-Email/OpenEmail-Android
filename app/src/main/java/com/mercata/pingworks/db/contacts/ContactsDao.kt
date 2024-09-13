@@ -11,13 +11,13 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ContactsDao {
 
-    @Query("SELECT * FROM dbcontact")
+    @Query("SELECT * FROM dbcontact ORDER BY address DESC")
     fun getAllAsFlow(): Flow<List<DBContact>>
 
-    @Query("SELECT * FROM dbcontact")
+    @Query("SELECT * FROM dbcontact ORDER BY address DESC")
     suspend fun getAll(): List<DBContact>
 
-    @Query("SELECT * FROM dbcontact WHERE address IN (:userAddresses)")
+    @Query("SELECT * FROM dbcontact WHERE address IN (:userAddresses) ORDER BY address DESC")
     suspend fun loadAllByIds(userAddresses: List<String>): List<DBContact>
 
     @Query("SELECT * FROM DBContact WHERE name LIKE :name LIMIT 1")

@@ -10,16 +10,16 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MessagesDao {
-    @Query("SELECT * FROM dbmessage")
+    @Query("SELECT * FROM dbmessage ORDER BY timestamp DESC")
     fun getAllAsFlow(): Flow<List<DBMessage>>
 
-    @Query("SELECT * FROM dbmessage")
+    @Query("SELECT * FROM dbmessage ORDER BY timestamp DESC")
     fun getAllAsFlowWithAttachments(): Flow<List<DBMessageWithDBAttachments>>
 
-    @Query("SELECT * FROM dbmessage")
+    @Query("SELECT * FROM dbmessage ORDER BY timestamp DESC")
     suspend fun getAll(): List<DBMessage>
 
-    @Query("SELECT * FROM dbmessage")
+    @Query("SELECT * FROM dbmessage ORDER BY timestamp DESC")
     suspend fun getAllWithAttachments(): List<DBMessageWithDBAttachments>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -1,11 +1,12 @@
 package com.mercata.pingworks.models
 
 import com.mercata.pingworks.utils.Address
+import java.time.Instant
 import java.time.ZonedDateTime
 
 data class ContentHeaders(
     val messageID: String,
-    val date: ZonedDateTime,
+    val date: Instant,
     val subject: String,
     val subjectId: String,
     val parentId: String?,

@@ -85,4 +85,5 @@ data class UserData(
     val address: String,
     val encryptionKeys: EncryptionKeys,
     val signingKeys: SigningKeys,
+    val avatarLink: String? = null,
 )

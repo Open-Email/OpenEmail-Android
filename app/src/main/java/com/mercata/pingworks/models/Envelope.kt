@@ -45,6 +45,7 @@ import com.mercata.pingworks.utils.hashedWithSha256
 import com.mercata.pingworks.utils.parseServerDate
 import com.mercata.pingworks.utils.verifySignature
 import okhttp3.Headers
+import java.time.Instant
 import kotlin.text.Charsets.UTF_8
 
 class Envelope(
@@ -178,7 +179,7 @@ class Envelope(
 
         return ContentHeaders(
             messageID = headersMap[HEADER_CONTENT_MESSAGE_ID]!!,
-            date = headersMap[HEADER_CONTENT_DATE]!!.parseServerDate(),
+            date = Instant.parse(headersMap[HEADER_CONTENT_DATE]!!),
             subject = headersMap[HEADER_CONTENT_SUBJECT]!!,
             subjectId = headersMap[HEADER_CONTENT_SUBJECT_ID]!!,
             parentId = headersMap[HEADER_CONTENT_PARENT_ID]?.trim()?.replace("\u0000", ""),

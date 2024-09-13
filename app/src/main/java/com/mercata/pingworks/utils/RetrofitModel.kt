@@ -427,7 +427,8 @@ suspend fun saveMessagesToDb(
                         authorAddress = it.first.contact.address,
                         subject = it.first.contentHeaders.subject,
                         textBody = it.second ?: "",
-                        isBroadcast = it.first.isBroadcast()
+                        isBroadcast = it.first.isBroadcast(),
+                        timestamp = it.first.contentHeaders.date.toEpochMilli()
                     )
                 })
             attachmentsDao.insertAll(attachments)

@@ -164,7 +164,8 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         )
                     }
                     Spacer(modifier.weight(1f))
-                    Text(state.message?.contentHeaders?.date?.toLocalDateTime()?.format(DEFAULT_DATE_FORMAT) ?: "")
+                    //TODO uncomment
+                    //Text(state.message?.contentHeaders?.date?.toLocalDateTime()?.format(DEFAULT_DATE_FORMAT) ?: "")
                 }
             }
             Spacer(modifier = modifier.height(MARGIN_DEFAULT))

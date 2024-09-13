@@ -73,6 +73,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.mercata.pingworks.CONTACT_LIST_ITEM_HEIGHT
+import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.db.contacts.DBContact
@@ -220,7 +221,7 @@ fun SharedTransitionScope.ContactViewHolder(
             .padding(horizontal = MARGIN_DEFAULT)
     ) {
         if (uploading) {
-            CircularProgressIndicator(modifier.size(40.0.dp))
+            CircularProgressIndicator(modifier.size(CONTACT_LIST_ITEM_IMAGE_SIZE))
         } else {
             if (person.imageUrl == null) {
                 Box(
@@ -233,7 +234,7 @@ fun SharedTransitionScope.ContactViewHolder(
                             animatedVisibilityScope = animatedVisibilityScope,
                         )
                         .clip(CircleShape)
-                        .size(40.0.dp)
+                        .size(CONTACT_LIST_ITEM_IMAGE_SIZE)
                         .background(MaterialTheme.colorScheme.primary)
                 ) {
                     Text(
@@ -252,7 +253,7 @@ fun SharedTransitionScope.ContactViewHolder(
                             ),
                             animatedVisibilityScope = animatedVisibilityScope,
                         )
-                        .size(40.0.dp)
+                        .size(CONTACT_LIST_ITEM_IMAGE_SIZE)
                         .clip(CircleShape),
                     model = person.imageUrl,
                     contentDescription = stringResource(id = R.string.profile_image)

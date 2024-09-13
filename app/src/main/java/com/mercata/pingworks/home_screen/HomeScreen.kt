@@ -77,9 +77,11 @@ import coil.compose.AsyncImage
 import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_HEIGHT
+import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.NavigationDrawerBody
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
+import com.mercata.pingworks.registration.UserData
 import kotlinx.coroutines.launch
 
 @Composable
@@ -249,6 +251,7 @@ fun SharedTransitionScope.HomeScreen(
                         }) {
                         MessageViewHolder(
                             item = item,
+                            currentUser = state.currentUser!!,
                             animatedVisibilityScope = animatedVisibilityScope,
                             onMessageClicked = { message ->
                                 navController.navigate(
@@ -266,11 +269,13 @@ fun SharedTransitionScope.HomeScreen(
 
 @Composable
 fun SharedTransitionScope.MessageViewHolder(
+    currentUser: UserData,
     item: DBMessageWithDBAttachments,
     modifier: Modifier = Modifier,
     animatedVisibilityScope: AnimatedVisibilityScope,
     onMessageClicked: (message: DBMessageWithDBAttachments) -> Unit
 ) {
+    val imageUrl = item.message.author?.imageUrl ?: currentUser.avatarLink
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -289,24 +294,49 @@ fun SharedTransitionScope.MessageViewHolder(
             .padding(horizontal = MARGIN_DEFAULT)
 
     ) {
-        if (item.message.author?.imageUrl != null) {
+        imageUrl?.let {
             AsyncImage(
                 contentScale = ContentScale.Crop,
                 modifier = modifier
                     .sharedBounds(
                         sharedContentState = rememberSharedContentState(
-                            //key = "message_image/${item.first.headersSignature}"
-                            key = "message_image"
+                            key = "message_image/${item.message.message.messageId}"
                         ),
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
-                    .size(width = 72.0.dp, height = 72.0.dp)
+                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                     .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
-                model = item.message.author.imageUrl,
+                model = it,
                 contentDescription = stringResource(id = R.string.profile_image)
             )
-            Spacer(modifier = modifier.width(MARGIN_DEFAULT))
+        } ?: run {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = modifier
+                    .sharedBounds(
+                        sharedContentState = rememberSharedContentState(
+                            key = "message_image/${item.message.message.messageId}"
+                        ),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    )
+                    .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                    .background(MaterialTheme.colorScheme.primary)
+            ) {
+                Text(
+                    text = "${
+                        if (item.message.author == null) {
+                            currentUser.name.first()
+                        } else {
+                            item.message.author.name?.firstOrNull() ?: item.message.author.address.first()
+                        }
+                    }",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         }
+        Spacer(modifier = modifier.width(MARGIN_DEFAULT))
         Column {
             Text(
                 text = item.message.message.subject,

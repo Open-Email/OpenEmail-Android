@@ -9,13 +9,14 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
-import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.R
-import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
-import com.mercata.pingworks.utils.syncContacts
+import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.syncAllMessages
+import com.mercata.pingworks.utils.syncContacts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.java.KoinJavaComponent.inject
@@ -26,6 +27,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         val sp: SharedPreferences by inject(SharedPreferences::class.java)
         val db: AppDatabase by inject(AppDatabase::class.java)
         val dl: Downloader by inject(Downloader::class.java)
+        updateState(currentState.copy(currentUser = sp.getUserData()))
         viewModelScope.launch(Dispatchers.IO) {
             syncContacts(sp, db.userDao())
             syncAllMessages(db, sp, dl)
@@ -72,12 +74,14 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 HomeScreen.Inbox -> it.message.message.isBroadcast.not() &&
                         it.message.author?.address != null
             } && (it.message.message.subject.lowercase().contains(currentState.query.lowercase()) ||
-                    it.message.message.textBody.lowercase().contains(currentState.query.lowercase()))
+                    it.message.message.textBody.lowercase()
+                        .contains(currentState.query.lowercase()))
         })
     }
 }
 
 data class HomeState(
+    val currentUser: UserData? = null,
     val searchOpened: Boolean = false,
     val query: String = "",
     val screen: HomeScreen = HomeScreen.Broadcast,

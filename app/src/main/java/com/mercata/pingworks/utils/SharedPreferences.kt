@@ -7,6 +7,7 @@ import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
 import com.mercata.pingworks.SP_ADDRESS
 import com.mercata.pingworks.SP_AUTOLOGIN
+import com.mercata.pingworks.SP_AVATAR_LINK
 import com.mercata.pingworks.SP_BIOMETRY
 import com.mercata.pingworks.SP_ENCRYPTION_KEYS
 import com.mercata.pingworks.SP_ENCRYPTION_KEY_ID
@@ -39,11 +40,16 @@ class SharedPreferences(applicationContext: Context) {
             )
             .putString(
                 SP_SIGNING_KEYS, arrayOf(
-                user.signingKeys.pair.publicKey,
-                user.signingKeys.pair.secretKey
-            ).joinToString(separator = ",") { it.asBytes.encodeToBase64() })
+                    user.signingKeys.pair.publicKey,
+                    user.signingKeys.pair.secretKey
+                ).joinToString(separator = ",") { it.asBytes.encodeToBase64() })
             .apply()
     }
+
+    fun saveUserAvatarLink(link: String) =
+        sharedPreferences.edit().putString(SP_AVATAR_LINK, link).apply()
+
+    fun getUserAvatarLink() = sharedPreferences.getString(SP_AVATAR_LINK, null)
 
     fun getUserAddress(): Address? = sharedPreferences.getString(SP_ADDRESS, null)
 
@@ -87,7 +93,8 @@ class SharedPreferences(applicationContext: Context) {
             address = address,
             name = name,
             encryptionKeys = encryptionKeys,
-            signingKeys = signingKeys
+            signingKeys = signingKeys,
+            avatarLink = getUserAvatarLink()
         )
     }
 

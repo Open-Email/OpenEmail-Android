@@ -22,4 +22,5 @@ data class DBMessage(
     @ColumnInfo("subject") val subject: String,
     @ColumnInfo("text_body") val textBody: String,
     @ColumnInfo("is_broadcast") val isBroadcast: Boolean,
+    @ColumnInfo("timestamp") val timestamp: Long,
 )
