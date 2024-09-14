@@ -25,6 +25,9 @@ interface MessagesDao {
     @Query("SELECT * FROM dbmessage WHERE message_id = :id")
     suspend fun getById(id: String): DBMessageWithDBAttachments
 
+    @Query("SELECT * FROM dbmessage WHERE author_address = :address")
+    suspend fun getAllForContactAddress(address: String): List<DBMessageWithDBAttachments>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(messages: List<DBMessage>)
 

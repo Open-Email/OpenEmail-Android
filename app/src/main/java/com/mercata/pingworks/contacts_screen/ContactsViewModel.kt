@@ -4,15 +4,15 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
+import com.mercata.pingworks.db.AppDatabase
+import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.emailRegex
+import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
-import com.mercata.pingworks.db.AppDatabase
-import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.utils.deleteContact
-import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.utils.getProfilePublicData
-import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.utils.safeApiCall
 import com.mercata.pingworks.utils.syncContacts
 import com.mercata.pingworks.utils.syncMessagesForContact
@@ -45,7 +45,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         updateState(currentState.copy(loggedInPersonAddress = sp.getUserAddress()!!))
     }
 
-    val downloader: Downloader by inject()
+    private val downloader: Downloader by inject()
 
     fun onNewContactAddressInput(str: String) {
         updateState(
@@ -85,8 +85,9 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         return currentState.newContactAddressInput.lowercase().matches(emailRegex)
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     fun addContact() {
-        viewModelScope.launch {
+        GlobalScope.launch(Dispatchers.IO) {
             val publicData = currentState.newContactFound!!
             updateState(currentState.copy(loadingContactAddress = publicData.address))
             val dbContact = DBContact(
@@ -151,6 +152,9 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         updateState(currentState.copy(showUndoDeleteSnackBar = false))
         GlobalScope.launch(Dispatchers.IO) {
             launch {
+                downloader.deleteAttachmentsForMessages(
+                    db.messagesDao().getAllForContactAddress(item.address)
+                )
                 db.userDao().delete(item)
             }
             launch {

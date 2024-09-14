@@ -223,44 +223,34 @@ fun SharedTransitionScope.ContactViewHolder(
         if (uploading) {
             CircularProgressIndicator(modifier.size(CONTACT_LIST_ITEM_IMAGE_SIZE))
         } else {
-            if (person.imageUrl == null) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = modifier
-                        .sharedBounds(
-                            sharedContentState = rememberSharedContentState(
-                                key = "contact_image/${person.address}"
-                            ),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                        )
-                        .clip(CircleShape)
-                        .size(CONTACT_LIST_ITEM_IMAGE_SIZE)
-                        .background(MaterialTheme.colorScheme.primary)
-                ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = modifier
+                    .sharedBounds(
+                        sharedContentState = rememberSharedContentState(
+                            key = "contact_image/${person.address}"
+                        ),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    )
+                    .clip(CircleShape)
+                    .size(CONTACT_LIST_ITEM_IMAGE_SIZE)
+                    .background(MaterialTheme.colorScheme.primary)
+            ) {
+                if (person.imageUrl == null) {
                     Text(
                         text = "${person.name?.firstOrNull() ?: person.address.first()}",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
+                } else {
+                    AsyncImage(
+                        contentScale = ContentScale.Crop,
+                        model = person.imageUrl,
+                        contentDescription = stringResource(id = R.string.profile_image)
+                    )
                 }
-            } else {
-                AsyncImage(
-                    contentScale = ContentScale.Crop,
-                    modifier = modifier
-                        .sharedBounds(
-                            sharedContentState = rememberSharedContentState(
-                                key = "contact_image/${person.address}"
-                            ),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                        )
-                        .size(CONTACT_LIST_ITEM_IMAGE_SIZE)
-                        .clip(CircleShape),
-                    model = person.imageUrl,
-                    contentDescription = stringResource(id = R.string.profile_image)
-                )
             }
         }
-
         Spacer(modifier = modifier.width(MARGIN_DEFAULT))
         Column {
             person.name?.let {
