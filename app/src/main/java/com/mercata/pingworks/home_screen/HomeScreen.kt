@@ -362,6 +362,13 @@ fun SharedTransitionScope.MessageViewHolder(
         Spacer(modifier = modifier.width(MARGIN_DEFAULT))
         Column {
             Text(
+                modifier = modifier
+                    .sharedBounds(
+                        sharedContentState = rememberSharedContentState(
+                            key = "message_subject/${item.message.message.messageId}"
+                        ),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    ),
                 text = item.message.message.subject,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
@@ -369,6 +376,12 @@ fun SharedTransitionScope.MessageViewHolder(
                 fontWeight = FontWeight.Bold
             )
             Text(
+                modifier = modifier.sharedBounds(
+                    sharedContentState = rememberSharedContentState(
+                        key = "message_body/${item.message.message.messageId}"
+                    ),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                ),
                 text = item.message.message.textBody,
                 maxLines = 2,
                 style = MaterialTheme.typography.bodyMedium,

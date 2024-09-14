@@ -171,7 +171,14 @@ fun SharedTransitionScope.MessageDetailsScreen(
                 .padding(vertical = MARGIN_DEFAULT)
         ) {
             Text(
-                modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                modifier = modifier
+                    .padding(horizontal = MARGIN_DEFAULT)
+                    .sharedBounds(
+                        sharedContentState = rememberSharedContentState(
+                            key = "message_subject/${state.messageId}"
+                        ),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    ),
                 text = subject,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold
@@ -244,7 +251,14 @@ fun SharedTransitionScope.MessageDetailsScreen(
             }
             Spacer(modifier = modifier.height(MARGIN_DEFAULT))
             Text(
-                modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                modifier = modifier
+                    .padding(horizontal = MARGIN_DEFAULT)
+                    .sharedBounds(
+                        sharedContentState = rememberSharedContentState(
+                            key = "message_body/${state.messageId}"
+                        ),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    ),
                 text = message?.textBody ?: ""
             )
             messageWithAttachments?.attachments?.takeIf { it.isNotEmpty() }?.let { attachments ->
