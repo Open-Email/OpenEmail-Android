@@ -416,7 +416,7 @@ suspend fun saveMessagesToDb(
                             name = fileInfo.name,
                             type = fileInfo.mimeType,
                             size = fileInfo.size,
-                            accessKeyHex = attachmentEnvelopes.first { it.messageId == fileInfo.messageIds.first() }.accessKey!!.asHexString,
+                            accessKeyHex = attachmentEnvelopes.first { it.messageId == fileInfo.messageIds.first() }.accessKey?.asHexString,
                             createdTimestamp = fileInfo.modifiedAt
                         )
                     )

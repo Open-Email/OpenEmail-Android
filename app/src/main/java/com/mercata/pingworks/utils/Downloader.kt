@@ -92,10 +92,14 @@ class Downloader(val context: Context) {
                     val allBytes = outputStream.toByteArray()
 
                     file.writeBytes(
-                        decrypt_xchacha20poly1305(
-                            allBytes,
-                            Key.fromHexString(attachment.accessKeyHex)
-                        )
+                        if (attachment.accessKeyHex == null) {
+                            allBytes
+                        } else {
+                            decrypt_xchacha20poly1305(
+                                allBytes,
+                                Key.fromHexString(attachment.accessKeyHex)
+                            )
+                        }
                     )
 
                     outputStream.close()
