@@ -45,9 +45,9 @@
     <string name="add_new_contact">Add new contact</string>
     <string name="logout_button">Logout</string>
     <string name="input_contact_address_hint">Contact address</string>
-    <string name="search_address">Search adress</string>
+    <string name="search_address">Search address</string>
     <string name="account_in_contacts">This account already in your contact list</string>
-    <string name="accont_not_in_contacts">This account is not in your contact list</string>
+    <string name="account_not_in_contacts">This account is not in your contact list</string>
     <string name="add_button">Add</string>
     <string name="profile_image">Profile image</string>
     <string name="cannot_add_yourself">You cannot add yourself.</string>
@@ -56,4 +56,8 @@
     <string name="undo_button">Undo</string>
     <string name="clear_button">Clear</string>
     <string name="attachments_label">Attachments:</string>
+    <string name="subject">Subject</string>
+    <string name="to_placeholder">To:</string>
+    <string name="subject_placeholder">Subject:</string>
+    <string name="body_placeholder">Say something...</string>
 </resources>

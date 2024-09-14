@@ -233,11 +233,16 @@ fun SharedTransitionScope.HomeScreen(
             },
             floatingActionButton = {
                 FloatingActionButton(
+                    modifier = modifier.sharedBounds(
+                        rememberSharedContentState(
+                            key = "composing_bounds"
+                        ),
+                        animatedVisibilityScope
+                    ),
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     onClick = {
-                        //TODO compose message
-                        println()
+                        navController.navigate("ComposingScreen/null")
                     }) {
                     Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
                 }
@@ -272,7 +277,7 @@ fun SharedTransitionScope.HomeScreen(
                                 animatedVisibilityScope = animatedVisibilityScope,
                                 onMessageClicked = { message ->
                                     navController.navigate(
-                                        "MessageDetailsScreen/${item.message.message.messageId}",
+                                        "MessageDetailsScreen/${message.message.message.messageId}",
                                     )
                                 })
                         }

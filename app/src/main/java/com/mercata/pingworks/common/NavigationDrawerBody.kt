@@ -20,7 +20,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,7 +55,8 @@ fun NavigationDrawerBody(
                     onItemClick(screen)
                 },
                 isSelected = selected == screen,
-                icon = screen.icon,
+                imageVector = screen.icon,
+                painter = screen.iconResId?.let { painterResource(id = it) },
                 titleResId = screen.titleResId,
                 count = unread[screen]
             )
@@ -102,7 +105,8 @@ fun NavigationDrawerBody(
 fun NavigationItem(
     modifier: Modifier = Modifier,
     isSelected: Boolean,
-    icon: ImageVector,
+    imageVector: ImageVector? = null,
+    painter: Painter? = null,
     titleResId: Int,
     count: Int?,
     onClick: () -> Unit
@@ -118,11 +122,19 @@ fun NavigationItem(
             .padding(MARGIN_DEFAULT)
 
     ) {
-        Icon(
-            icon,
-            tint =  if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
-            contentDescription = stringResource(id = titleResId)
-        )
+        if (imageVector != null) {
+            Icon(
+                imageVector = imageVector,
+                tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                contentDescription = stringResource(id = titleResId)
+            )
+        } else if (painter != null) {
+            Icon(
+                painter = painter,
+                tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                contentDescription = stringResource(id = titleResId)
+            )
+        }
         Spacer(modifier = modifier.width(MARGIN_SMALLER))
         Text(
             text = stringResource(id = titleResId),

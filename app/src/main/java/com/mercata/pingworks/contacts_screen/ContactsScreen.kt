@@ -282,7 +282,7 @@ fun AddContactDialog(
             if (addressPresented) {
                 R.string.account_in_contacts
             } else {
-                R.string.accont_not_in_contacts
+                R.string.account_not_in_contacts
             }
         }
     }

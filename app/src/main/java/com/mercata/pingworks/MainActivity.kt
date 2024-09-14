@@ -17,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.mercata.pingworks.composing_screen.ComposingScreen
 import com.mercata.pingworks.contact_details.ContactDetailsScreen
 import com.mercata.pingworks.contacts_screen.ContactsScreen
 import com.mercata.pingworks.home_screen.HomeScreen
@@ -118,27 +119,35 @@ class MainActivity : AppCompatActivity() {
                                     nullable = false
                                 }
                             ),
-                            enterTransition = {
-                                fadeIn()
-                            },
-                            exitTransition = {
-                                fadeOut()
-                            },
-                            popEnterTransition = {
-                                fadeIn()
-                            },
-                            popExitTransition = {
-                                fadeOut()
-                            },
+                            enterTransition = { fadeIn() },
+                            exitTransition = { fadeOut() },
+                            popEnterTransition = { fadeIn() },
+                            popExitTransition = { fadeOut() },
                         ) {
                             MessageDetailsScreen(
                                 navController,
                                 this
                             )
                         }
+                        composable(
+                            route = "ComposingScreen/{contactAddress}",
+                            arguments = listOf(
+                                navArgument("contactAddress") {
+                                    type = NavType.StringType
+                                    nullable = true
+                                }
+                            ),
+                            enterTransition = { fadeIn() },
+                            exitTransition = { fadeOut() },
+                            popEnterTransition = { fadeIn() },
+                            popExitTransition = { fadeOut() },
+                        ) {
+                            ComposingScreen(
+                                navController,
+                                this
+                            )
+                        }
                     }
-
-
                 }
             }
         }

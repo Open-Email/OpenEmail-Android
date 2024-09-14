@@ -77,7 +77,6 @@ class Downloader(val context: Context) {
                     }
                     file.createNewFile()
 
-
                     val buffer = ByteArray(1024) // 1KB buffer
 
                     var bytesRead: Int
@@ -112,8 +111,6 @@ class Downloader(val context: Context) {
     suspend fun downloadMessagesPayload(
         envelopes: List<Envelope>
     ): List<Deferred<Pair<Envelope, String?>>> {
-        //val folder = File(context.filesDir, FOLDER_NAME)
-        //folder.mkdirs()
         return withContext(Dispatchers.IO) {
             envelopes.map { envelope ->
                 async {

@@ -152,14 +152,6 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         )
                     }
                 },
-                actions = {
-                    IconButton(onClick = { /* do something */ }) {
-                        Icon(
-                            imageVector = Icons.Filled.MoreVert,
-                            contentDescription = "Localized description"
-                        )
-                    }
-                },
             )
         },
     ) { padding ->

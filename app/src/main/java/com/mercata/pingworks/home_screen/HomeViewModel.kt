@@ -1,7 +1,6 @@
 package com.mercata.pingworks.home_screen
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.mutableStateListOf
@@ -20,7 +19,6 @@ import com.mercata.pingworks.utils.syncContacts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
-import org.koin.java.KoinJavaComponent.inject
 
 class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
@@ -28,7 +26,12 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         val sp: SharedPreferences by inject()
         val db: AppDatabase by inject()
         val dl: Downloader by inject()
-        updateState(currentState.copy(currentUser = sp.getUserData(), screen = sp.getSelectedNavigationScreen()))
+        updateState(
+            currentState.copy(
+                currentUser = sp.getUserData(),
+                screen = sp.getSelectedNavigationScreen()
+            )
+        )
         viewModelScope.launch {
             db.messagesDao().getAllAsFlowWithAttachments().collect { dbEntities ->
                 allMessages.clear()
@@ -44,7 +47,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
-    private val dl: Downloader by inject(Downloader::class.java)
+    private val dl: Downloader by inject()
     private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
 
 
@@ -104,8 +107,12 @@ data class HomeState(
     val unread: Map<HomeScreen, Int> = mapOf()
 )
 
-enum class HomeScreen(val screenName: String, val titleResId: Int, val icon: ImageVector) {
-    Broadcast("BroadcastListScreen", R.string.broadcast_title, Icons.Default.Email),
-    Inbox("InboxListScreen", R.string.inbox_title, Icons.Default.KeyboardArrowDown),
-    Outbox("OutboxListScreen", R.string.outbox_title, Icons.Default.KeyboardArrowUp)
+enum class HomeScreen(
+    val titleResId: Int,
+    val icon: ImageVector? = null,
+    val iconResId: Int? = null,
+) {
+    Broadcast(R.string.broadcast_title, iconResId = R.drawable.cast),
+    Inbox(R.string.inbox_title, Icons.Default.KeyboardArrowDown),
+    Outbox(R.string.outbox_title, Icons.Default.KeyboardArrowUp)
 }
