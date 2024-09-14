@@ -55,17 +55,17 @@ class Envelope(
     headers: Headers
 ) {
 
-    val envelopeHeadersMap = headers.associate { it.first to it.second }
-    val streamId: String?
-    val accessLinks: String?
+    private val envelopeHeadersMap = headers.associate { it.first to it.second }
+    private val streamId: String?
+    private val accessLinks: String?
     var accessKey: Key? = null
         private set
-    val contentHeadersBytes: ByteArray
-    val headersOrder: String
-    val headersChecksum: String
-    val headersSignature: String
-    val payloadCipher: String?
-    val payloadCipherInfo: PayloadSeal?
+    private val contentHeadersBytes: ByteArray
+    private val headersOrder: String
+    private val headersChecksum: String
+    private val headersSignature: String
+    private val payloadCipher: String?
+    private val payloadCipherInfo: PayloadSeal?
     val contentHeaders: ContentHeaders
 
     init {

@@ -402,6 +402,7 @@ suspend fun saveMessagesToDb(
         launch {
             val rootMessages =
                 dl.downloadMessagesPayload(results.filter { it.isRootMessage() }).awaitAll()
+            val attachmentEnvelopes = results.filter { !it.isRootMessage() }
             val attachments: ArrayList<DBAttachment> = arrayListOf()
             rootMessages.forEach { root ->
                 val headers = root.first.contentHeaders
@@ -415,6 +416,7 @@ suspend fun saveMessagesToDb(
                             name = fileInfo.name,
                             type = fileInfo.mimeType,
                             size = fileInfo.size,
+                            accessKeyHex = attachmentEnvelopes.first { it.messageId == fileInfo.messageIds.first() }.accessKey!!.asHexString,
                             createdTimestamp = fileInfo.modifiedAt
                         )
                     )

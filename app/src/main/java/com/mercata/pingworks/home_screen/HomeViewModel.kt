@@ -19,13 +19,15 @@ import com.mercata.pingworks.utils.syncAllMessages
 import com.mercata.pingworks.utils.syncContacts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.koin.core.component.inject
 import org.koin.java.KoinJavaComponent.inject
 
 class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
     init {
-        val sp: SharedPreferences by inject(SharedPreferences::class.java)
-        val db: AppDatabase by inject(AppDatabase::class.java)
+        val sp: SharedPreferences by inject()
+        val db: AppDatabase by inject()
+        val dl: Downloader by inject()
         updateState(currentState.copy(currentUser = sp.getUserData(), screen = sp.getSelectedNavigationScreen()))
         viewModelScope.launch {
             db.messagesDao().getAllAsFlowWithAttachments().collect { dbEntities ->
@@ -35,8 +37,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             }
         }
         viewModelScope.launch(Dispatchers.IO) {
+            updateState(currentState.copy(refreshing = true))
             syncContacts(sp, db.userDao())
-            refresh()
+            syncAllMessages(db, sp, dl)
+            updateState(currentState.copy(refreshing = false))
         }
     }
 

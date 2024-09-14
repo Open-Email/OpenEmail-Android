@@ -2,6 +2,7 @@ package com.mercata.pingworks.utils
 
 import android.content.Context
 import android.util.Log
+import com.goterl.lazysodium.utils.Key
 import com.mercata.pingworks.db.messages.DBAttachment
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.models.Envelope
@@ -14,7 +15,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.FileOutputStream
 import kotlin.text.Charsets.UTF_8
 
 
@@ -68,7 +68,6 @@ class Downloader(val context: Context) {
 
             is HttpResult.Success -> {
                 call.data?.byteStream()?.let { stream ->
-                    //val sizeInputStream = SizeInputStream(stream, attachment.size)
 
                     var bytesCopied = 0L
                     val onePercent = attachment.size / 100
@@ -80,15 +79,25 @@ class Downloader(val context: Context) {
 
 
                     val buffer = ByteArray(1024) // 1KB buffer
-                    val outputStream = FileOutputStream(file)
 
                     var bytesRead: Int
+                    val outputStream = ByteArrayOutputStream()
                     while (stream.read(buffer).also { bytesRead = it } != -1) {
                         outputStream.write(buffer, 0, bytesRead)
                         bytesCopied += bytesRead
 
                         emit(AttachmentResult(null, (bytesCopied / onePercent).toInt()))
                     }
+
+                    val allBytes = outputStream.toByteArray()
+
+                    file.writeBytes(
+                        decrypt_xchacha20poly1305(
+                            allBytes,
+                            Key.fromHexString(attachment.accessKeyHex)
+                        )
+                    )
+
                     outputStream.close()
                     emit(AttachmentResult(file, 100))
                 }
