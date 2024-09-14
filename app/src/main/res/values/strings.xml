@@ -60,4 +60,7 @@
     <string name="to_placeholder">To:</string>
     <string name="subject_placeholder">Subject:</string>
     <string name="body_placeholder">Say something...</string>
+    <string name="empty_email_error">Fill address field or use Broadcast</string>
+    <string name="subject_error">Subject should not be empty</string>
+    <string name="empty_email_body_error">Message cannot be empty. Write something or attach some files.</string>
 </resources>

@@ -200,7 +200,7 @@ fun SharedTransitionScope.ComposingScreen(
                         imeAction = ImeAction.Next,
                         showKeyboardOnFocus = true,
                     ),
-                    isError = state.addressError == true,
+                    isError = state.addressErrorResId != null,
                     keyboardActions = KeyboardActions(
                         onNext = {
                             focusManager.moveFocus(FocusDirection.Down)
@@ -210,9 +210,9 @@ fun SharedTransitionScope.ComposingScreen(
                         Text(stringResource(id = R.string.to_placeholder))
                     },
                     supportingText = {
-                        if (state.addressError == true) {
+                        state.addressErrorResId?.let {
                             Text(
-                                text = stringResource(id = R.string.invalid_email),
+                                text = stringResource(id = it),
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
@@ -237,6 +237,7 @@ fun SharedTransitionScope.ComposingScreen(
                     imeAction = ImeAction.Next,
                     showKeyboardOnFocus = true,
                 ),
+                isError = state.subjectErrorResId != null,
                 keyboardActions = KeyboardActions(
                     onNext = {
                         focusManager.moveFocus(FocusDirection.Down)
@@ -244,6 +245,14 @@ fun SharedTransitionScope.ComposingScreen(
                 ),
                 label = {
                     Text(stringResource(id = R.string.subject_placeholder))
+                },
+                supportingText = {
+                    state.subjectErrorResId?.let {
+                        Text(
+                            text = stringResource(id = it),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 },
                 modifier = modifier
                     .padding(horizontal = MARGIN_DEFAULT)
@@ -258,6 +267,15 @@ fun SharedTransitionScope.ComposingScreen(
                 ),
                 placeholder = {
                     Text(text = stringResource(id = R.string.body_placeholder))
+                },
+                isError = state.bodyErrorResId != null,
+                supportingText = {
+                    state.bodyErrorResId?.let {
+                        Text(
+                            text = stringResource(id = it),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 },
                 modifier = modifier
                     .padding(horizontal = MARGIN_DEFAULT)
