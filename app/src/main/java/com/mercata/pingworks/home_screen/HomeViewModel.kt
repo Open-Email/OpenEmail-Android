@@ -27,7 +27,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         val sp: SharedPreferences by inject(SharedPreferences::class.java)
         val db: AppDatabase by inject(AppDatabase::class.java)
         val dl: Downloader by inject(Downloader::class.java)
-        updateState(currentState.copy(currentUser = sp.getUserData()))
+        updateState(currentState.copy(currentUser = sp.getUserData(), screen = sp.getSelectedNavigationScreen()))
         viewModelScope.launch(Dispatchers.IO) {
             syncContacts(sp, db.userDao())
             syncAllMessages(db, sp, dl)
@@ -52,6 +52,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     fun selectScreen(screen: HomeScreen) {
         updateState(currentState.copy(screen = screen))
         updateList()
+        sp.saveSelectedNavigationScreen(screen)
     }
 
     fun removeItem(item: DBMessageWithDBAttachments) {

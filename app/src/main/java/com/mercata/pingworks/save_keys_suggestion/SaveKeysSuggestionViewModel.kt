@@ -31,7 +31,7 @@ class SaveKeysSuggestionViewModel :
     }
 
     fun biometryPassed() {
-        sharedPreferences.run {
+        sp.run {
             setAutologin(currentState.autologinEnabled)
             setBiometry(currentState.biometryEnabled)
         }
@@ -47,11 +47,11 @@ class SaveKeysSuggestionViewModel :
             if (currentState.biometryEnabled) {
                 updateState(currentState.copy(biometryPrompt = true))
             } else {
-                sharedPreferences.setAutologin(currentState.autologinEnabled)
+                sp.setAutologin(currentState.autologinEnabled)
                 updateState(currentState.copy(navigate = true))
             }
         } else {
-            sharedPreferences.setAutologin(currentState.autologinEnabled)
+            sp.setAutologin(currentState.autologinEnabled)
             updateState(currentState.copy(navigate = true))
         }
     }

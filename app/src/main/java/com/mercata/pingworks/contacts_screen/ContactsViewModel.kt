@@ -108,7 +108,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
             when (safeApiCall {
                 uploadContact(
                     contact = publicData,
-                    sharedPreferences = sharedPreferences
+                    sharedPreferences = sp
                 )
             }) {
                 is HttpResult.Error -> {
@@ -117,7 +117,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
                 }
 
                 is HttpResult.Success -> {
-                    syncMessagesForContact(dbContact, db, sharedPreferences, downloader)
+                    syncMessagesForContact(dbContact, db, sp, downloader)
                 }
             }
             updateState(currentState.copy(loadingContactAddress = null))
@@ -158,7 +158,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
                 db.userDao().delete(item)
             }
             launch {
-                when (safeApiCall { deleteContact(item, sharedPreferences) }) {
+                when (safeApiCall { deleteContact(item, sp) }) {
                     is HttpResult.Error -> {
                         //ignore
                     }

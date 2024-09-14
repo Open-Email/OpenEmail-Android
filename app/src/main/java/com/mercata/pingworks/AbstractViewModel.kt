@@ -13,7 +13,7 @@ abstract class AbstractViewModel<T>(initialState: T) : ViewModel(), KoinComponen
 
     protected var currentState: T = initialState
 
-    protected val sharedPreferences: SharedPreferences by inject()
+    protected val sp: SharedPreferences by inject()
     protected val db: AppDatabase by inject()
 
     private val _state = MutableStateFlow(currentState)

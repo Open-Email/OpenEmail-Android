@@ -46,7 +46,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
     }
 
     fun biometryPassed() {
-        val currentUser = sharedPreferences.getUserData()!!
+        val currentUser = sp.getUserData()!!
         updateState(
             currentState.copy(
                 biometryShown = false,
@@ -76,7 +76,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
             when (val call = safeApiCall { getWellKnownHosts(currentState.emailInput.getHost()) }) {
                 is HttpResult.Success -> {
                     if (call.data?.isNotEmpty() == true) {
-                        if (sharedPreferences.getUserAddress() == currentState.emailInput && sharedPreferences.isBiometry()) {
+                        if (sp.getUserAddress() == currentState.emailInput && sp.isBiometry()) {
                             updateState(currentState.copy(biometryShown = true))
                         } else {
                             updateState(currentState.copy(keysInputOpen = true))
@@ -189,7 +189,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
             }
 
             if (error == null) {
-                sharedPreferences.saveUserKeys(userData)
+                sp.saveUserKeys(userData)
                 updateState(currentState.copy(isLoggedIn = true))
             } else {
                 updateState(currentState.copy(registrationError = error))

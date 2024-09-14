@@ -25,13 +25,13 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
     }
 
     fun toggleBiometry(isEnabled: Boolean) {
-        sharedPreferences.setBiometry(isEnabled)
-        updateState(currentState.copy(biometryEnabled = sharedPreferences.isBiometry()))
+        sp.setBiometry(isEnabled)
+        updateState(currentState.copy(biometryEnabled = sp.isBiometry()))
     }
 
     fun toggleAutologin(isEnabled: Boolean) {
-        sharedPreferences.setAutologin(isEnabled)
-        updateState(currentState.copy(autologinEnabled = sharedPreferences.isAutologin()))
+        sp.setAutologin(isEnabled)
+        updateState(currentState.copy(autologinEnabled = sp.isAutologin()))
     }
 
     fun logout() {

@@ -47,7 +47,7 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
                     is HttpResult.Success -> null
                 }
                 if (error == null) {
-                    sharedPreferences.saveUserKeys(user)
+                    sp.saveUserKeys(user)
                     updateState(currentState.copy(isRegistered = true))
                 } else {
                     updateState(currentState.copy(registrationError = error))

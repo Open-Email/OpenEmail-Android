@@ -14,6 +14,7 @@ import com.mercata.pingworks.SP_ENCRYPTION_KEY_ID
 import com.mercata.pingworks.SP_FULL_NAME
 import com.mercata.pingworks.SP_SELECTED_NAV_SCREEN
 import com.mercata.pingworks.SP_SIGNING_KEYS
+import com.mercata.pingworks.home_screen.HomeScreen
 import com.mercata.pingworks.registration.UserData
 
 class SharedPreferences(applicationContext: Context) {
@@ -98,10 +99,15 @@ class SharedPreferences(applicationContext: Context) {
         )
     }
 
-    fun saveSelectedNavigationScreenName(screenName: String) {
-        sharedPreferences.edit().putString(SP_SELECTED_NAV_SCREEN, screenName).apply()
+    fun saveSelectedNavigationScreen(screen: HomeScreen) {
+        sharedPreferences.edit().putString(SP_SELECTED_NAV_SCREEN, screen.name).apply()
     }
 
-    fun getSelectedNavigationScreenName(): String =
-        sharedPreferences.getString(SP_SELECTED_NAV_SCREEN, null) ?: "InboxListScreen"
+    fun getSelectedNavigationScreen(): HomeScreen =
+        HomeScreen.entries.first { screen ->
+            screen.name == sharedPreferences.getString(
+                SP_SELECTED_NAV_SCREEN,
+                HomeScreen.Inbox.name
+            )
+        }
 }

@@ -46,7 +46,7 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
     fun downloadFile(attachment: DBAttachment) {
         currentState.downloadingAttachments[attachment] = Downloader.AttachmentResult(null, 0)
         viewModelScope.launch(Dispatchers.IO) {
-            downloader.downloadAttachment(sharedPreferences.getUserData()!!, attachment)
+            downloader.downloadAttachment(sp.getUserData()!!, attachment)
                 .collect { result ->
                     currentState.downloadingAttachments[attachment] = result
                 }
