@@ -26,12 +26,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     init {
         val sp: SharedPreferences by inject(SharedPreferences::class.java)
         val db: AppDatabase by inject(AppDatabase::class.java)
-        val dl: Downloader by inject(Downloader::class.java)
         updateState(currentState.copy(currentUser = sp.getUserData(), screen = sp.getSelectedNavigationScreen()))
-        viewModelScope.launch(Dispatchers.IO) {
-            syncContacts(sp, db.userDao())
-            syncAllMessages(db, sp, dl)
-        }
         viewModelScope.launch {
             db.messagesDao().getAllAsFlowWithAttachments().collect { dbEntities ->
                 allMessages.clear()
@@ -39,8 +34,13 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 updateList()
             }
         }
+        viewModelScope.launch(Dispatchers.IO) {
+            syncContacts(sp, db.userDao())
+            refresh()
+        }
     }
 
+    private val dl: Downloader by inject(Downloader::class.java)
     private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
 
 
@@ -66,6 +66,14 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
+    fun refresh() {
+        viewModelScope.launch {
+            updateState(currentState.copy(refreshing = true))
+            syncAllMessages(db, sp, dl)
+            updateState(currentState.copy(refreshing = false))
+        }
+    }
+
     private fun updateList() {
         currentState.messages.clear()
         currentState.messages.addAll(allMessages.asSequence().filter {
@@ -85,6 +93,7 @@ data class HomeState(
     val currentUser: UserData? = null,
     val searchOpened: Boolean = false,
     val query: String = "",
+    val refreshing: Boolean = false,
     val screen: HomeScreen = HomeScreen.Broadcast,
     val messages: SnapshotStateList<DBMessageWithDBAttachments> = mutableStateListOf(),
     //TODO get unread statuses from DB

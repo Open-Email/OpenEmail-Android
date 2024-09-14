@@ -1,4 +1,7 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@file:OptIn(
+    ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
+    ExperimentalMaterialApi::class
+)
 
 package com.mercata.pingworks.home_screen
 
@@ -24,6 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -31,6 +35,9 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -93,14 +100,18 @@ fun SharedTransitionScope.HomeScreen(
 ) {
 
     val coroutineScope = rememberCoroutineScope()
+    val topAppBarState = rememberTopAppBarState()
     val scrollBehavior =
-        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val focusManager = LocalFocusManager.current
     val searchFocusRequester = remember { FocusRequester() }
 
     val state by viewModel.state.collectAsState()
 
+    val refreshState = rememberPullRefreshState(state.refreshing, onRefresh = {
+        viewModel.refresh()
+    })
 
     LaunchedEffect(key1 = state.searchOpened) {
         if (state.searchOpened) {
@@ -232,34 +243,48 @@ fun SharedTransitionScope.HomeScreen(
                 }
             }
         ) { padding ->
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    top = padding.calculateTopPadding() + (MARGIN_DEFAULT.value / 2).dp,
-                    start = padding.calculateLeftPadding(LayoutDirection.Ltr),
-                    end = padding.calculateRightPadding(LayoutDirection.Ltr),
-                    bottom = padding.calculateBottomPadding() + (MARGIN_DEFAULT.value * 1.5).dp + 52.dp
-                ),
-                modifier = Modifier.fillMaxSize()
+            Box(
+                modifier = modifier.pullRefresh(
+                    state = refreshState,
+                    enabled = topAppBarState.collapsedFraction == 0F
+                )
             ) {
-                items(items = state.messages,
-                    key = { it.message.message.messageId }) { item ->
-                    SwipeContainer(
-                        modifier = modifier.animateItem(),
-                        item = item,
-                        onUpdateReadState = { i ->
-                            //TODO change read state
-                        }) {
-                        MessageViewHolder(
+                LazyColumn(
+                    contentPadding = PaddingValues(
+                        top = padding.calculateTopPadding() + (MARGIN_DEFAULT.value / 2).dp,
+                        start = padding.calculateLeftPadding(LayoutDirection.Ltr),
+                        end = padding.calculateRightPadding(LayoutDirection.Ltr),
+                        bottom = padding.calculateBottomPadding() + (MARGIN_DEFAULT.value * 1.5).dp + 52.dp
+                    ),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(items = state.messages,
+                        key = { it.message.message.messageId }) { item ->
+                        SwipeContainer(
+                            modifier = modifier.animateItem(),
                             item = item,
-                            currentUser = state.currentUser!!,
-                            animatedVisibilityScope = animatedVisibilityScope,
-                            onMessageClicked = { message ->
-                                navController.navigate(
-                                    "MessageDetailsScreen/${item.message.message.messageId}",
-                                )
-                            })
+                            onUpdateReadState = { i ->
+                                //TODO change read state
+                            }) {
+                            MessageViewHolder(
+                                item = item,
+                                currentUser = state.currentUser!!,
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                onMessageClicked = { message ->
+                                    navController.navigate(
+                                        "MessageDetailsScreen/${item.message.message.messageId}",
+                                    )
+                                })
+                        }
                     }
                 }
+                PullRefreshIndicator(
+                    modifier = modifier
+                        .align(Alignment.TopCenter)
+                        .padding(padding),
+                    refreshing = state.refreshing,
+                    state = refreshState,
+                )
             }
         }
     }
