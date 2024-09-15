@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.utils.BioManager
 import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.SharedPreferences
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -17,6 +18,7 @@ class MainApplication : Application() {
         single { SharedPreferences(get()) }
         single { BioManager(get()) }
         single { Downloader(get()) }
+        single { FileUtils(get()) }
         single {
             Room.databaseBuilder(
                 get(),

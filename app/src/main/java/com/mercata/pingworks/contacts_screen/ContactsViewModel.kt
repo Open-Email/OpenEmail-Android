@@ -100,6 +100,8 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
                 encryptionKeyAlgorithm = publicData.encryptionKeyAlgorithm,
                 publicSigningKey = publicData.publicSigningKey,
                 publicEncryptionKey = publicData.publicEncryptionKey,
+                publicEncryptionKeyId = publicData.encryptionKeyId,
+                lastSeenPublic = publicData.lastSeenPublic,
                 lastSeen = publicData.lastSeen?.toString(),
                 updated = publicData.updated?.toString()
             )

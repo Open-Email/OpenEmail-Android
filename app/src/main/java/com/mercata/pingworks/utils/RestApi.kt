@@ -7,6 +7,7 @@ import com.mercata.pingworks.response_converters.EnvelopeIdsList
 import com.mercata.pingworks.response_converters.UserPublicData
 import com.mercata.pingworks.response_converters.WellKnownHost
 import com.mercata.pingworks.response_converters.WellKnownHosts
+import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -15,8 +16,10 @@ import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.HEAD
 import retrofit2.http.Header
+import retrofit2.http.Headers
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Streaming
 
@@ -122,5 +125,24 @@ interface RestApi {
         @Path("localPart") localPart: String,
         @Path("messageId") messageId: String
     ): Response<ResponseBody>
+
+    @POST("/home/{hostPart}/{localPart}/messages")
+    @Headers("Content-Type: application/octet-stream")
+    suspend fun uploadRootMessage(
+        @Header("Authorization") sotnHeader: String,
+        @Header("Content-Length") contentLength: Int,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+    ): Response<String>
+
+    @POST("/home/{hostPart}/{localPart}/messages")
+    @Headers("Content-Type: application/octet-stream")
+    suspend fun uploadAttachmentFile(
+        @Header("Authorization") sotnHeader: String,
+        @Header("Content-Length") contentLength: Int,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+        @Part file: MultipartBody.Part
+    ): Response<String>
 }
 

@@ -1,10 +1,9 @@
 package com.mercata.pingworks.models
 
-import java.net.URL
-import java.time.ZonedDateTime
+import android.net.Uri
 
 data class URLInfo(
-    val url: URL?,
+    val uri: Uri?,
     val name: String,
     val mimeType: String,
     val size: Long,

@@ -6,6 +6,7 @@ import com.goterl.lazysodium.LazySodiumAndroid
 import com.goterl.lazysodium.SodiumAndroid
 import com.goterl.lazysodium.exceptions.SodiumException
 import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_ABYTES
+import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_KEYBYTES
 import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_NPUBBYTES
 import com.goterl.lazysodium.interfaces.Box
 import com.goterl.lazysodium.utils.Base64MessageEncoder
@@ -24,10 +25,12 @@ import com.mercata.pingworks.registration.UserData
 import org.koin.java.KoinJavaComponent.inject
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.Base64
 
 data class EncryptionKeys(val pair: KeyPair, val id: String)
 data class SigningKeys(val pair: KeyPair)
+typealias Nonce = ByteArray
 
 val sodium = LazySodiumAndroid(SodiumAndroid(), StandardCharsets.UTF_8, Base64MessageEncoder())
 
@@ -77,7 +80,23 @@ fun UserData.sign(): String {
 
 @Throws(SodiumException::class)
 fun encryptAnonymous(address: Address, currentUser: UserData): String {
-    return sodium.cryptoBoxSealEasy(address, currentUser.encryptionKeys.pair.publicKey)
+    return encryptAnonymous(address, currentUser.encryptionKeys.pair.publicKey)
+}
+
+@Throws(SodiumException::class)
+fun encryptAnonymous(address: Address, publicEncryptionKey: Key): String {
+    return sodium.cryptoBoxSealEasy(address, publicEncryptionKey)
+}
+
+@Throws(SodiumException::class)
+fun encryptAnonymous(data: ByteArray, publicEncryptionKey: Key): ByteArray {
+    val keyBytes: ByteArray = publicEncryptionKey.asBytes
+    val cipher = ByteArray(Box.SEALBYTES + data.size)
+
+    if (!sodium.cryptoBoxSeal(cipher, data, data.size.toLong(), keyBytes)) {
+        throw SodiumException("Could not encrypt message.")
+    }
+    return cipher
 }
 
 @Throws(SodiumException::class)
@@ -112,6 +131,51 @@ fun Address.generateLink(): String {
     val sp: SharedPreferences by inject(SharedPreferences::class.java)
     val addresses = listOf(sp.getUserAddress()!!, this).sorted().joinToString(separator = "")
     return addresses.hashedWithSha256().first
+}
+
+
+fun generateRandomBytes(length: Int): ByteArray {
+    val bytes = ByteArray(length)
+    SecureRandom().nextBytes(bytes)
+    return bytes
+}
+
+fun UserData.newMessageId(): String {
+    val random = generateRandomString(24)
+    val rawId = "$random${this.address.getHost()}${this.address.getLocal()}"
+    return rawId.hashedWithSha256().first
+}
+
+fun encrypt_xchacha20poly1305(
+    message: ByteArray,
+    secretKey: Key,
+): Pair<ByteArray, Nonce>? {
+
+    if (secretKey.asBytes.size != XCHACHA20POLY1305_IETF_KEYBYTES) {
+        return null
+    }
+
+    val nonce = sodium.nonce(XCHACHA20POLY1305_IETF_NPUBBYTES)
+
+    val authenticatedCipherText = ByteArray(message.size + XCHACHA20POLY1305_IETF_ABYTES)
+
+    val success = sodium.cryptoAeadXChaCha20Poly1305IetfEncrypt(
+        authenticatedCipherText,         // Output ciphertext buffer
+        null,                            // Output ciphertext length (not needed in LazySodium)
+        message,                         // Message to encrypt
+        message.size.toLong(),           // Message length
+        null,                  // Additional authenticated data (AAD)
+        0,  // Length of the additional data
+        null,                            // Secret nonce (optional, usually null)
+        nonce,                           // Nonce generated
+        secretKey.asBytes                        // Secret key used for encryption
+    )
+
+    if (!success) {
+        return null
+    }
+
+    return Pair(authenticatedCipherText, nonce)
 }
 
 

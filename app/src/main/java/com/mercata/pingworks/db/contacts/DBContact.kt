@@ -11,8 +11,10 @@ data class DBContact(
     @PrimaryKey @ColumnInfo(name = "address") val address: String,
     @ColumnInfo(name = "name") val name: String?,
     @ColumnInfo(name = "image_url") val imageUrl: String?,
+    @ColumnInfo(name = "last_seen_public") val lastSeenPublic: Boolean,
     @ColumnInfo(name = "receive_broadcasts") val receiveBroadcasts: Boolean,
     @ColumnInfo(name = "signing_key_algorithm") val signingKeyAlgorithm: String,
     @ColumnInfo(name = "encryption_key_algorithm") val encryptionKeyAlgorithm: String,
     @ColumnInfo(name = "public_encryption_key") val publicEncryptionKey: String,
+    @ColumnInfo(name = "public_encryption_key_id") val publicEncryptionKeyId: String,
     @ColumnInfo(name = "public_signing_key") val publicSigningKey: String)
