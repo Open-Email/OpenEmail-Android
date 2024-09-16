@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import androidx.core.net.toFile
+import com.goterl.lazysodium.utils.Key
 import com.mercata.pingworks.models.URLInfo
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -34,22 +35,103 @@ class FileUtils(val context: Context) {
         return result
     }
 
-    fun getSha256SumFromUri(uri: Uri): Pair<String, ByteArray> {
+    fun getFileChecksum(uri: Uri): Pair<String, ByteArray> {
         val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
-        val digest = MessageDigest.getInstance("SHA-256")
+        val sha256 = MessageDigest.getInstance("SHA-256")
 
         val buffer = ByteArray(1024)
         var bytesRead: Int
 
         inputStream?.use { input ->
             while (input.read(buffer).also { bytesRead = it } != -1) {
-                digest.update(buffer, 0, bytesRead)
+                sha256.update(buffer, 0, bytesRead)
             }
         }
 
-        val hashBytes = digest.digest()
+        val hashBytes = sha256.digest()
 
         return hashBytes.joinToString("") { "%02x".format(it) } to hashBytes
+    }
+
+    fun getFilePartChecksum(
+        fileAtUri: Uri,
+        fromOffset: Long,
+        bytesCount: Long
+    ): Triple<String, ByteArray, Long>? {
+        val inputStream: InputStream? = context.contentResolver.openInputStream(fileAtUri)
+        val bufferSize = 1024 * 1024
+        var processedBytes: Long = 0
+
+        inputStream?.use { stream ->
+            val sha256 = MessageDigest.getInstance("SHA-256")
+            val buffer = ByteArray(bufferSize)
+
+            // Skip to the specified offset
+            stream.skip(fromOffset)
+
+            while (true) {
+                // Calculate the number of bytes to read, not exceeding the remaining bytes
+                var bytesToRead = bufferSize.toLong()
+                if (bytesCount > 0) {
+                    val remainingBytes = bytesCount.toLong() - processedBytes
+                    bytesToRead = minOf(bytesToRead, remainingBytes)
+                }
+
+                if (bytesToRead > 0) {
+                    val bytesRead = stream.read(buffer, 0, bytesToRead.toInt())
+                    if (bytesRead == -1) break  // End of file reached
+
+                    processedBytes += bytesRead.toLong()
+                    sha256.update(buffer, 0, bytesRead)
+
+                    if (processedBytes >= bytesCount) break
+                } else {
+                    break
+                }
+            }
+
+            // Finalize the hash
+            val digest = sha256.digest()
+            val hexDigest = digest.joinToString("") { "%02x".format(it) }
+            return Triple(hexDigest, digest, processedBytes)
+        }
+        return null
+    }
+
+
+    fun encryptFilePartXChaCha20Poly1305(
+        inputUri: Uri,
+        secretKey: Key,
+        bytesCount: Long?,
+        offset: Long?
+    ): Pair<ByteArray, Nonce>? {
+        val inputStream: InputStream? = context.contentResolver.openInputStream(inputUri)
+
+        inputStream?.use { stream ->
+            // Skip to the specified offset
+            if (offset != null) {
+                stream.skip(offset)
+            }
+
+            val dataToEncrypt: ByteArray
+            if (bytesCount != null) {
+                // Read the specified number of bytes
+                dataToEncrypt = ByteArray(bytesCount.toInt())
+                stream.read(dataToEncrypt, 0, dataToEncrypt.size)
+            } else {
+                // Read to the end of the file
+                dataToEncrypt = stream.readBytes()
+            }
+
+            // Encrypt the data using XChaCha20-Poly1305
+            return encrypt_xchacha20poly1305(dataToEncrypt, secretKey)?.let {
+                Pair(
+                    dataToEncrypt,
+                    it.second
+                )
+            }
+        }
+        return null
     }
 
     fun getURLInfo(uri: Uri): URLInfo {
@@ -66,7 +148,7 @@ class FileUtils(val context: Context) {
                         .let { cursor.getString(it) }.encodeHeaderValue()
 
                     val dateModifiedInSeconds =
-                        cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_MODIFIED))
+                        cursor.getLong(cursor.getColumnIndexOrThrow("last_modified"))
                     fileLastModificationTime = Instant.ofEpochMilli(dateModifiedInSeconds * 1000L)
                     size =
                         cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE))

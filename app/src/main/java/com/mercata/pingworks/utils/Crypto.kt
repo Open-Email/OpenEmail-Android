@@ -60,9 +60,8 @@ fun generateRandomString(length: Int = 32): String {
 fun UserData.sign(): String {
     val value = generateRandomString()
     val signature: String? = try {
-        signData(
+        (this.address.getMailHost() + value).signData(
             privateKey = this.signingKeys.pair.secretKey,
-            data = (this.address.getMailHost() + value)
         )
     } catch (e: SodiumException) {
         null
@@ -146,6 +145,7 @@ fun UserData.newMessageId(): String {
     return rawId.hashedWithSha256().first
 }
 
+
 fun encrypt_xchacha20poly1305(
     message: ByteArray,
     secretKey: Key,
@@ -220,6 +220,6 @@ fun ByteArray.hashedWithSha256(): Pair<String, ByteArray> {
 }
 
 @Throws(SodiumException::class)
-fun signData(privateKey: Key, data: String): String {
-    return sodium.cryptoSignDetached(data, privateKey)
+fun String.signData(privateKey: Key): String {
+    return sodium.cryptoSignDetached(this, privateKey)
 }

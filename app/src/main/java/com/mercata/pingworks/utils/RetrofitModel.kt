@@ -1,10 +1,21 @@
 package com.mercata.pingworks.utils
 
+import android.net.Uri
 import android.util.Log
+import com.goterl.lazysodium.utils.Key
 import com.mercata.pingworks.ANONYMOUS_ENCRYPTION_CIPHER
 import com.mercata.pingworks.BuildConfig
 import com.mercata.pingworks.DEFAULT_MAIL_SUBDOMAIN
+import com.mercata.pingworks.HEADER_MESSAGE_ACCESS
+import com.mercata.pingworks.HEADER_MESSAGE_ENCRYPTION
+import com.mercata.pingworks.HEADER_MESSAGE_ENVELOPE_CHECKSUM
+import com.mercata.pingworks.HEADER_MESSAGE_ENVELOPE_SIGNATURE
+import com.mercata.pingworks.HEADER_MESSAGE_HEADERS
+import com.mercata.pingworks.HEADER_MESSAGE_ID
+import com.mercata.pingworks.HEADER_PREFIX
+import com.mercata.pingworks.MAX_MESSAGE_SIZE
 import com.mercata.pingworks.SIGNING_ALGORITHM
+import com.mercata.pingworks.SYMMETRIC_CIPHER
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.AttachmentsDao
 import com.mercata.pingworks.db.contacts.ContactsDao
@@ -14,8 +25,14 @@ import com.mercata.pingworks.db.messages.DBMessage
 import com.mercata.pingworks.db.messages.MessagesDao
 import com.mercata.pingworks.exceptions.EnvelopeAuthenticity
 import com.mercata.pingworks.exceptions.SignatureMismatch
+import com.mercata.pingworks.models.Attachment
+import com.mercata.pingworks.models.ComposingData
+import com.mercata.pingworks.models.ContentHeaders
 import com.mercata.pingworks.models.Envelope
+import com.mercata.pingworks.models.MessageCategory
+import com.mercata.pingworks.models.MessageFilePartInfo
 import com.mercata.pingworks.models.PublicUserData
+import com.mercata.pingworks.models.toPublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.response_converters.ContactsListConverterFactory
 import com.mercata.pingworks.response_converters.EnvelopeIdsListConverterFactory
@@ -30,6 +47,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Headers
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
@@ -37,6 +55,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -201,7 +220,7 @@ suspend fun getAllBroadcastEnvelopesForContact(
                     fetchEnvelopesForContact(
                         messageIds = ids,
                         currentUser = currentUser,
-                        contact = contact,
+                        contact = contact.toPublicUserData(),
                         link = null
                     )
                 } ?: listOf()
@@ -233,7 +252,7 @@ suspend fun getAllPrivateEnvelopesForContact(
                     fetchEnvelopesForContact(
                         messageIds = ids,
                         currentUser = currentUser,
-                        contact = contact,
+                        contact = contact.toPublicUserData(),
                         link = contact.address.generateLink()
                     )
                 } ?: listOf()
@@ -273,7 +292,7 @@ suspend fun downloadMessage(
 
 suspend fun downloadMessage(
     currentUser: UserData,
-    contact: DBContact,
+    contact: PublicUserData,
     messageId: String
 ): Response<ResponseBody> {
     return downloadMessage(currentUser, contact.address, messageId)
@@ -282,7 +301,7 @@ suspend fun downloadMessage(
 private suspend fun fetchEnvelopesForContact(
     messageIds: List<String>,
     currentUser: UserData,
-    contact: DBContact,
+    contact: PublicUserData,
     link: String?
 ): List<Envelope> {
     return withContext(Dispatchers.IO) {
@@ -318,7 +337,12 @@ private suspend fun fetchEnvelopesForContact(
                         }
 
                         val envelope =
-                            Envelope(messageId, currentUser, contact, envelopeCall.headers!!)
+                            Envelope(
+                                messageId,
+                                currentUser,
+                                contact,
+                                envelopeCall.headers!!
+                            )
 
                         val authentic: Boolean = try {
                             envelope.assertEnvelopeAuthenticity()
@@ -392,6 +416,197 @@ suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: Download
     }
 }
 
+suspend fun uploadPrivateMessage(
+    composingData: ComposingData,
+    fileUtils: FileUtils,
+    currentUser: UserData,
+    currentUserPublicData: PublicUserData
+) {
+    withContext(Dispatchers.IO) {
+        val rootMessageId = currentUser.newMessageId()
+        val sendingDate = Instant.now()
+        val accessProfiles =
+            arrayListOf(currentUserPublicData).apply { addAll(composingData.recipients) }
+
+        val fileParts = arrayListOf<MessageFilePartInfo>()
+        val attachments = arrayListOf<Attachment>()
+
+        composingData.attachments.forEach { attachment ->
+            val urlInfo = fileUtils.getURLInfo(attachment)
+
+            if (urlInfo.size <= MAX_MESSAGE_SIZE) {
+                val checksum = fileUtils.getFileChecksum(attachment)
+                val partMessageId = currentUser.newMessageId()
+                fileParts.add(
+                    MessageFilePartInfo(
+                        urlInfo = urlInfo,
+                        messageId = partMessageId,
+                        part = 1, checksum = checksum.first, size = urlInfo.size, totalParts = 1
+                    )
+                )
+            } else {
+                //attachment too large. Split in chunks
+                var offset: Long = 0
+                var partCount: Long = 1
+                val totalParts = (urlInfo.size / MAX_MESSAGE_SIZE) + 1
+
+                while (offset < urlInfo.size) {
+                    val partMessageId = currentUser.newMessageId()
+                    val bytesCount = minOf(urlInfo.size - offset, MAX_MESSAGE_SIZE)
+                    val bytesChecksum =
+                        fileUtils.getFilePartChecksum(attachment, offset, bytesCount) ?: continue
+
+                    fileParts.add(
+                        MessageFilePartInfo(
+                            urlInfo = urlInfo,
+                            messageId = partMessageId,
+                            part = partCount,
+                            checksum = bytesChecksum.first,
+                            offset = offset,
+                            size = bytesCount,
+                            totalParts = totalParts
+                        )
+                    )
+
+                    offset += bytesCount
+                    partCount += 1
+                }
+            }
+
+            attachments.add(
+                Attachment(
+                    id = "${rootMessageId}_${urlInfo.name}",
+                    parentMessageId = rootMessageId,
+                    fileMessageIds = fileParts.map { it.messageId },
+                    filename = urlInfo.name,
+                    size = urlInfo.size,
+                    mimeType = urlInfo.mimeType
+                )
+            )
+        }
+
+        val messageIdResults: List<Pair<String, HttpResult<Void>>> = arrayListOf(
+            //root message
+            async {
+                val bodyChecksum = composingData.body.hashedWithSha256()
+                val content = ContentHeaders(
+                    messageID = rootMessageId,
+                    date = sendingDate,
+                    subject = composingData.subject,
+                    subjectId = rootMessageId,
+                    parentId = null,
+                    fileParts = fileParts,
+                    checksum = bodyChecksum.first,
+                    category = MessageCategory.personal,
+                    size = composingData.body.toByteArray().size.toLong(),
+                    authorAddress = currentUser.address,
+                    readersAddresses = composingData.recipients.map { it.address },
+                )
+
+                rootMessageId to safeApiCall {
+                    uploadPrivateRootMessage(
+                        body = composingData.body,
+                        content = content,
+                        currentUser = currentUser,
+                        accessProfiles = accessProfiles
+                    )
+                }
+            }
+        ).apply {
+            //attachments
+            addAll(fileParts.map { part ->
+                async {
+                    val headers = ContentHeaders(
+                        messageID = part.messageId,
+                        date = sendingDate,
+                        subject = composingData.subject,
+                        subjectId = rootMessageId,
+                        parentId = rootMessageId,
+                        checksum = part.checksum!!,
+                        category = MessageCategory.personal,
+                        size = part.urlInfo.size,
+                        authorAddress = currentUser.address,
+                        readersAddresses = accessProfiles.map { it.address },
+                    )
+
+                    part.messageId to safeApiCall {
+                        uploadPrivateFileMessage(
+                            headers,
+                            currentUser,
+                            accessProfiles,
+                            part,
+                            fileUtils
+                        )
+                    }
+                }
+            })
+        }.awaitAll()
+
+        val successRequests = messageIdResults.filter { it.second is HttpResult.Success<Void> }
+        //TODO update DB attachment flag as uploaded
+
+        println()
+        println(messageIdResults)
+        println(successRequests)
+
+    }
+}
+
+private suspend fun uploadPrivateRootMessage(
+    body: String,
+    content: ContentHeaders,
+    currentUser: UserData,
+    accessProfiles: List<PublicUserData>,
+): Response<Void> {
+    val accessKey = generateRandomBytes(32)
+    val accessLinks = accessProfiles.toAccessLinks(accessKey)
+    val envelopeHeadersMap =
+        content.generateContentMap(accessKey, content.messageID, accessLinks, currentUser)
+    val encryptedData = encrypt_xchacha20poly1305(
+        secretKey = Key.fromBytes(accessKey),
+        message = body.toByteArray()
+    )
+
+    return getInstance("https://${currentUser.address.getMailHost()}").uploadMessageFile(
+        sotnHeader = currentUser.sign(),
+        contentLength = body.toByteArray().size.toLong(),
+        headers = envelopeHeadersMap.filter { it.key.startsWith(HEADER_PREFIX) },
+        hostPart = currentUser.address.getHost(),
+        localPart = currentUser.address.getLocal(),
+        file = encryptedData!!.first.toRequestBody("application/octet-stream".toMediaTypeOrNull())
+    )
+}
+
+private suspend fun uploadPrivateFileMessage(
+    content: ContentHeaders,
+    currentUser: UserData,
+    accessProfiles: List<PublicUserData>,
+    filePart: MessageFilePartInfo,
+    fileUtils: FileUtils
+): Response<Void> {
+    val accessKey = generateRandomBytes(32)
+    val accessLinks = accessProfiles.toAccessLinks(accessKey)
+
+    val envelopeHeadersMap =
+        content.generateContentMap(accessKey, filePart.messageId, accessLinks, currentUser)
+
+    val encryptedData = fileUtils.encryptFilePartXChaCha20Poly1305(
+        inputUri = filePart.urlInfo.uri!!,
+        secretKey = Key.fromBytes(accessKey),
+        bytesCount = filePart.size,
+        offset = filePart.offset
+    )
+
+    return getInstance("https://${currentUser.address.getMailHost()}").uploadMessageFile(
+        sotnHeader = currentUser.sign(),
+        contentLength = filePart.urlInfo.size,
+        headers = envelopeHeadersMap.filter { it.key.startsWith(HEADER_PREFIX) },
+        hostPart = currentUser.address.getHost(),
+        localPart = currentUser.address.getLocal(),
+        file = encryptedData!!.first.toRequestBody("application/octet-stream".toMediaTypeOrNull())
+    )
+}
+
 suspend fun saveMessagesToDb(
     dl: Downloader,
     results: List<Envelope>,
@@ -406,7 +621,7 @@ suspend fun saveMessagesToDb(
             val attachments: ArrayList<DBAttachment> = arrayListOf()
             rootMessages.forEach { root ->
                 val headers = root.first.contentHeaders
-                headers.files.map { fileInfo ->
+                headers.files?.map { fileInfo ->
                     attachments.add(
                         DBAttachment(
                             //TODO multipart
@@ -490,6 +705,8 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
                             encryptionKeyAlgorithm = publicData.encryptionKeyAlgorithm,
                             publicEncryptionKey = publicData.publicEncryptionKey,
                             publicSigningKey = publicData.publicSigningKey,
+                            publicEncryptionKeyId = publicData.encryptionKeyId,
+                            lastSeenPublic = publicData.lastSeenPublic,
                             //TODO get image
                             imageUrl = null
                         )

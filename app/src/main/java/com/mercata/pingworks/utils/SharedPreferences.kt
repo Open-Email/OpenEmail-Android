@@ -5,6 +5,8 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
+import com.mercata.pingworks.ANONYMOUS_ENCRYPTION_CIPHER
+import com.mercata.pingworks.SIGNING_ALGORITHM
 import com.mercata.pingworks.SP_ADDRESS
 import com.mercata.pingworks.SP_AUTOLOGIN
 import com.mercata.pingworks.SP_AVATAR_LINK
@@ -15,7 +17,9 @@ import com.mercata.pingworks.SP_FULL_NAME
 import com.mercata.pingworks.SP_SELECTED_NAV_SCREEN
 import com.mercata.pingworks.SP_SIGNING_KEYS
 import com.mercata.pingworks.home_screen.HomeScreen
+import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
+import java.time.Instant
 
 class SharedPreferences(applicationContext: Context) {
 
@@ -69,33 +73,61 @@ class SharedPreferences(applicationContext: Context) {
     fun getUserData(): UserData? {
         val address: String = getUserAddress() ?: return null
         val name: String = sharedPreferences.getString(SP_FULL_NAME, null) ?: return null
-        val publicPrivateSigning: String =
-            sharedPreferences.getString(SP_SIGNING_KEYS, null) ?: return null
-        val publicPrivateEncryption: String =
-            sharedPreferences.getString(SP_ENCRYPTION_KEYS, null) ?: return null
-        val encryptionId: String =
-            sharedPreferences.getString(SP_ENCRYPTION_KEY_ID, null) ?: return null
+        val signingKeys = getSigningKeys() ?: return null
+        val encryptionKeys = getEncryptionKeys() ?: return null
 
-        val signingSplit = publicPrivateSigning.split(",")
-        val encryptionSplit = publicPrivateEncryption.split(",")
-        val signingKeys = SigningKeys(
-            KeyPair(
-                Key.fromBase64String(signingSplit.first()),
-                Key.fromBase64String(signingSplit.last())
-            )
-        )
-        val encryptionKeys = EncryptionKeys(
-            KeyPair(
-                Key.fromBase64String(encryptionSplit.first()),
-                Key.fromBase64String(encryptionSplit.last())
-            ), id = encryptionId
-        )
         return UserData(
             address = address,
             name = name,
             encryptionKeys = encryptionKeys,
             signingKeys = signingKeys,
             avatarLink = getUserAvatarLink()
+        )
+    }
+
+    private fun getSigningKeys(): SigningKeys? {
+        val publicPrivateSigning: String =
+            sharedPreferences.getString(SP_SIGNING_KEYS, null) ?: return null
+        val signingSplit = publicPrivateSigning.split(",")
+        return SigningKeys(
+            KeyPair(
+                Key.fromBase64String(signingSplit.first()),
+                Key.fromBase64String(signingSplit.last())
+            )
+        )
+    }
+
+    private fun getEncryptionKeys(): EncryptionKeys? {
+        val publicPrivateEncryption: String =
+            sharedPreferences.getString(SP_ENCRYPTION_KEYS, null) ?: return null
+        val encryptionSplit = publicPrivateEncryption.split(",")
+        val encryptionId: String =
+            sharedPreferences.getString(SP_ENCRYPTION_KEY_ID, null) ?: return null
+        return EncryptionKeys(
+            KeyPair(
+                Key.fromBase64String(encryptionSplit.first()),
+                Key.fromBase64String(encryptionSplit.last())
+            ), id = encryptionId
+        )
+    }
+
+    fun getPublicUserData(): PublicUserData? {
+        val address: String = getUserAddress() ?: return null
+        val name: String = sharedPreferences.getString(SP_FULL_NAME, null) ?: return null
+        val signingKeys = getSigningKeys() ?: return null
+        val encryptionKeys = getEncryptionKeys() ?: return null
+
+        return PublicUserData(
+            fullName = name,
+            address = address,
+            lastSeenPublic = true,
+            lastSeen = Instant.now(),
+            updated = Instant.now(),
+            encryptionKeyId = encryptionKeys.id,
+            encryptionKeyAlgorithm = ANONYMOUS_ENCRYPTION_CIPHER,
+            signingKeyAlgorithm = SIGNING_ALGORITHM,
+            publicEncryptionKey = encryptionKeys.pair.publicKey.asBytes.encodeToBase64(),
+            publicSigningKey = signingKeys.pair.publicKey.asBytes.encodeToBase64()
         )
     }
 

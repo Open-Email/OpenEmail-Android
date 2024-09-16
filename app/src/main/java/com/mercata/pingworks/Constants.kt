@@ -14,6 +14,7 @@ val MARGIN_SMALLER = 12.dp
 const val animationDuration = 500
 const val snackBarDuration = 4000L
 const val MAX_HEADERS_SIZE = 512 * 1024
+const val MAX_MESSAGE_SIZE: Long = 64*1024*1024
 const val MAX_CHUNK_SIZE: Int = 1048576
 const val DEFAULT_CHUNK_SIZE: Int = 8192
 const val MIN_CHUNK_SIZE: Int = 1024

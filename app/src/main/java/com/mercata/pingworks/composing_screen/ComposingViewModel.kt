@@ -7,19 +7,24 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
+import com.mercata.pingworks.models.ComposingData
+import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.Address
+import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
+import com.mercata.pingworks.utils.uploadPrivateMessage
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
 class ComposingViewModel(savedStateHandle: SavedStateHandle) :
     AbstractViewModel<ComposingState>(
         ComposingState(
-            to = savedStateHandle.get<String>("contactAddress") ?: ""
+            addressFieldText = savedStateHandle.get<String>("contactAddress") ?: ""
         )
     ) {
 
@@ -28,8 +33,10 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
         updateState(currentState.copy(currentUser = sp.getUserData()))
     }
 
+    private val fileUtils: FileUtils by inject()
+
     fun updateTo(str: String) {
-        updateState(currentState.copy(to = str, addressErrorResId = null))
+        updateState(currentState.copy(addressFieldText = str, addressErrorResId = null))
     }
 
     fun updateSubject(str: String) {
@@ -37,7 +44,12 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
     }
 
     fun toggleBroadcast() {
-        updateState(currentState.copy(broadcast = !currentState.broadcast, addressErrorResId = null))
+        updateState(
+            currentState.copy(
+                broadcast = !currentState.broadcast,
+                addressErrorResId = null
+            )
+        )
     }
 
     fun updateBody(str: String) {
@@ -50,7 +62,7 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
             valid = false
         }
 
-        if (currentState.to.isBlank() && currentState.broadcast.not()) {
+        if (currentState.addressFieldText.isBlank() && currentState.broadcast.not()) {
             updateState(currentState.copy(addressErrorResId = R.string.empty_email_error))
             valid = false
         }
@@ -60,14 +72,30 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
             valid = false
         }
 
-        if (currentState.attachments.isEmpty() && currentState.body.isBlank()) {
+        if (currentState.body.isBlank()) {
             updateState(currentState.copy(bodyErrorResId = R.string.empty_email_body_error))
             valid = false
         }
 
         if (!valid) return
 
-        
+        GlobalScope.launch {
+            //TODO multiple recipients
+            //TODO save messages instantly
+            updateState(currentState.copy(loading = true))
+            uploadPrivateMessage(
+                composingData = ComposingData(
+                    recipients = currentState.recipients,
+                    subject = currentState.subject,
+                    body = currentState.body,
+                    attachments = currentState.attachments
+                ),
+                fileUtils = fileUtils,
+                currentUser = sp.getUserData()!!,
+                currentUserPublicData = sp.getPublicUserData()!!
+            )
+            updateState(currentState.copy(loading = false))
+        }
     }
 
 
@@ -76,16 +104,23 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
     }
 
     fun checkAddressExist() {
-        if (currentState.addressErrorResId != null) {
+        if (!currentState.recipients.any { it.address == currentState.addressFieldText }) {
             viewModelScope.launch {
                 updateState(currentState.copy(loading = true))
-                when (val call = safeApiCall { getProfilePublicData(currentState.to) }) {
+                when (val call =
+                    safeApiCall { getProfilePublicData(currentState.addressFieldText) }) {
                     is HttpResult.Error -> {
                         updateState(currentState.copy(addressErrorResId = R.string.invalid_email))
                     }
 
                     is HttpResult.Success -> {
-                        updateState(currentState.copy(addressErrorResId = if (call.data == null) R.string.invalid_email else null))
+                        if (call.data == null) {
+                            updateState(currentState.copy(addressErrorResId = R.string.invalid_email))
+                        } else {
+                            updateState(currentState.copy(addressErrorResId = null))
+                            currentState.recipients.add(call.data)
+                        }
+
                     }
                 }
                 updateState(currentState.copy(loading = false))
@@ -106,7 +141,8 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
 data class ComposingState(
     val subject: String = "",
     val body: String = "",
-    val to: Address = "",
+    val addressFieldText: Address = "",
+    val recipients: SnapshotStateList<PublicUserData> = mutableStateListOf(),
     val loading: Boolean = false,
     val addressErrorResId: Int? = null,
     val subjectErrorResId: Int? = null,

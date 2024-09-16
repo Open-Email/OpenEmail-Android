@@ -194,7 +194,7 @@ fun SharedTransitionScope.ComposingScreen(
             }
             AnimatedVisibility(visible = !state.broadcast) {
                 OutlinedTextField(
-                    value = state.to,
+                    value = state.addressFieldText,
                     onValueChange = { str -> viewModel.updateTo(str) },
                     keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.Next,
@@ -222,7 +222,7 @@ fun SharedTransitionScope.ComposingScreen(
                         .focusRequester(toFocusRequester)
                         .fillMaxWidth()
                         .onFocusChanged { focusState ->
-                            if (!focusState.isFocused && state.to.isNotBlank()) {
+                            if (!focusState.isFocused && state.addressFieldText.isNotBlank()) {
                                 viewModel.checkAddressExist()
                             }
                         })

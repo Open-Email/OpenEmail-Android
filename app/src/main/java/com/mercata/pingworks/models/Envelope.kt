@@ -27,7 +27,6 @@ import com.mercata.pingworks.MIN_CHUNK_SIZE
 import com.mercata.pingworks.SIGNING_ALGORITHM
 import com.mercata.pingworks.SYMMETRIC_CIPHER
 import com.mercata.pingworks.SYMMETRIC_FILE_CIPHER
-import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.exceptions.AlgorithmMissMatch
 import com.mercata.pingworks.exceptions.BadChecksum
 import com.mercata.pingworks.exceptions.BadChunkSize
@@ -40,9 +39,11 @@ import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.decodeToBase64
 import com.mercata.pingworks.utils.decryptAnonymous
 import com.mercata.pingworks.utils.decrypt_xchacha20poly1305
+import com.mercata.pingworks.utils.encodeToBase64
+import com.mercata.pingworks.utils.encryptAnonymous
+import com.mercata.pingworks.utils.encrypt_xchacha20poly1305
 import com.mercata.pingworks.utils.generateLink
 import com.mercata.pingworks.utils.hashedWithSha256
-import com.mercata.pingworks.utils.parseServerDate
 import com.mercata.pingworks.utils.verifySignature
 import okhttp3.Headers
 import java.time.Instant
@@ -51,16 +52,16 @@ import kotlin.text.Charsets.UTF_8
 class Envelope(
     val messageId: String,
     val currentUser: UserData,
-    val contact: DBContact,
-    headers: Headers
+    val contact: PublicUserData,
+    headers: Headers? = null
 ) {
 
-    private val envelopeHeadersMap = headers.associate { it.first to it.second }
+    private val envelopeHeadersMap = headers?.associate { it.first to it.second } ?: mapOf()
     private val streamId: String?
-    private val accessLinks: String?
+    private var accessLinks: String?
     var accessKey: Key? = null
         private set
-    private val contentHeadersBytes: ByteArray
+    private var contentHeadersBytes: ByteArray
     private val headersOrder: String
     private val headersChecksum: String
     private val headersSignature: String
@@ -201,7 +202,6 @@ class Envelope(
             authorAddress = headersMap[HEADER_CONTENT_AUTHOR]!!,
             readersAddresses = headersMap[HEADER_CONTENT_READERS]?.split(",")?.map { it.trim() }
                 ?.filterNot { it.isBlank() } ?: listOf(),
-            contentHeadersText = headerText
         )
     }
 
@@ -251,7 +251,7 @@ class Envelope(
                 val mimeType = urlInfoDict["type"]!!
                 val size = urlInfoDict["size"]!!.toLongOrNull() ?: 0L
                 val urlInfo = URLInfo(
-                    url = null,
+                    uri = null,
                     name = name,
                     mimeType = mimeType,
                     size = size,
@@ -261,7 +261,7 @@ class Envelope(
                     urlInfo = urlInfo,
                     messageId = messageId,
                     part = part,
-                    size = part,
+                    size = size,
                     totalParts = totalParts
                 )
                 fileParts.add(fileInfo)

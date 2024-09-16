@@ -5,6 +5,7 @@ import okhttp3.ResponseBody
 import retrofit2.Converter
 import retrofit2.Retrofit
 import java.lang.reflect.Type
+import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -45,16 +46,8 @@ class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
             address = address,
             fullName = map["Name"] ?: "",
             lastSeenPublic = map["Last-Seen-Public"] == "Yes",
-            lastSeen = map["Last-Seen"]?.run {
-                ZonedDateTime.parse(this, DateTimeFormatter.ISO_DATE_TIME).withZoneSameInstant(
-                    ZoneId.systemDefault()
-                )
-            },
-            updated = map["Updated"]?.run {
-                ZonedDateTime.parse(this, DateTimeFormatter.ISO_DATE_TIME).withZoneSameInstant(
-                    ZoneId.systemDefault()
-                )
-            },
+            lastSeen = map["Last-Seen"]?.run { Instant.parse(this) },
+            updated = map["Updated"]?.run { Instant.parse(this) },
             encryptionKeyId = encryptionData["id"]!!,
             encryptionKeyAlgorithm = encryptionData["algorithm"]!!,
             publicEncryptionKey = encryptionData["value"]!!,
