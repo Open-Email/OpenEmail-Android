@@ -148,10 +148,10 @@ fun UserData.newMessageId(): String {
 
 fun encrypt_xchacha20poly1305(
     message: ByteArray,
-    secretKey: Key,
-): Pair<ByteArray, Nonce>? {
+    secretKey: ByteArray,
+): ByteArray? {
 
-    if (secretKey.asBytes.size != XCHACHA20POLY1305_IETF_KEYBYTES) {
+    if (secretKey.size != XCHACHA20POLY1305_IETF_KEYBYTES) {
         return null
     }
 
@@ -168,19 +168,19 @@ fun encrypt_xchacha20poly1305(
         0,  // Length of the additional data
         null,                            // Secret nonce (optional, usually null)
         nonce,                           // Nonce generated
-        secretKey.asBytes                        // Secret key used for encryption
+        secretKey                        // Secret key used for encryption
     )
 
     if (!success) {
         return null
     }
 
-    return Pair(authenticatedCipherText, nonce)
+    return nonce + authenticatedCipherText
 }
 
 
 @Throws(SodiumException::class)
-fun decrypt_xchacha20poly1305(cipherBytes: ByteArray, accessKey: Key): ByteArray {
+fun decrypt_xchacha20poly1305(cipherBytes: ByteArray, accessKey: ByteArray): ByteArray {
 
     val valid = cipherBytes.size >= XCHACHA20POLY1305_IETF_NPUBBYTES + XCHACHA20POLY1305_IETF_ABYTES
 
@@ -201,7 +201,7 @@ fun decrypt_xchacha20poly1305(cipherBytes: ByteArray, accessKey: Key): ByteArray
         null,    // Optional additional authenticated data (AAD)
         0,          // Length of AAD
         nonce,             // Public nonce used during encryption
-        accessKey.asBytes          // Secret key used to encrypt
+        accessKey          // Secret key used to encrypt
     )
 
     if (!success) {

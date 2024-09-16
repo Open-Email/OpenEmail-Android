@@ -2,7 +2,6 @@ package com.mercata.pingworks.utils
 
 import android.content.Context
 import android.util.Log
-import com.goterl.lazysodium.utils.Key
 import com.mercata.pingworks.db.messages.DBAttachment
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.models.Envelope
@@ -91,12 +90,12 @@ class Downloader(val context: Context) {
                     val allBytes = outputStream.toByteArray()
 
                     file.writeBytes(
-                        if (attachment.accessKeyHex == null) {
+                        if (attachment.accessKey == null) {
                             allBytes
                         } else {
                             decrypt_xchacha20poly1305(
                                 allBytes,
-                                Key.fromHexString(attachment.accessKeyHex)
+                                attachment.accessKey
                             )
                         }
                     )

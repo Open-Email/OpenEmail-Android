@@ -59,7 +59,7 @@ class Envelope(
     private val envelopeHeadersMap = headers?.associate { it.first to it.second } ?: mapOf()
     private val streamId: String?
     private var accessLinks: String?
-    var accessKey: Key? = null
+    var accessKey: ByteArray? = null
         private set
     private var contentHeadersBytes: ByteArray
     private val headersOrder: String
@@ -146,7 +146,7 @@ class Envelope(
             }
 
             val decrypted = decryptAnonymous(value, currentUser)
-            this.accessKey = Key.fromBytes(decrypted)
+            this.accessKey = decrypted
         }
     }
 

@@ -101,10 +101,10 @@ class FileUtils(val context: Context) {
 
     fun encryptFilePartXChaCha20Poly1305(
         inputUri: Uri,
-        secretKey: Key,
+        secretKey: ByteArray,
         bytesCount: Long?,
         offset: Long?
-    ): Pair<ByteArray, Nonce>? {
+    ): ByteArray? {
         val inputStream: InputStream? = context.contentResolver.openInputStream(inputUri)
 
         inputStream?.use { stream ->
@@ -124,12 +124,7 @@ class FileUtils(val context: Context) {
             }
 
             // Encrypt the data using XChaCha20-Poly1305
-            return encrypt_xchacha20poly1305(dataToEncrypt, secretKey)?.let {
-                Pair(
-                    dataToEncrypt,
-                    it.second
-                )
-            }
+            return encrypt_xchacha20poly1305(dataToEncrypt, secretKey)
         }
         return null
     }

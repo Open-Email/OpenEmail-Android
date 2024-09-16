@@ -57,11 +57,11 @@ fun ContentHeaders.generateContentMap(
     accessLinks: String,
     currentUser: UserData
 ): Map<String, String> {
+
     val contentHeaderBytes = encrypt_xchacha20poly1305(
         this.contentHeadersText.toByteArray(),
-        Key.fromBytes(accessKey)
-    )?.let { it.first + it.second }!!
-
+        accessKey
+    )!!
     val envelopeHeadersMap = hashMapOf(
         HEADER_MESSAGE_ID to messageId,
         HEADER_MESSAGE_ENCRYPTION to "algorithm=$SYMMETRIC_CIPHER",

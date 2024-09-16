@@ -563,7 +563,7 @@ private suspend fun uploadPrivateRootMessage(
     val envelopeHeadersMap =
         content.generateContentMap(accessKey, content.messageID, accessLinks, currentUser)
     val encryptedData = encrypt_xchacha20poly1305(
-        secretKey = Key.fromBytes(accessKey),
+        secretKey = accessKey,
         message = body.toByteArray()
     )
 
@@ -573,7 +573,7 @@ private suspend fun uploadPrivateRootMessage(
         headers = envelopeHeadersMap.filter { it.key.startsWith(HEADER_PREFIX) },
         hostPart = currentUser.address.getHost(),
         localPart = currentUser.address.getLocal(),
-        file = encryptedData!!.first.toRequestBody("application/octet-stream".toMediaTypeOrNull())
+        file = encryptedData!!.toRequestBody("application/octet-stream".toMediaTypeOrNull())
     )
 }
 
@@ -592,10 +592,10 @@ private suspend fun uploadPrivateFileMessage(
 
     val encryptedData = fileUtils.encryptFilePartXChaCha20Poly1305(
         inputUri = filePart.urlInfo.uri!!,
-        secretKey = Key.fromBytes(accessKey),
+        secretKey = accessKey,
         bytesCount = filePart.size,
         offset = filePart.offset
-    )
+    )!!
 
     return getInstance("https://${currentUser.address.getMailHost()}").uploadMessageFile(
         sotnHeader = currentUser.sign(),
@@ -603,7 +603,7 @@ private suspend fun uploadPrivateFileMessage(
         headers = envelopeHeadersMap.filter { it.key.startsWith(HEADER_PREFIX) },
         hostPart = currentUser.address.getHost(),
         localPart = currentUser.address.getLocal(),
-        file = encryptedData!!.first.toRequestBody("application/octet-stream".toMediaTypeOrNull())
+        file = encryptedData.toRequestBody("application/octet-stream".toMediaTypeOrNull())
     )
 }
 
@@ -631,7 +631,7 @@ suspend fun saveMessagesToDb(
                             name = fileInfo.name,
                             type = fileInfo.mimeType,
                             size = fileInfo.size,
-                            accessKeyHex = attachmentEnvelopes.first { it.messageId == fileInfo.messageIds.first() }.accessKey?.asHexString,
+                            accessKey = attachmentEnvelopes.first { it.messageId == fileInfo.messageIds.first() }.accessKey,
                             createdTimestamp = fileInfo.modifiedAt
                         )
                     )
