@@ -1,21 +1,12 @@
 package com.mercata.pingworks.utils
 
-import android.net.Uri
 import android.util.Log
-import com.goterl.lazysodium.utils.Key
 import com.mercata.pingworks.ANONYMOUS_ENCRYPTION_CIPHER
 import com.mercata.pingworks.BuildConfig
 import com.mercata.pingworks.DEFAULT_MAIL_SUBDOMAIN
-import com.mercata.pingworks.HEADER_MESSAGE_ACCESS
-import com.mercata.pingworks.HEADER_MESSAGE_ENCRYPTION
-import com.mercata.pingworks.HEADER_MESSAGE_ENVELOPE_CHECKSUM
-import com.mercata.pingworks.HEADER_MESSAGE_ENVELOPE_SIGNATURE
-import com.mercata.pingworks.HEADER_MESSAGE_HEADERS
-import com.mercata.pingworks.HEADER_MESSAGE_ID
 import com.mercata.pingworks.HEADER_PREFIX
 import com.mercata.pingworks.MAX_MESSAGE_SIZE
 import com.mercata.pingworks.SIGNING_ALGORITHM
-import com.mercata.pingworks.SYMMETRIC_CIPHER
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.AttachmentsDao
 import com.mercata.pingworks.db.contacts.ContactsDao
@@ -91,6 +82,7 @@ suspend fun getWellKnownHosts(hostName: String): Response<List<WellKnownHost>> {
     return getInstance("https://$hostName").getWellKnownHosts()
 }
 
+//https://main.ping.works/mail/ping.works/testdejan6/profile
 suspend fun getProfilePublicData(address: String): Response<PublicUserData> {
     return getInstance("https://$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}").getProfilePublicData(
         hostPart = address.getHost(),
@@ -220,7 +212,7 @@ suspend fun getAllBroadcastEnvelopesForContact(
                     fetchEnvelopesForContact(
                         messageIds = ids,
                         currentUser = currentUser,
-                        contact = contact.toPublicUserData(),
+                        contact = contact,
                         link = null
                     )
                 } ?: listOf()
@@ -252,7 +244,7 @@ suspend fun getAllPrivateEnvelopesForContact(
                     fetchEnvelopesForContact(
                         messageIds = ids,
                         currentUser = currentUser,
-                        contact = contact.toPublicUserData(),
+                        contact = contact,
                         link = contact.address.generateLink()
                     )
                 } ?: listOf()
@@ -292,7 +284,7 @@ suspend fun downloadMessage(
 
 suspend fun downloadMessage(
     currentUser: UserData,
-    contact: PublicUserData,
+    contact: DBContact,
     messageId: String
 ): Response<ResponseBody> {
     return downloadMessage(currentUser, contact.address, messageId)
@@ -301,7 +293,7 @@ suspend fun downloadMessage(
 private suspend fun fetchEnvelopesForContact(
     messageIds: List<String>,
     currentUser: UserData,
-    contact: PublicUserData,
+    contact: DBContact,
     link: String?
 ): List<Envelope> {
     return withContext(Dispatchers.IO) {
@@ -562,7 +554,7 @@ private suspend fun uploadPrivateRootMessage(
     val accessLinks = accessProfiles.toAccessLinks(accessKey)
     val envelopeHeadersMap =
         content.generateContentMap(accessKey, content.messageID, accessLinks, currentUser)
-    val encryptedData = encrypt_xchacha20poly1305(
+    val sealedBody = encrypt_xchacha20poly1305(
         secretKey = accessKey,
         message = body.toByteArray()
     )
@@ -573,7 +565,7 @@ private suspend fun uploadPrivateRootMessage(
         headers = envelopeHeadersMap.filter { it.key.startsWith(HEADER_PREFIX) },
         hostPart = currentUser.address.getHost(),
         localPart = currentUser.address.getLocal(),
-        file = encryptedData!!.toRequestBody("application/octet-stream".toMediaTypeOrNull())
+        file = sealedBody!!.toRequestBody("application/octet-stream".toMediaTypeOrNull())
     )
 }
 
@@ -686,10 +678,10 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
 
                     //deleting local contacts, which isn't present on remote
                     dao.deleteList(dao.getAll().filterNot { local ->
-                        result.any { remote -> remote.address == local.address }
+                        local.address == sp.getUserAddress() || result.any { remote -> remote.address == local.address }
                     })
 
-                    //inserting new and updating old local contacts
+                    //inserting new contacts
                     val broadcastReceivingAddresses =
                         dao.getAll().filter { it.receiveBroadcasts }.map { it.address }
                     dao.insertAll(result.map { publicData ->

@@ -8,6 +8,7 @@ import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.models.PublicUserData
+import com.mercata.pingworks.models.toPublicUserData
 import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences

@@ -14,6 +14,9 @@ import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.SharedPreferences
+import com.mercata.pingworks.utils.decrypt_xchacha20poly1305
+import com.mercata.pingworks.utils.encrypt_xchacha20poly1305
+import com.mercata.pingworks.utils.generateRandomBytes
 import com.mercata.pingworks.utils.syncAllMessages
 import com.mercata.pingworks.utils.syncContacts
 import kotlinx.coroutines.Dispatchers
@@ -82,13 +85,14 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     }
 
     private fun updateList() {
+        val currentUserAddress = sp.getUserAddress()
         currentState.messages.clear()
         currentState.messages.addAll(allMessages.asSequence().filter {
             when (currentState.screen) {
-                HomeScreen.Broadcast -> it.message.message.isBroadcast
-                HomeScreen.Outbox -> it.message.author?.address == null
+                HomeScreen.Broadcast -> it.message.message.isBroadcast && it.message.author?.address != currentUserAddress
+                HomeScreen.Outbox -> it.message.author?.address == currentUserAddress
                 HomeScreen.Inbox -> it.message.message.isBroadcast.not() &&
-                        it.message.author?.address != null
+                        it.message.author?.address != currentUserAddress
             } && (it.message.message.subject.lowercase().contains(currentState.query.lowercase()) ||
                     it.message.message.textBody.lowercase()
                         .contains(currentState.query.lowercase()))

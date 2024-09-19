@@ -16,12 +16,14 @@ import com.mercata.pingworks.SP_ENCRYPTION_KEY_ID
 import com.mercata.pingworks.SP_FULL_NAME
 import com.mercata.pingworks.SP_SELECTED_NAV_SCREEN
 import com.mercata.pingworks.SP_SIGNING_KEYS
+import com.mercata.pingworks.db.AppDatabase
+import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.home_screen.HomeScreen
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import java.time.Instant
 
-class SharedPreferences(applicationContext: Context) {
+class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
 
     private val sharedPreferences = EncryptedSharedPreferences.create(
         "ping_works_sp",
@@ -31,7 +33,7 @@ class SharedPreferences(applicationContext: Context) {
         PrefValueEncryptionScheme.AES256_GCM
     )
 
-    fun saveUserKeys(user: UserData) {
+    suspend fun saveUserKeys(user: UserData) {
         sharedPreferences.edit()
             .putString(SP_ADDRESS, user.address)
             .putString(SP_FULL_NAME, user.name)
@@ -49,6 +51,24 @@ class SharedPreferences(applicationContext: Context) {
                     user.signingKeys.pair.secretKey
                 ).joinToString(separator = ",") { it.asBytes.encodeToBase64() })
             .apply()
+
+        db.userDao().insert(
+            DBContact(
+                updated = null,
+                lastSeen = null,
+                address = user.address,
+                name = user.name,
+                //TODO
+                imageUrl = null,
+                lastSeenPublic = true,
+                receiveBroadcasts = true,
+                signingKeyAlgorithm = SIGNING_ALGORITHM,
+                encryptionKeyAlgorithm = ANONYMOUS_ENCRYPTION_CIPHER,
+                publicEncryptionKey = user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64(),
+                publicEncryptionKeyId = user.encryptionKeys.id,
+                publicSigningKey = user.signingKeys.pair.publicKey.asBytes.encodeToBase64()
+            )
+        )
     }
 
     fun saveUserAvatarLink(link: String) =

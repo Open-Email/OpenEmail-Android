@@ -4,19 +4,20 @@ import androidx.lifecycle.viewModelScope
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
 import com.mercata.pingworks.AbstractViewModel
+import com.mercata.pingworks.R
+import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.emailRegex
+import com.mercata.pingworks.models.PublicUserData
+import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.EncryptionKeys
 import com.mercata.pingworks.utils.HttpResult
-import com.mercata.pingworks.R
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.SigningKeys
-import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.utils.encodeToBase64
 import com.mercata.pingworks.utils.getHost
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.getWellKnownHosts
 import com.mercata.pingworks.utils.loginCall
-import com.mercata.pingworks.models.PublicUserData
-import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.safeApiCall
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
@@ -154,6 +155,10 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
         val signingKey = currentState.privateSigningKeyInput.trim().replace("\n", "")
 
         viewModelScope.launch {
+            if (sp.getUserAddress() != currentState.emailInput) {
+                db.userDao().deleteAll()
+                db.messagesDao().deleteAll()
+            }
             var publicData: PublicUserData? = null
             updateState(currentState.copy(loading = true))
             when (val call = safeApiCall { getProfilePublicData(currentState.emailInput) }) {
@@ -174,25 +179,28 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                 name = publicData.fullName,
                 address = currentState.emailInput,
                 encryptionKeys = EncryptionKeys(
-                    pair = KeyPair(Key.fromBase64String(publicData.publicEncryptionKey),
-                        Key.fromBase64String(encryptionKey)),
+                    pair = KeyPair(
+                        Key.fromBase64String(publicData.publicEncryptionKey),
+                        Key.fromBase64String(encryptionKey)
+                    ),
                     id = publicData.encryptionKeyId
                 ),
                 signingKeys = SigningKeys(
-                    pair = KeyPair(Key.fromBase64String(publicData.publicSigningKey), Key.fromBase64String(signingKey))
+                    pair = KeyPair(
+                        Key.fromBase64String(publicData.publicSigningKey),
+                        Key.fromBase64String(signingKey)
+                    )
                 )
             )
 
-            val error: String? = when (val call = safeApiCall { loginCall(userData) }) {
-                is HttpResult.Error -> call.message
-                is HttpResult.Success -> null
-            }
-
-            if (error == null) {
-                sp.saveUserKeys(userData)
-                updateState(currentState.copy(isLoggedIn = true))
-            } else {
-                updateState(currentState.copy(registrationError = error))
+            when (val call = safeApiCall { loginCall(userData) }) {
+                is HttpResult.Error -> {
+                    updateState(currentState.copy(registrationError = call.message))
+                }
+                is HttpResult.Success -> {
+                    sp.saveUserKeys(userData)
+                    updateState(currentState.copy(isLoggedIn = true))
+                }
             }
 
             updateState(currentState.copy(loading = false))

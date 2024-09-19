@@ -2,10 +2,10 @@ package com.mercata.pingworks.registration
 
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
+import com.mercata.pingworks.availableHosts
 import com.mercata.pingworks.utils.EncryptionKeys
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SigningKeys
-import com.mercata.pingworks.availableHosts
 import com.mercata.pingworks.utils.generateEncryptionKeys
 import com.mercata.pingworks.utils.generateSigningKeys
 import com.mercata.pingworks.utils.isAddressAvailable
@@ -42,15 +42,15 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
                     encryptionKeys = generateEncryptionKeys(),
                     signingKeys = generateSigningKeys()
                 )
-                val error: String? = when (val call = safeApiCall { registerCall(user) }) {
-                    is HttpResult.Error -> call.message
-                    is HttpResult.Success -> null
-                }
-                if (error == null) {
-                    sp.saveUserKeys(user)
-                    updateState(currentState.copy(isRegistered = true))
-                } else {
-                    updateState(currentState.copy(registrationError = error))
+                when (val call = safeApiCall { registerCall(user) }) {
+                    is HttpResult.Error -> {
+                        updateState(currentState.copy(registrationError = call.message))
+                    }
+
+                    is HttpResult.Success -> {
+                        sp.saveUserKeys(user)
+                        updateState(currentState.copy(isRegistered = true))
+                    }
                 }
                 updateState(currentState.copy(isLoading = false))
             } else {

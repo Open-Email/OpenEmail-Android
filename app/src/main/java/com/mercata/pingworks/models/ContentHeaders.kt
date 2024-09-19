@@ -18,7 +18,7 @@ data class ContentHeaders(
     val messageID: String,
     val date: Instant,
     val subject: String,
-    val subjectId: String,
+    val subjectId: String?,
     val parentId: String?,
     val files: List<MessageFileInfo>? = null,
     val filesHeader: String? = null,
@@ -45,6 +45,8 @@ data class ContentHeaders(
         parentId?.let {
             contentHeadersMap[HEADER_CONTENT_SUBJECT_ID] = parentId
             contentHeadersMap[HEADER_CONTENT_PARENT_ID] = parentId
+        } ?: run {
+            contentHeadersMap[HEADER_CONTENT_SUBJECT_ID] = messageID
         }
 
         contentHeadersText =

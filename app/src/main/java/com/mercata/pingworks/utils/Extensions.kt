@@ -44,7 +44,7 @@ fun Uri.getNameFromURI(context: Context): String {
 fun List<PublicUserData>.toAccessLinks(accessKey: ByteArray): String {
     return this.joinToString(", ") { profile ->
         val link = profile.address.generateLink()
-        val accessKeyFingerprint = profile.publicSigningKey.hashedWithSha256()
+        val accessKeyFingerprint = profile.publicSigningKey.decodeFromBase64().hashedWithSha256()
         val accessKeyEncrypted =
             encryptAnonymous(accessKey, Key.fromBase64String(profile.publicEncryptionKey))
         "link=${link}; fingerprint=${accessKeyFingerprint.first}; value=${accessKeyEncrypted.encodeToBase64()}; id=${profile.encryptionKeyId}"

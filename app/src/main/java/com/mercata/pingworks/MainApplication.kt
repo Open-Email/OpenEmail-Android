@@ -15,7 +15,7 @@ import org.koin.dsl.module
 class MainApplication : Application() {
 
     private val appModule = module {
-        single { SharedPreferences(get()) }
+        single { SharedPreferences(get(), get()) }
         single { BioManager(get()) }
         single { Downloader(get()) }
         single { FileUtils(get()) }

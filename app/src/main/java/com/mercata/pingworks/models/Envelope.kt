@@ -27,6 +27,7 @@ import com.mercata.pingworks.MIN_CHUNK_SIZE
 import com.mercata.pingworks.SIGNING_ALGORITHM
 import com.mercata.pingworks.SYMMETRIC_CIPHER
 import com.mercata.pingworks.SYMMETRIC_FILE_CIPHER
+import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.exceptions.AlgorithmMissMatch
 import com.mercata.pingworks.exceptions.BadChecksum
 import com.mercata.pingworks.exceptions.BadChunkSize
@@ -36,12 +37,9 @@ import com.mercata.pingworks.exceptions.FingerprintMismatch
 import com.mercata.pingworks.exceptions.SignatureMismatch
 import com.mercata.pingworks.exceptions.TooLargeEnvelope
 import com.mercata.pingworks.registration.UserData
-import com.mercata.pingworks.utils.decodeToBase64
+import com.mercata.pingworks.utils.decodeFromBase64
 import com.mercata.pingworks.utils.decryptAnonymous
 import com.mercata.pingworks.utils.decrypt_xchacha20poly1305
-import com.mercata.pingworks.utils.encodeToBase64
-import com.mercata.pingworks.utils.encryptAnonymous
-import com.mercata.pingworks.utils.encrypt_xchacha20poly1305
 import com.mercata.pingworks.utils.generateLink
 import com.mercata.pingworks.utils.hashedWithSha256
 import com.mercata.pingworks.utils.verifySignature
@@ -52,7 +50,7 @@ import kotlin.text.Charsets.UTF_8
 class Envelope(
     val messageId: String,
     val currentUser: UserData,
-    val contact: PublicUserData,
+    val contact: DBContact,
     headers: Headers? = null
 ) {
 
@@ -99,7 +97,7 @@ class Envelope(
                     throw AlgorithmMissMatch(algorithm)
                 }
             }
-            contentHeadersBytes = contentHeaderMap["value"]!!.decodeToBase64()
+            contentHeadersBytes = contentHeaderMap["value"]!!.decodeFromBase64()
             openContentHeaders()
         }
 
@@ -182,7 +180,7 @@ class Envelope(
             messageID = headersMap[HEADER_CONTENT_MESSAGE_ID]!!,
             date = Instant.parse(headersMap[HEADER_CONTENT_DATE]!!),
             subject = headersMap[HEADER_CONTENT_SUBJECT]!!,
-            subjectId = headersMap[HEADER_CONTENT_SUBJECT_ID]!!,
+            subjectId = headersMap[HEADER_CONTENT_SUBJECT_ID],
             parentId = headersMap[HEADER_CONTENT_PARENT_ID]?.trim()?.replace("\u0000", ""),
             files = parsedFiles.second,
             filesHeader = headersMap[HEADER_CONTENT_FILES],
@@ -357,6 +355,14 @@ class Envelope(
         if (headersChecksum != headersSum) {
             throw EnvelopeAuthenticity(headersChecksum)
         }
+
+        //r5u4qK64uGdvW+xFNBton+9SSO9dnL0TNZ+HvK3AUUH4VJtOwG3rfoCFG+/q3wNJZuZAoKiY+3BHpOEoyqF0Ag
+        //Z+wHYpicSP4PnVQEnNBeQDNO6vo8AqWfWo7bqdRe5aHtq1PjAmetPrB15admPLckx1LfKix5qyOK2jbzs/AnAg
+        //Z+wHYpicSP4PnVQEnNBeQDNO6vo8AqWfWo7bqdRe5aHtq1PjAmetPrB15admPLckx1LfKix5qyOK2jbzs/AnAg
+        if (contact.address == "anton4@ping.works") {
+            println()
+        }
+
 
         // Verify checksum signature
         headersSignature.takeIf { it.isNotEmpty() }?.let { signature ->

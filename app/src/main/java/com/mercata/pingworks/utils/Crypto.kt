@@ -44,7 +44,8 @@ fun generateEncryptionKeys(): EncryptionKeys {
 }
 
 fun ByteArray.encodeToBase64(): String = Base64.getEncoder().encodeToString(this)
-fun String.decodeToBase64(): ByteArray = Base64.getDecoder().decode(this)
+fun String.decodeFromBase64(): ByteArray = Base64.getDecoder().decode(this)
+fun String.convertToBase64(): String = Base64.getEncoder().encodeToString(this.toByteArray())
 
 @Throws(SodiumException::class)
 fun generateSigningKeys(): SigningKeys {
@@ -100,7 +101,7 @@ fun encryptAnonymous(data: ByteArray, publicEncryptionKey: Key): ByteArray {
 
 @Throws(SodiumException::class)
 fun decryptAnonymous(cipherText: String, currentUser: UserData): ByteArray {
-    val cipher: ByteArray = cipherText.decodeToBase64()
+    val cipher: ByteArray = cipherText.decodeFromBase64()
     val message = ByteArray(cipher.size - Box.SEALBYTES)
 
     val res: Boolean = sodium.cryptoBoxSealOpen(
@@ -119,7 +120,7 @@ fun decryptAnonymous(cipherText: String, currentUser: UserData): ByteArray {
 @Throws(SodiumException::class)
 fun verifySignature(publicKey: Key, signature: String, originData: ByteArray): Boolean {
     return sodium.cryptoSignVerifyDetached(
-        signature.decodeToBase64(),
+        signature.decodeFromBase64(),
         originData,
         originData.size,
         publicKey.asBytes
@@ -145,7 +146,6 @@ fun UserData.newMessageId(): String {
     return rawId.hashedWithSha256().first
 }
 
-
 fun encrypt_xchacha20poly1305(
     message: ByteArray,
     secretKey: ByteArray,
@@ -157,7 +157,7 @@ fun encrypt_xchacha20poly1305(
 
     val nonce = sodium.nonce(XCHACHA20POLY1305_IETF_NPUBBYTES)
 
-    val authenticatedCipherText = ByteArray(message.size + XCHACHA20POLY1305_IETF_ABYTES)
+    val authenticatedCipherText = ByteArray(message.size + XCHACHA20POLY1305_IETF_ABYTES) //382
 
     val success = sodium.cryptoAeadXChaCha20Poly1305IetfEncrypt(
         authenticatedCipherText,         // Output ciphertext buffer
@@ -175,7 +175,7 @@ fun encrypt_xchacha20poly1305(
         return null
     }
 
-    return nonce + authenticatedCipherText
+    return nonce.plus(authenticatedCipherText)
 }
 
 
@@ -191,10 +191,12 @@ fun decrypt_xchacha20poly1305(cipherBytes: ByteArray, accessKey: ByteArray): Byt
     val nonce = cipherBytes.sliceArray(0 until XCHACHA20POLY1305_IETF_NPUBBYTES)
     val message = cipherBytes.sliceArray(XCHACHA20POLY1305_IETF_NPUBBYTES until cipherBytes.size)
     val decryptedMessage = ByteArray(cipherBytes.size - XCHACHA20POLY1305_IETF_ABYTES)
+    // Length of decrypted message reference
+    val decryptedLength = LongArray(1)
 
     val success = sodium.cryptoAeadXChaCha20Poly1305IetfDecrypt(
         decryptedMessage,  // The output buffer where the message will be written
-        null,              // Message length, if you don't need to capture it
+        decryptedLength,              // Message length, if you don't need to capture it
         null,              // Secret nonce (optional, generally null)
         message,        // Ciphertext (input encrypted data)
         message.size.toLong(),  // Ciphertext length
@@ -208,7 +210,15 @@ fun decrypt_xchacha20poly1305(cipherBytes: ByteArray, accessKey: ByteArray): Byt
         throw SodiumException("Couldn't decrypt")
     }
 
-    return decryptedMessage
+    return decryptedMessage.sliceArray(0 until decryptedLength[0].toInt())
+}
+
+fun testEncrypt() {
+    val accessKey = generateRandomBytes(32)
+    val str = "Hello world !!"
+    val encrypted = encrypt_xchacha20poly1305(str.toByteArray(), accessKey)!!
+    val decrypted = decrypt_xchacha20poly1305(encrypted, accessKey)
+    assert(String(decrypted) == str)
 }
 
 fun String.hashedWithSha256(): Pair<String, ByteArray> = toByteArray().hashedWithSha256()
