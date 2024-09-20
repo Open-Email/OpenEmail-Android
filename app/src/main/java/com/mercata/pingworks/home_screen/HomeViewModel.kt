@@ -14,9 +14,6 @@ import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.SharedPreferences
-import com.mercata.pingworks.utils.decrypt_xchacha20poly1305
-import com.mercata.pingworks.utils.encrypt_xchacha20poly1305
-import com.mercata.pingworks.utils.generateRandomBytes
 import com.mercata.pingworks.utils.syncAllMessages
 import com.mercata.pingworks.utils.syncContacts
 import kotlinx.coroutines.Dispatchers

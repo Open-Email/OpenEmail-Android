@@ -9,6 +9,8 @@ import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_ABYTES
 import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_KEYBYTES
 import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_NPUBBYTES
 import com.goterl.lazysodium.interfaces.Box
+import com.goterl.lazysodium.interfaces.Hash
+import com.goterl.lazysodium.interfaces.Sign
 import com.goterl.lazysodium.utils.Base64MessageEncoder
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
@@ -22,6 +24,7 @@ import com.mercata.pingworks.SIGNING_ALGORITHM
 import com.mercata.pingworks.headerFieldSeparator
 import com.mercata.pingworks.headerKeyValueSeparator
 import com.mercata.pingworks.registration.UserData
+import okio.Utf8
 import org.koin.java.KoinJavaComponent.inject
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -45,7 +48,6 @@ fun generateEncryptionKeys(): EncryptionKeys {
 
 fun ByteArray.encodeToBase64(): String = Base64.getEncoder().encodeToString(this)
 fun String.decodeFromBase64(): ByteArray = Base64.getDecoder().decode(this)
-fun String.convertToBase64(): String = Base64.getEncoder().encodeToString(this.toByteArray())
 
 @Throws(SodiumException::class)
 fun generateSigningKeys(): SigningKeys {
@@ -213,23 +215,29 @@ fun decrypt_xchacha20poly1305(cipherBytes: ByteArray, accessKey: ByteArray): Byt
     return decryptedMessage.sliceArray(0 until decryptedLength[0].toInt())
 }
 
-fun testEncrypt() {
-    val accessKey = generateRandomBytes(32)
-    val str = "Hello world !!"
-    val encrypted = encrypt_xchacha20poly1305(str.toByteArray(), accessKey)!!
-    val decrypted = decrypt_xchacha20poly1305(encrypted, accessKey)
-    assert(String(decrypted) == str)
-}
-
 fun String.hashedWithSha256(): Pair<String, ByteArray> = toByteArray().hashedWithSha256()
 
 fun ByteArray.hashedWithSha256(): Pair<String, ByteArray> {
-    val rv = MessageDigest.getInstance("SHA-256")
-        .digest(this)
-    return rv.toHexString() to rv
+    val hash = ByteArray(Hash.SHA256_BYTES)
+    sodium.cryptoHashSha256(hash, this, this.size.toLong())
+
+    val hexChecksum = sodium.toHexStr(hash).lowercase()
+    return Pair(hexChecksum, hash)
 }
 
 @Throws(SodiumException::class)
 fun String.signData(privateKey: Key): String {
     return sodium.cryptoSignDetached(this, privateKey)
+}
+
+@Throws(SodiumException::class)
+fun ByteArray.signDataBytes(privateKey: Key): ByteArray {
+    val skBytes: ByteArray = privateKey.asBytes
+    val signatureBytes = ByteArray(Sign.BYTES)
+
+    if (!sodium.cryptoSignDetached(signatureBytes, this, this.size.toLong(), skBytes)) {
+        throw SodiumException("Could not create a signature for your message in detached mode.")
+    }
+
+    return signatureBytes
 }

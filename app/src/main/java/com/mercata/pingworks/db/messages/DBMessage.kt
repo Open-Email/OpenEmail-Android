@@ -18,7 +18,7 @@ import com.mercata.pingworks.db.contacts.DBContact
 )
 data class DBMessage(
     @PrimaryKey @ColumnInfo("message_id") val messageId: String,
-    @ColumnInfo("author_address") val authorAddress: String,
+    @ColumnInfo("author_address", index = true) val authorAddress: String,
     @ColumnInfo("subject") val subject: String,
     @ColumnInfo("text_body") val textBody: String,
     @ColumnInfo("is_broadcast") val isBroadcast: Boolean,

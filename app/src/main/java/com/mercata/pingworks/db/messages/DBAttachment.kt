@@ -19,7 +19,7 @@ data class DBAttachment(
     @PrimaryKey @ColumnInfo("attachment_id") val attachmentMessageId: String,
     @ColumnInfo ("access_key") val accessKey: ByteArray?,
     @ColumnInfo("author_address") val authorAddress: String,
-    @ColumnInfo("parent_id") val parentId: String,
+    @ColumnInfo("parent_id", index = true) val parentId: String,
     @ColumnInfo("file_name") val name: String,
     @ColumnInfo("file_type") val type: String,
     @ColumnInfo("file_size") val size: Long,
