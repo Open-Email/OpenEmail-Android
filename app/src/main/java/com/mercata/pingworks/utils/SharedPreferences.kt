@@ -43,13 +43,13 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
                 arrayOf(
                     user.encryptionKeys.pair.publicKey,
                     user.encryptionKeys.pair.secretKey
-                ).joinToString(separator = ",") { it.asBytes.encodeToBase64()!! }
+                ).joinToString(separator = ",") { it.asBytes.encodeToBase64() }
             )
             .putString(
                 SP_SIGNING_KEYS, arrayOf(
                     user.signingKeys.pair.publicKey,
                     user.signingKeys.pair.secretKey
-                ).joinToString(separator = ",") { it.asBytes.encodeToBase64()!! })
+                ).joinToString(separator = ",") { it.asBytes.encodeToBase64() })
             .apply()
 
         db.userDao().insert(
@@ -64,9 +64,9 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
                 receiveBroadcasts = true,
                 signingKeyAlgorithm = SIGNING_ALGORITHM,
                 encryptionKeyAlgorithm = ANONYMOUS_ENCRYPTION_CIPHER,
-                publicEncryptionKey = user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64()!!,
+                publicEncryptionKey = user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64(),
                 publicEncryptionKeyId = user.encryptionKeys.id,
-                publicSigningKey = user.signingKeys.pair.publicKey.asBytes.encodeToBase64()!!
+                publicSigningKey = user.signingKeys.pair.publicKey.asBytes.encodeToBase64()
             )
         )
     }
@@ -111,8 +111,8 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
         val signingSplit = publicPrivateSigning.split(",")
         return SigningKeys(
             KeyPair(
-                Key.fromBase64String(signingSplit.first()),
-                Key.fromBase64String(signingSplit.last())
+                Key.fromBytes(signingSplit.first().decodeFromBase64()),
+                Key.fromBytes(signingSplit.last().decodeFromBase64())
             )
         )
     }
@@ -125,8 +125,8 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
             sharedPreferences.getString(SP_ENCRYPTION_KEY_ID, null) ?: return null
         return EncryptionKeys(
             KeyPair(
-                Key.fromBase64String(encryptionSplit.first()),
-                Key.fromBase64String(encryptionSplit.last())
+                Key.fromBytes(encryptionSplit.first().decodeFromBase64()),
+                Key.fromBytes(encryptionSplit.last().decodeFromBase64())
             ), id = encryptionId
         )
     }
@@ -146,8 +146,8 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
             encryptionKeyId = encryptionKeys.id,
             encryptionKeyAlgorithm = ANONYMOUS_ENCRYPTION_CIPHER,
             signingKeyAlgorithm = SIGNING_ALGORITHM,
-            publicEncryptionKey = encryptionKeys.pair.publicKey.asBytes.encodeToBase64()!!,
-            publicSigningKey = signingKeys.pair.publicKey.asBytes.encodeToBase64()!!
+            publicEncryptionKey = encryptionKeys.pair.publicKey.asBytes.encodeToBase64(),
+            publicSigningKey = signingKeys.pair.publicKey.asBytes.encodeToBase64()
         )
     }
 

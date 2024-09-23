@@ -23,7 +23,6 @@ import com.mercata.pingworks.models.Envelope
 import com.mercata.pingworks.models.MessageCategory
 import com.mercata.pingworks.models.MessageFilePartInfo
 import com.mercata.pingworks.models.PublicUserData
-import com.mercata.pingworks.models.toPublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.response_converters.ContactsListConverterFactory
 import com.mercata.pingworks.response_converters.EnvelopeIdsListConverterFactory
@@ -138,7 +137,7 @@ suspend fun uploadContact(
     contact: PublicUserData,
     sharedPreferences: SharedPreferences
 ): Response<Void> {
-    val link = contact.address.generateLink()
+    val link = contact.address.connectionLink()
 
     val currentUser = sharedPreferences.getUserData()!!
 
@@ -171,7 +170,7 @@ suspend fun deleteContact(
         sotnHeader = currentUser.sign(),
         hostPart = currentUser.address.getHost(),
         localPart = currentUser.address.getLocal(),
-        linkAddr = contact.address.generateLink()
+        linkAddr = contact.address.connectionLink()
     )
 }
 
@@ -232,7 +231,7 @@ suspend fun getAllPrivateEnvelopesForContact(
                 sotnHeader = currentUser.sign(),
                 hostPart = contact.address.getHost(),
                 localPart = contact.address.getLocal(),
-                connectionLink = contact.address.generateLink()
+                connectionLink = contact.address.connectionLink()
             )
         }) {
             is HttpResult.Error -> {
@@ -245,7 +244,7 @@ suspend fun getAllPrivateEnvelopesForContact(
                         messageIds = ids,
                         currentUser = currentUser,
                         contact = contact,
-                        link = contact.address.generateLink()
+                        link = contact.address.connectionLink()
                     )
                 } ?: listOf()
             }
@@ -550,10 +549,13 @@ private suspend fun uploadPrivateRootMessage(
     currentUser: UserData,
     accessProfiles: List<PublicUserData>,
 ): Response<Void> {
+
     val accessKey = generateRandomBytes(32)
-    val accessLinks = accessProfiles.toAccessLinks(accessKey)
+    val accessLinks = accessProfiles.privateContentHeaders(accessKey)
+
     val envelopeHeadersMap =
         content.generateContentMap(accessKey, content.messageID, accessLinks, currentUser)
+
     val sealedBody = encrypt_xchacha20poly1305(
         secretKey = accessKey,
         message = body.toByteArray()
@@ -577,7 +579,7 @@ private suspend fun uploadPrivateFileMessage(
     fileUtils: FileUtils
 ): Response<Void> {
     val accessKey = generateRandomBytes(32)
-    val accessLinks = accessProfiles.toAccessLinks(accessKey)
+    val accessLinks = accessProfiles.privateContentHeaders(accessKey)
 
     val envelopeHeadersMap =
         content.generateContentMap(accessKey, filePart.messageId, accessLinks, currentUser)

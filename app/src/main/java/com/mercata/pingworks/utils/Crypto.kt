@@ -1,3 +1,4 @@
+@file:OptIn(ExperimentalStdlibApi::class)
 
 package com.mercata.pingworks.utils
 
@@ -23,11 +24,10 @@ import com.mercata.pingworks.SIGNING_ALGORITHM
 import com.mercata.pingworks.headerFieldSeparator
 import com.mercata.pingworks.headerKeyValueSeparator
 import com.mercata.pingworks.registration.UserData
-import com.sun.jna.Memory
-import com.sun.jna.Native
 import org.koin.java.KoinJavaComponent.inject
 import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
+import java.util.Base64
 
 data class EncryptionKeys(val pair: KeyPair, val id: String)
 data class SigningKeys(val pair: KeyPair)
@@ -44,43 +44,8 @@ fun generateEncryptionKeys(): EncryptionKeys {
     )
 }
 
-fun ByteArray.encodeToBase64(): String? {
-    val originalVariant = 1
-    val b64BytesLen = sodium.sodium.sodium_base64_encoded_len(this.size, originalVariant)
-    val b64Bytes = ByteArray(b64BytesLen)
-    if (sodium.sodium.sodium_bin2base64(
-            b64Bytes,
-            b64BytesLen,
-            this,
-            this.size,
-            originalVariant
-        ) == null
-    ) {
-        return null
-    }
-    return String(b64Bytes, Charsets.ISO_8859_1)
-}
-
-fun String.decodeFromBase64(ignore: String? = null): ByteArray? {
-    val bin = this.toByteArray(Charsets.ISO_8859_1)
-    val success = 0
-    val originalVariant = 1
-    val b64bytes = ByteArray(bin.size)
-    val b64BytesLen = b64bytes.size
-    val binBytesCapacity = b64BytesLen * 3 / 4 + 1
-    val binBytes = ByteArray(binBytesCapacity)
-    val binBytesLen = Memory(Native.SIZE_T_SIZE.toLong())
-    val ignore_cstr = ignore?.toByteArray(Charsets.ISO_8859_1)
-
-    val result = sodium.sodium.sodium_base642bin(bin, binBytesCapacity, b64bytes,
-        b64BytesLen, ignore_cstr,
-        binBytesLen, null, originalVariant)
-    if (result != success) {
-        return null
-    }
-
-    return binBytes.sliceArray(0 until binBytesLen.getInt(0))
-}
+fun ByteArray.encodeToBase64(): String = Base64.getEncoder().encodeToString(this)
+fun String.decodeFromBase64(): ByteArray = Base64.getDecoder().decode(this)
 
 @Throws(SodiumException::class)
 fun generateSigningKeys(): SigningKeys {
@@ -124,11 +89,10 @@ fun encryptAnonymous(address: Address, publicEncryptionKey: Key): String {
 }
 
 @Throws(SodiumException::class)
-fun encryptAnonymous(data: ByteArray, publicEncryptionKey: Key): ByteArray {
-    val keyBytes: ByteArray = publicEncryptionKey.asBytes
+fun encryptAnonymous(data: ByteArray, publicEncryptionKey: ByteArray): ByteArray {
     val cipher = ByteArray(Box.SEALBYTES + data.size)
 
-    if (!sodium.cryptoBoxSeal(cipher, data, data.size.toLong(), keyBytes)) {
+    if (!sodium.cryptoBoxSeal(cipher, data, data.size.toLong(), publicEncryptionKey)) {
         throw SodiumException("Could not encrypt message.")
     }
     return cipher
@@ -136,7 +100,7 @@ fun encryptAnonymous(data: ByteArray, publicEncryptionKey: Key): ByteArray {
 
 @Throws(SodiumException::class)
 fun decryptAnonymous(cipherText: String, currentUser: UserData): ByteArray {
-    val cipher: ByteArray = cipherText.decodeFromBase64()!!
+    val cipher: ByteArray = cipherText.decodeFromBase64()
     val message = ByteArray(cipher.size - Box.SEALBYTES)
 
     val res: Boolean = sodium.cryptoBoxSealOpen(
@@ -162,7 +126,7 @@ fun verifySignature(publicKey: Key, signature: String, originData: ByteArray): B
     )
 }
 
-fun Address.generateLink(): String {
+fun Address.connectionLink(): String {
     val sp: SharedPreferences by inject(SharedPreferences::class.java)
     val addresses = listOf(sp.getUserAddress()!!, this).sorted().joinToString(separator = "")
     return addresses.hashedWithSha256().first

@@ -16,8 +16,8 @@ class SaveKeysSuggestionViewModel :
         updateState(
             currentState.copy(
                 biometryAvailable = bioManager.isBiometricAvailable(),
-                privateEncryptionKey = currentUser.encryptionKeys.pair.secretKey.asBytes.encodeToBase64()!!,
-                privateSigningKey = currentUser.signingKeys.pair.secretKey.asBytes.encodeToBase64()!!
+                privateEncryptionKey = currentUser.encryptionKeys.pair.secretKey.asBytes.encodeToBase64(),
+                privateSigningKey = currentUser.signingKeys.pair.secretKey.asBytes.encodeToBase64()
             )
         )
     }

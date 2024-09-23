@@ -4,7 +4,6 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.provider.OpenableColumns
-import com.goterl.lazysodium.utils.Key
 import com.mercata.pingworks.CHECKSUM_ALGORITHM
 import com.mercata.pingworks.HEADER_MESSAGE_ACCESS
 import com.mercata.pingworks.HEADER_MESSAGE_ENCRYPTION
@@ -41,12 +40,12 @@ fun Uri.getNameFromURI(context: Context): String {
     return result
 }
 
-fun List<PublicUserData>.toAccessLinks(accessKey: ByteArray): String {
+fun List<PublicUserData>.privateContentHeaders(accessKey: ByteArray): String {
     return this.joinToString(", ") { profile ->
-        val link = profile.address.generateLink()
-        val accessKeyFingerprint = profile.publicSigningKey.decodeFromBase64()!!.hashedWithSha256()
+        val link = profile.address.connectionLink()
+        val accessKeyFingerprint = profile.publicSigningKey.decodeFromBase64().hashedWithSha256()
         val accessKeyEncrypted =
-            encryptAnonymous(accessKey, Key.fromBase64String(profile.publicEncryptionKey))
+            encryptAnonymous(accessKey, profile.publicEncryptionKey.decodeFromBase64())
         "link=${link}; fingerprint=${accessKeyFingerprint.first}; value=${accessKeyEncrypted.encodeToBase64()}; id=${profile.encryptionKeyId}"
     }
 }
@@ -74,7 +73,7 @@ fun ContentHeaders.generateContentMap(
     val hashSum = entries.map { it.value }.joinToString("").hashedWithSha256()
     envelopeHeadersMap[HEADER_MESSAGE_ENVELOPE_CHECKSUM] =
         "algorithm=$CHECKSUM_ALGORITHM; order=${entries.joinToString(":") { it.key }}; value=${hashSum.first}"
-    val signedChecksum = hashSum.first.signData(currentUser.signingKeys.pair.secretKey)
+    val signedChecksum = hashSum.second.signDataBytes(currentUser.signingKeys.pair.secretKey).encodeToBase64()
     envelopeHeadersMap[HEADER_MESSAGE_ENVELOPE_SIGNATURE] =
         "algorithm=$SIGNING_ALGORITHM; value=${signedChecksum}; id=${currentUser.encryptionKeys.id}"
 

@@ -37,13 +37,15 @@ import com.mercata.pingworks.exceptions.FingerprintMismatch
 import com.mercata.pingworks.exceptions.SignatureMismatch
 import com.mercata.pingworks.exceptions.TooLargeEnvelope
 import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.utils.SharedPreferences
+import com.mercata.pingworks.utils.connectionLink
 import com.mercata.pingworks.utils.decodeFromBase64
 import com.mercata.pingworks.utils.decryptAnonymous
 import com.mercata.pingworks.utils.decrypt_xchacha20poly1305
-import com.mercata.pingworks.utils.generateLink
 import com.mercata.pingworks.utils.hashedWithSha256
 import com.mercata.pingworks.utils.verifySignature
 import okhttp3.Headers
+import org.koin.java.KoinJavaComponent.inject
 import java.time.Instant
 import kotlin.text.Charsets.UTF_8
 
@@ -123,7 +125,7 @@ class Envelope(
 
     @Throws(FingerprintMismatch::class)
     private fun parseAccessLink() {
-        val connectionLink = contact.address.generateLink()
+        val connectionLink = contact.address.connectionLink()
         val readerLinks = accessLinks?.split(",")?.map { it.trim() } ?: listOf()
 
         for (readerLink in readerLinks) {
@@ -355,14 +357,6 @@ class Envelope(
         if (headersChecksum != headersSum) {
             throw EnvelopeAuthenticity(headersChecksum)
         }
-
-        //r5u4qK64uGdvW+xFNBton+9SSO9dnL0TNZ+HvK3AUUH4VJtOwG3rfoCFG+/q3wNJZuZAoKiY+3BHpOEoyqF0Ag
-        //Z+wHYpicSP4PnVQEnNBeQDNO6vo8AqWfWo7bqdRe5aHtq1PjAmetPrB15admPLckx1LfKix5qyOK2jbzs/AnAg
-        //Z+wHYpicSP4PnVQEnNBeQDNO6vo8AqWfWo7bqdRe5aHtq1PjAmetPrB15admPLckx1LfKix5qyOK2jbzs/AnAg
-        if (contact.address == "anton4@ping.works") {
-            println()
-        }
-
 
         // Verify checksum signature
         headersSignature.takeIf { it.isNotEmpty() }?.let { signature ->
