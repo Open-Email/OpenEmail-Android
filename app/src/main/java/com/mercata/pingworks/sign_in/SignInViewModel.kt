@@ -13,6 +13,7 @@ import com.mercata.pingworks.utils.EncryptionKeys
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.SigningKeys
+import com.mercata.pingworks.utils.decodeFromBase64
 import com.mercata.pingworks.utils.encodeToBase64
 import com.mercata.pingworks.utils.getHost
 import com.mercata.pingworks.utils.getProfilePublicData
@@ -36,8 +37,8 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                     val currentUser = sharedPreferences.getUserData()!!
                     updateState(
                         currentState.copy(
-                            privateSigningKeyInput = currentUser.signingKeys.pair.secretKey.asBytes.encodeToBase64(),
-                            privateEncryptionKeyInput = currentUser.encryptionKeys.pair.secretKey.asBytes.encodeToBase64()
+                            privateSigningKeyInput = currentUser.signingKeys.pair.secretKey.asBytes.encodeToBase64()!!,
+                            privateEncryptionKeyInput = currentUser.encryptionKeys.pair.secretKey.asBytes.encodeToBase64()!!
                         )
                     )
                     authenticateWithKeys()
@@ -51,8 +52,8 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
         updateState(
             currentState.copy(
                 biometryShown = false,
-                privateSigningKeyInput = currentUser.signingKeys.pair.secretKey.asBytes.encodeToBase64(),
-                privateEncryptionKeyInput = currentUser.encryptionKeys.pair.secretKey.asBytes.encodeToBase64(),
+                privateSigningKeyInput = currentUser.signingKeys.pair.secretKey.asBytes.encodeToBase64()!!,
+                privateEncryptionKeyInput = currentUser.encryptionKeys.pair.secretKey.asBytes.encodeToBase64()!!,
             )
         )
         authenticateWithKeys()
@@ -180,15 +181,15 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                 address = currentState.emailInput,
                 encryptionKeys = EncryptionKeys(
                     pair = KeyPair(
-                        Key.fromBase64String(publicData.publicEncryptionKey),
-                        Key.fromBase64String(encryptionKey)
+                        Key.fromBytes(publicData.publicEncryptionKey.decodeFromBase64()),
+                        Key.fromBytes(encryptionKey.decodeFromBase64())
                     ),
                     id = publicData.encryptionKeyId
                 ),
                 signingKeys = SigningKeys(
                     pair = KeyPair(
-                        Key.fromBase64String(publicData.publicSigningKey),
-                        Key.fromBase64String(signingKey)
+                        Key.fromBytes(publicData.publicSigningKey.decodeFromBase64()),
+                        Key.fromBytes(signingKey.decodeFromBase64())
                     )
                 )
             )
