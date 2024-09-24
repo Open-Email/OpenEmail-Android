@@ -13,6 +13,8 @@ import com.mercata.pingworks.HEADER_CONTENT_SUBJECT
 import com.mercata.pingworks.HEADER_CONTENT_SUBJECT_ID
 import com.mercata.pingworks.utils.Address
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 data class ContentHeaders(
     val messageID: String,
@@ -36,7 +38,8 @@ data class ContentHeaders(
         HEADER_CONTENT_SIZE to size.toString(),
         HEADER_CONTENT_CHECKSUM to "algorithm=$CHECKSUM_ALGORITHM; value=${checksum}",
         HEADER_CONTENT_CATEGORY to MessageCategory.personal.toString(),
-        HEADER_CONTENT_DATE to date.toString(),
+        HEADER_CONTENT_DATE to DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX")
+            .withZone(ZoneId.of("UTC")).format(date),
         HEADER_CONTENT_SUBJECT to subject,
         HEADER_CONTENT_READERS to readersAddresses.joinToString(separator = ", "),
     )

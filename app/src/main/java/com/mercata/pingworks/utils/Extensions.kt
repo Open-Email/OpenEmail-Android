@@ -40,7 +40,7 @@ fun Uri.getNameFromURI(context: Context): String {
     return result
 }
 
-fun List<PublicUserData>.privateContentHeaders(accessKey: ByteArray): String {
+fun List<PublicUserData>.generateAccessLinks(accessKey: ByteArray): String {
     return this.joinToString(", ") { profile ->
         val link = profile.address.connectionLink()
         val accessKeyFingerprint = profile.publicSigningKey.decodeFromBase64().hashedWithSha256()
@@ -50,7 +50,7 @@ fun List<PublicUserData>.privateContentHeaders(accessKey: ByteArray): String {
     }
 }
 
-fun ContentHeaders.generateContentMap(
+fun ContentHeaders.seal(
     accessKey: ByteArray,
     messageId: String,
     accessLinks: String,

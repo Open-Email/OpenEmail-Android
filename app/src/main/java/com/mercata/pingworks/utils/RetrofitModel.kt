@@ -551,10 +551,10 @@ private suspend fun uploadPrivateRootMessage(
 ): Response<Void> {
 
     val accessKey = generateRandomBytes(32)
-    val accessLinks = accessProfiles.privateContentHeaders(accessKey)
+    val accessLinks = accessProfiles.generateAccessLinks(accessKey)
 
     val envelopeHeadersMap =
-        content.generateContentMap(accessKey, content.messageID, accessLinks, currentUser)
+        content.seal(accessKey, content.messageID, accessLinks, currentUser)
 
     val sealedBody = encrypt_xchacha20poly1305(
         secretKey = accessKey,
@@ -579,10 +579,11 @@ private suspend fun uploadPrivateFileMessage(
     fileUtils: FileUtils
 ): Response<Void> {
     val accessKey = generateRandomBytes(32)
-    val accessLinks = accessProfiles.privateContentHeaders(accessKey)
+
+    val accessLinks = accessProfiles.generateAccessLinks(accessKey)
 
     val envelopeHeadersMap =
-        content.generateContentMap(accessKey, filePart.messageId, accessLinks, currentUser)
+        content.seal(accessKey, filePart.messageId, accessLinks, currentUser)
 
     val encryptedData = fileUtils.encryptFilePartXChaCha20Poly1305(
         inputUri = filePart.urlInfo.uri!!,
