@@ -164,7 +164,7 @@ class FileUtils(val context: Context) {
             name = encodedFilename ?: "",
             mimeType = fileType ?: "application/octet-stream",
             size = size ?: 0,
-            modifiedAt = fileLastModificationTime.toString()
+            modifiedAt = fileLastModificationTime
         )
     }
 

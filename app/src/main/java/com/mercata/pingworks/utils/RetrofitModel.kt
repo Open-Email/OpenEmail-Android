@@ -16,7 +16,6 @@ import com.mercata.pingworks.db.messages.DBMessage
 import com.mercata.pingworks.db.messages.MessagesDao
 import com.mercata.pingworks.exceptions.EnvelopeAuthenticity
 import com.mercata.pingworks.exceptions.SignatureMismatch
-import com.mercata.pingworks.models.Attachment
 import com.mercata.pingworks.models.ComposingData
 import com.mercata.pingworks.models.ContentHeaders
 import com.mercata.pingworks.models.Envelope
@@ -420,7 +419,6 @@ suspend fun uploadPrivateMessage(
             arrayListOf(currentUserPublicData).apply { addAll(composingData.recipients) }
 
         val fileParts = arrayListOf<MessageFilePartInfo>()
-        val attachments = arrayListOf<Attachment>()
 
         composingData.attachments.forEach { attachment ->
             val urlInfo = fileUtils.getURLInfo(attachment)
@@ -464,16 +462,6 @@ suspend fun uploadPrivateMessage(
                 }
             }
 
-            attachments.add(
-                Attachment(
-                    id = "${rootMessageId}_${urlInfo.name}",
-                    parentMessageId = rootMessageId,
-                    fileMessageIds = fileParts.map { it.messageId },
-                    filename = urlInfo.name,
-                    size = urlInfo.size,
-                    mimeType = urlInfo.mimeType
-                )
-            )
         }
 
         val messageIdResults: List<Pair<String, HttpResult<Void>>> = arrayListOf(
@@ -627,7 +615,7 @@ suspend fun saveMessagesToDb(
                             type = fileInfo.mimeType,
                             size = fileInfo.size,
                             accessKey = attachmentEnvelopes.first { it.messageId == fileInfo.messageIds.first() }.accessKey,
-                            createdTimestamp = fileInfo.modifiedAt
+                            createdTimestamp = fileInfo.modifiedAt.toServerFormatString()
                         )
                     )
                 }

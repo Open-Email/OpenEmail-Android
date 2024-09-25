@@ -185,7 +185,6 @@ class Envelope(
             subjectId = headersMap[HEADER_CONTENT_SUBJECT_ID],
             parentId = headersMap[HEADER_CONTENT_PARENT_ID]?.trim()?.replace("\u0000", ""),
             files = parsedFiles.second,
-            filesHeader = headersMap[HEADER_CONTENT_FILES],
             fileParts = parsedFiles.first,
             category = MessageCategory.entries.firstOrNull {
                 it.name == (headersMap[HEADER_CONTENT_CATEGORY] ?: "")
@@ -255,7 +254,7 @@ class Envelope(
                     name = name,
                     mimeType = mimeType,
                     size = size,
-                    modifiedAt = modifiedAt
+                    modifiedAt = Instant.parse(modifiedAt)
                 )
                 val fileInfo = MessageFilePartInfo(
                     urlInfo = urlInfo,

@@ -5,6 +5,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.mercata.pingworks.CHECKSUM_ALGORITHM
+import com.mercata.pingworks.DEFAULT_SERVER_DATE_FORMAT
 import com.mercata.pingworks.HEADER_MESSAGE_ACCESS
 import com.mercata.pingworks.HEADER_MESSAGE_ENCRYPTION
 import com.mercata.pingworks.HEADER_MESSAGE_ENVELOPE_CHECKSUM
@@ -78,4 +79,9 @@ fun ContentHeaders.seal(
         "algorithm=$SIGNING_ALGORITHM; value=${signedChecksum}; id=${currentUser.encryptionKeys.id}"
 
     return envelopeHeadersMap
+}
+
+fun Instant.toServerFormatString(): String {
+    return  DateTimeFormatter.ofPattern(DEFAULT_SERVER_DATE_FORMAT)
+        .withZone(ZoneId.of("UTC")).format(this)
 }
