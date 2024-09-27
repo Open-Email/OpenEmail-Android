@@ -13,5 +13,9 @@ enum class MessageCategory {
     pass,
     funds,
     encryptionKey,
-    signingKey,
+    signingKey;
+
+    companion object {
+        fun getByName(name: String?) = MessageCategory.entries.firstOrNull { it.name == name } ?: personal
+    }
 }

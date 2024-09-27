@@ -81,7 +81,6 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
 
         GlobalScope.launch {
             //TODO multiple recipients
-            //TODO save messages instantly
             updateState(currentState.copy(loading = true))
             uploadPrivateMessage(
                 composingData = ComposingData(
@@ -92,7 +91,8 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
                 ),
                 fileUtils = fileUtils,
                 currentUser = sp.getUserData()!!,
-                currentUserPublicData = sp.getPublicUserData()!!
+                currentUserPublicData = sp.getPublicUserData()!!,
+                db = db
             )
             updateState(currentState.copy(loading = false))
         }

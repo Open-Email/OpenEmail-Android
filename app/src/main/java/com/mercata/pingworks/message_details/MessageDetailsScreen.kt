@@ -69,7 +69,7 @@ import com.mercata.pingworks.DEFAULT_DATE_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
-import com.mercata.pingworks.db.messages.DBAttachment
+import com.mercata.pingworks.db.attachments.DBAttachment
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloaded
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloading
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.NotDownloaded

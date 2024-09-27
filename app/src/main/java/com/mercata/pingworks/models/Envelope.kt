@@ -37,7 +37,6 @@ import com.mercata.pingworks.exceptions.FingerprintMismatch
 import com.mercata.pingworks.exceptions.SignatureMismatch
 import com.mercata.pingworks.exceptions.TooLargeEnvelope
 import com.mercata.pingworks.registration.UserData
-import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.connectionLink
 import com.mercata.pingworks.utils.decodeFromBase64
 import com.mercata.pingworks.utils.decryptAnonymous
@@ -45,7 +44,6 @@ import com.mercata.pingworks.utils.decrypt_xchacha20poly1305
 import com.mercata.pingworks.utils.hashedWithSha256
 import com.mercata.pingworks.utils.verifySignature
 import okhttp3.Headers
-import org.koin.java.KoinJavaComponent.inject
 import java.time.Instant
 import kotlin.text.Charsets.UTF_8
 
@@ -175,20 +173,15 @@ class Envelope(
                     parts.first() to parts.last()
                 }
 
-        val parsedFiles = headersMap[HEADER_CONTENT_FILES]?.let { parseFilesHeader(it) }
-            ?: (listOf<MessageFilePartInfo>() to listOf())
 
         return ContentHeaders(
             messageID = headersMap[HEADER_CONTENT_MESSAGE_ID]!!,
             date = Instant.parse(headersMap[HEADER_CONTENT_DATE]!!),
             subject = headersMap[HEADER_CONTENT_SUBJECT]!!,
-            subjectId = headersMap[HEADER_CONTENT_SUBJECT_ID],
+            //subjectId = headersMap[HEADER_CONTENT_SUBJECT_ID],
             parentId = headersMap[HEADER_CONTENT_PARENT_ID]?.trim()?.replace("\u0000", ""),
-            files = parsedFiles.second,
-            fileParts = parsedFiles.first,
-            category = MessageCategory.entries.firstOrNull {
-                it.name == (headersMap[HEADER_CONTENT_CATEGORY] ?: "")
-            } ?: MessageCategory.personal,
+            fileParts = headersMap[HEADER_CONTENT_FILES]?.let { parseFilesHeader(it) } ?: listOf(),
+            category = MessageCategory.getByName(headersMap[HEADER_CONTENT_CATEGORY]),
             size = headersMap[HEADER_CONTENT_SIZE]!!.toLong(),
             checksum = headersMap[HEADER_CONTENT_CHECKSUM]!!.let { checksum ->
                 val checksumMap = parseHeaderAttributes(checksum)
@@ -204,7 +197,7 @@ class Envelope(
         )
     }
 
-    private fun parseFilesHeader(filesHeader: String): Pair<List<MessageFilePartInfo>, List<MessageFileInfo>> {
+    private fun parseFilesHeader(filesHeader: String): List<MessageFilePartInfo> {
         val fileStrings = filesHeader.split(",")
         val fileParts = mutableListOf<MessageFilePartInfo>()
 
@@ -214,7 +207,7 @@ class Envelope(
             var messageId: String? = null
             var part: Long = 0
             var totalParts: Long = 0
-            var modifiedAt: String = ""
+            var modifiedAt = ""
 
             val keyValuePairs = fileString.split(";").map { it.trim() }
             for (pair in keyValuePairs) {
@@ -250,7 +243,6 @@ class Envelope(
                 val mimeType = urlInfoDict["type"]!!
                 val size = urlInfoDict["size"]!!.toLongOrNull() ?: 0L
                 val urlInfo = URLInfo(
-                    uri = null,
                     name = name,
                     mimeType = mimeType,
                     size = size,
@@ -267,42 +259,41 @@ class Envelope(
             }
         }
 
-        val fileInfos = groupMessageFilePartsIntoFileInfo(fileParts)
-        return Pair(fileParts, fileInfos)
+        return fileParts
     }
 
-    private fun groupMessageFilePartsIntoFileInfo(parts: List<MessageFilePartInfo>): List<MessageFileInfo> {
-        val partsDictionary = mutableMapOf<String, MutableList<MessageFilePartInfo>>()
-
-        for (part in parts) {
-            val name = part.urlInfo.name
-            if (partsDictionary[name] == null) {
-                partsDictionary[name] = mutableListOf(part)
-            } else {
-                partsDictionary[name]?.add(part)
-            }
-        }
-
-        val fileInfoArray = mutableListOf<MessageFileInfo>()
-        for ((_, groupedParts) in partsDictionary) {
-            val sortedParts = groupedParts.sortedBy { it.part }
-            val firstPart = sortedParts.first()
-            val complete = sortedParts.size.toLong() == firstPart.totalParts
-            val messageIdsParts = sortedParts.map { it.messageId }
-
-            val fileInfo = MessageFileInfo(
-                name = firstPart.urlInfo.name,
-                mimeType = firstPart.urlInfo.mimeType,
-                size = firstPart.urlInfo.size,
-                modifiedAt = firstPart.urlInfo.modifiedAt,
-                messageIds = messageIdsParts,
-                complete = complete
-            )
-            fileInfoArray.add(fileInfo)
-        }
-
-        return fileInfoArray
-    }
+//    private fun groupMessageFilePartsIntoFileInfo(parts: List<MessageFilePartInfo>): List<MessageFileInfo> {
+//        val partsDictionary = mutableMapOf<String, MutableList<MessageFilePartInfo>>()
+//
+//        for (part in parts) {
+//            val name = part.urlInfo.name
+//            if (partsDictionary[name] == null) {
+//                partsDictionary[name] = mutableListOf(part)
+//            } else {
+//                partsDictionary[name]?.add(part)
+//            }
+//        }
+//
+//        val fileInfoArray = mutableListOf<MessageFileInfo>()
+//        for ((_, groupedParts) in partsDictionary) {
+//            val sortedParts = groupedParts.sortedBy { it.part }
+//            val firstPart = sortedParts.first()
+//            val complete = sortedParts.size.toLong() == firstPart.totalParts
+//            val messageIdsParts = sortedParts.map { it.messageId }
+//
+//            val fileInfo = MessageFileInfo(
+//                name = firstPart.urlInfo.name,
+//                mimeType = firstPart.urlInfo.mimeType,
+//                size = firstPart.urlInfo.size,
+//                modifiedAt = firstPart.urlInfo.modifiedAt,
+//                messageIds = messageIdsParts,
+//                complete = complete
+//            )
+//            fileInfoArray.add(fileInfo)
+//        }
+//
+//        return fileInfoArray
+//    }
 
     fun isBroadcast(): Boolean {
         val accessLinks = accessLinks

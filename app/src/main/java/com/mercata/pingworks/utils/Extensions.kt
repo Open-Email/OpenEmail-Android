@@ -14,6 +14,7 @@ import com.mercata.pingworks.HEADER_MESSAGE_HEADERS
 import com.mercata.pingworks.HEADER_MESSAGE_ID
 import com.mercata.pingworks.SIGNING_ALGORITHM
 import com.mercata.pingworks.SYMMETRIC_CIPHER
+import com.mercata.pingworks.db.pending.readers.DBPendingReaderPublicData
 import com.mercata.pingworks.models.ContentHeaders
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
@@ -41,7 +42,7 @@ fun Uri.getNameFromURI(context: Context): String {
     return result
 }
 
-fun List<PublicUserData>.generateAccessLinks(accessKey: ByteArray): String {
+fun List<DBPendingReaderPublicData>.generateAccessLinks(accessKey: ByteArray): String {
     return this.joinToString(", ") { profile ->
         val link = profile.address.connectionLink()
         val accessKeyFingerprint = profile.publicSigningKey.decodeFromBase64().hashedWithSha256()

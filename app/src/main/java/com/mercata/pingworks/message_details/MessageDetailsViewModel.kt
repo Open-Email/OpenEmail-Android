@@ -8,7 +8,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.db.AppDatabase
-import com.mercata.pingworks.db.messages.DBAttachment
+import com.mercata.pingworks.db.attachments.DBAttachment
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.Downloader

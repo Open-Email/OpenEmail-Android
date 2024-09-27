@@ -1,13 +1,10 @@
-package com.mercata.pingworks.db.contacts
+package com.mercata.pingworks.db.attachments
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.mercata.pingworks.db.messages.DBAttachment
-import com.mercata.pingworks.db.messages.DBMessage
 
 @Dao
 interface AttachmentsDao {

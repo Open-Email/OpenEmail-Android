@@ -1,9 +1,10 @@
-package com.mercata.pingworks.db.messages
+package com.mercata.pingworks.db.attachments
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import com.mercata.pingworks.db.messages.DBMessage
 
 @Entity(
     foreignKeys = [
@@ -23,7 +24,7 @@ data class DBAttachment(
     @ColumnInfo("file_name") val name: String,
     @ColumnInfo("file_type") val type: String,
     @ColumnInfo("file_size") val size: Long,
-    @ColumnInfo("created_timestamp") val createdTimestamp: String,
+    @ColumnInfo("created_timestamp") val createdTimestamp: Long,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
