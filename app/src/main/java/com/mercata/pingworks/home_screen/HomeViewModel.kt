@@ -13,9 +13,11 @@ import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.syncAllMessages
 import com.mercata.pingworks.utils.syncContacts
+import com.mercata.pingworks.utils.uploadPendingMessages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
@@ -26,6 +28,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         val sp: SharedPreferences by inject()
         val db: AppDatabase by inject()
         val dl: Downloader by inject()
+        val fu: FileUtils by inject()
         updateState(
             currentState.copy(
                 currentUser = sp.getUserData(),
@@ -41,8 +44,14 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(refreshing = true))
-            syncContacts(sp, db.userDao())
-            syncAllMessages(db, sp, dl)
+            launch {
+                syncContacts(sp, db.userDao())
+                syncAllMessages(db, sp, dl)
+            }.join()
+            launch {
+                uploadPendingMessages(sp.getUserData()!!, db, fu)
+            }.join()
+
             updateState(currentState.copy(refreshing = false))
         }
     }
