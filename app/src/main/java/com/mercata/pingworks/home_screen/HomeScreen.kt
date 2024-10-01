@@ -305,7 +305,7 @@ fun SharedTransitionScope.MessageViewHolder(
 ) {
 
     //TODO public image
-    val imageUrl = null//item.getContacts().firstOrNull().imageUrl ?: currentUser.avatarLink
+    val imageUrl = null //item.getContacts().firstOrNull().imageUrl ?: currentUser.avatarLink
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier

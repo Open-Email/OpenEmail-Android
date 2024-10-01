@@ -69,7 +69,7 @@ class Downloader(val context: Context) {
                 call.data?.byteStream()?.let { stream ->
 
                     var bytesCopied = 0L
-                    val onePercent = attachment.size / 100
+                    val onePercent = attachment.fileSize / 100
                     val file = File(folder, attachment.name)
                     if (file.exists()) {
                         file.delete()

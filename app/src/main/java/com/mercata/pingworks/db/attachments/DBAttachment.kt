@@ -23,7 +23,10 @@ data class DBAttachment(
     @ColumnInfo("parent_id", index = true) val parentId: String,
     @ColumnInfo("file_name") val name: String,
     @ColumnInfo("file_type") val type: String,
-    @ColumnInfo("file_size") val size: Long,
+    @ColumnInfo("file_size") val fileSize: Long,
+    @ColumnInfo("part_size") val partSize: Long,
+    @ColumnInfo("part_index") val partIndex: Int,
+    @ColumnInfo("parts_amount") val partsAmount: Int,
     @ColumnInfo("created_timestamp") val createdTimestamp: Long,
 ) {
     override fun equals(other: Any?): Boolean {
@@ -41,7 +44,10 @@ data class DBAttachment(
         if (parentId != other.parentId) return false
         if (name != other.name) return false
         if (type != other.type) return false
-        if (size != other.size) return false
+        if (fileSize != other.fileSize) return false
+        if (partSize != other.partSize) return false
+        if (partIndex != other.partIndex) return false
+        if (partsAmount != other.partsAmount) return false
         if (createdTimestamp != other.createdTimestamp) return false
 
         return true
@@ -54,8 +60,12 @@ data class DBAttachment(
         result = 31 * result + parentId.hashCode()
         result = 31 * result + name.hashCode()
         result = 31 * result + type.hashCode()
-        result = 31 * result + size.hashCode()
+        result = 31 * result + fileSize.hashCode()
+        result = 31 * result + partSize.hashCode()
+        result = 31 * result + partIndex
+        result = 31 * result + partsAmount
         result = 31 * result + createdTimestamp.hashCode()
         return result
     }
+
 }

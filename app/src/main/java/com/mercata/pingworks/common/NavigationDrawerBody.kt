@@ -58,7 +58,7 @@ fun NavigationDrawerBody(
                 imageVector = screen.icon,
                 painter = screen.iconResId?.let { painterResource(id = it) },
                 titleResId = screen.titleResId,
-                count = unread[screen]
+                count = unread[screen]?.takeIf { it > 0 }
             )
         }
         Spacer(modifier = modifier.weight(1f))

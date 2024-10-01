@@ -117,6 +117,7 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
                     db = db
                 )
             }
+            updateState(currentState.copy(sent = true))
         }
     }
 
@@ -161,6 +162,7 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
 }
 
 data class ComposingState(
+    val sent: Boolean = false,
     val subject: String = "",
     val body: String = "",
     val addressFieldText: Address = "",

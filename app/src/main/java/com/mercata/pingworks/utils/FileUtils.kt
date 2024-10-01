@@ -90,11 +90,25 @@ class FileUtils(val context: Context) {
         context.contentResolver.openInputStream(inputUri)?.use { stream ->
             // Skip to the specified offset
             stream.skip(offset)
-            val dataToEncrypt = ByteArray(bytesCount.toInt())
-            stream.read(dataToEncrypt, 0, bytesCount.toInt())
+            val encrypted = ByteArray(bytesCount.toInt())
 
-            // Encrypt the data using XChaCha20-Poly1305
-            return encrypt_xchacha20poly1305(dataToEncrypt, secretKey)
+            val bufferSize = 1024
+            val buffer = ByteArray(bufferSize)
+
+
+            var offsetRead = 0
+
+            var byteRead: Int
+
+                                                         //TODO check <=
+            while ((stream.read(buffer).also { byteRead = it }) < bytesCount.toInt()) {
+                encrypt_xchacha20poly1305(buffer, secretKey)?.let { src ->
+                    System.arraycopy(src, 0, encrypted, offsetRead, src.size)
+                }
+                offsetRead += byteRead
+            }
+
+            return encrypted
         }
 
         return null

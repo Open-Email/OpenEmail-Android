@@ -54,6 +54,9 @@ class Envelope(
     headers: Headers? = null
 ) {
 
+    //TODO remove
+    lateinit var envelopeHeadersDecryptedText: String
+
     private val envelopeHeadersMap = headers?.associate { it.first to it.second } ?: mapOf()
     private val streamId: String?
     private var accessLinks: String?
@@ -150,10 +153,12 @@ class Envelope(
 
     private fun openContentHeaders(): ContentHeaders {
         if (isBroadcast()) {
+            envelopeHeadersDecryptedText = String(contentHeadersBytes, charset = UTF_8)
             return contentFromHeaders(String(contentHeadersBytes, charset = UTF_8))
         } else {
             val result =
                 decrypt_xchacha20poly1305(contentHeadersBytes, accessKey!!)
+            envelopeHeadersDecryptedText = String(result, UTF_8)
             return contentFromHeaders(String(result, UTF_8))
         }
     }

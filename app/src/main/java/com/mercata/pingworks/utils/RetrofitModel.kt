@@ -37,7 +37,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Headers
@@ -504,15 +503,10 @@ suspend fun uploadPrivateMessage(
             }
         }
 
-        joinAll(
-            launch {
-                db.pendingMessagesDao().insert(pendingRootMessage)
-            }, launch {
-                db.pendingAttachmentsDao().insertAll(fileParts)
-            }, launch {
-                db.pendingReadersDao()
-                    .insertAll(accessProfiles.map { it.toDBPendingReaderPublicData(rootMessageId) })
-            })
+        db.pendingMessagesDao().insert(pendingRootMessage)
+        db.pendingAttachmentsDao().insertAll(fileParts)
+        db.pendingReadersDao()
+            .insertAll(accessProfiles.map { it.toDBPendingReaderPublicData(rootMessageId) })
 
         uploadPendingMessages(currentUser, db, fileUtils)
     }
@@ -676,7 +670,7 @@ suspend fun saveMessagesToDb(
     results: List<Envelope>,
     messagesDao: MessagesDao,
     attachmentsDao: AttachmentsDao
-) {
+) {//ccc56a792afc33eb809e1f765f9049b45e121d3e61930d578b92fc3dd85b0b1c
     withContext(Dispatchers.IO) {
         launch {
 
@@ -690,7 +684,8 @@ suspend fun saveMessagesToDb(
 
             messagesDao.deleteList(removed)
 
-            val envelopesPair = newResults.partition { envelope -> envelope.isRootMessage() }
+            //TODO replace with newResults
+            val envelopesPair = results.partition { envelope -> envelope.isRootMessage() }
 
             val rootEnvelopes = envelopesPair.first
             val attachmentEnvelopes = envelopesPair.second
@@ -706,7 +701,13 @@ suspend fun saveMessagesToDb(
                         parentId = root.first.messageId,
                         name = fileInfo.urlInfo.name,
                         type = fileInfo.urlInfo.mimeType,
-                        size = fileInfo.size,
+                        fileSize = fileInfo.size,
+
+                        //TODO
+                        partSize = fileInfo.size,
+
+                        partIndex = fileInfo.part,
+                        partsAmount = fileInfo.totalParts,
                         accessKey = attachmentEnvelopes.firstOrNull { it.messageId == fileInfo.messageId }?.accessKey,
                         createdTimestamp = fileInfo.urlInfo.modifiedAt.toEpochMilli(),
                     )
@@ -717,21 +718,18 @@ suspend fun saveMessagesToDb(
                     initial.apply { addAll(new) }
                 })
 
-            joinAll(launch {
-                messagesDao.insertAll(
-                    rootMessages.map {
-                        DBMessage(
-                            messageId = it.first.messageId,
-                            authorAddress = it.first.contact.address,
-                            subject = it.first.contentHeaders.subject,
-                            textBody = it.second ?: "",
-                            isBroadcast = it.first.isBroadcast(),
-                            timestamp = it.first.contentHeaders.date.toEpochMilli(),
-                        )
-                    })
-            }, launch {
-                attachmentsDao.insertAll(attachments)
-            })
+            messagesDao.insertAll(
+                rootMessages.map {
+                    DBMessage(
+                        messageId = it.first.messageId,
+                        authorAddress = it.first.contact.address,
+                        subject = it.first.contentHeaders.subject,
+                        textBody = it.second ?: "",
+                        isBroadcast = it.first.isBroadcast(),
+                        timestamp = it.first.contentHeaders.date.toEpochMilli(),
+                    )
+                })
+            attachmentsDao.insertAll(attachments)
         }
     }
 }

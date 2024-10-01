@@ -4,7 +4,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
@@ -48,6 +50,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             db.pendingMessagesDao().getAllAsFlowWithAttachments().collect { pending ->
                 pendingMessages.clear()
                 pendingMessages.addAll(pending)
+                currentState.unread[HomeScreen.Pending] = pendingMessages.size
                 updateList()
             }
         }
@@ -143,7 +146,7 @@ data class HomeState(
     val screen: HomeScreen = HomeScreen.Broadcast,
     val messages: SnapshotStateList<HomeItem> = mutableStateListOf(),
     //TODO get unread statuses from DB
-    val unread: Map<HomeScreen, Int> = mapOf()
+    val unread: SnapshotStateMap<HomeScreen, Int> = mutableStateMapOf()
 )
 
 enum class HomeScreen(
