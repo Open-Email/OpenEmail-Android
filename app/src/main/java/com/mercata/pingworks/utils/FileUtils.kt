@@ -4,10 +4,11 @@ import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.OpenableColumns
+import androidx.core.content.FileProvider
 import androidx.core.net.toFile
-import com.goterl.lazysodium.utils.Key
 import com.mercata.pingworks.models.URLInfo
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.InputStream
 import java.net.URLEncoder
 import java.nio.file.Files
@@ -35,6 +36,23 @@ class FileUtils(val context: Context) {
         return result
     }
 
+    fun getUriForFile(file: File): Uri {
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider", // authority should match the one defined in the manifest
+            file
+        )
+    }
+
+    fun getFileFromUri(uri: Uri): File? {
+        if (uri.authority == "${context.packageName}.fileprovider") {
+            // Assuming the file is stored in the app's internal storage
+            val fileName = uri.lastPathSegment
+            return fileName?.let { File(context.filesDir, it) }
+        }
+        return null
+    }
+
     fun getFileChecksum(uri: Uri): Pair<String, ByteArray> {
         val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
         val sha256 = MessageDigest.getInstance("SHA-256")
@@ -54,78 +72,31 @@ class FileUtils(val context: Context) {
     }
 
     fun getFilePartChecksum(
-        fileAtUri: Uri,
-        fromOffset: Long,
-        bytesCount: Long
-    ): Triple<String, ByteArray, Long>? {
-        val inputStream: InputStream? = context.contentResolver.openInputStream(fileAtUri)
-        val bufferSize = 1024 * 1024
-        var processedBytes: Long = 0
-
-        inputStream?.use { stream ->
-            val sha256 = MessageDigest.getInstance("SHA-256")
-            val buffer = ByteArray(bufferSize)
-
-            // Skip to the specified offset
-            stream.skip(fromOffset)
-
-            while (true) {
-                // Calculate the number of bytes to read, not exceeding the remaining bytes
-                var bytesToRead = bufferSize.toLong()
-                if (bytesCount > 0) {
-                    val remainingBytes = bytesCount.toLong() - processedBytes
-                    bytesToRead = minOf(bytesToRead, remainingBytes)
-                }
-
-                if (bytesToRead > 0) {
-                    val bytesRead = stream.read(buffer, 0, bytesToRead.toInt())
-                    if (bytesRead == -1) break  // End of file reached
-
-                    processedBytes += bytesRead.toLong()
-                    sha256.update(buffer, 0, bytesRead)
-
-                    if (processedBytes >= bytesCount) break
-                } else {
-                    break
-                }
-            }
-
-            // Finalize the hash
-            val digest = sha256.digest()
-            val hexDigest = digest.joinToString("") { "%02x".format(it) }
-            return Triple(hexDigest, digest, processedBytes)
-        }
-        return null
+        chunkBytes: ByteArray
+    ): Pair<String, ByteArray> {
+        val md = MessageDigest.getInstance("SHA-256")
+        md.update(chunkBytes)
+        val bs = md.digest()
+        return bs.joinToString("") { "%02x".format(it) } to bs
     }
 
 
     fun encryptFilePartXChaCha20Poly1305(
         inputUri: Uri,
         secretKey: ByteArray,
-        bytesCount: Long?,
-        offset: Long?
+        bytesCount: Long,
+        offset: Long
     ): ByteArray? {
-        val inputStream: InputStream? = context.contentResolver.openInputStream(inputUri)
-
-        inputStream?.use { stream ->
+        context.contentResolver.openInputStream(inputUri)?.use { stream ->
             // Skip to the specified offset
-            if (offset != null) {
-                stream.skip(offset)
-            }
-
-            val dataToEncrypt: ByteArray
-            if (bytesCount != null) {
-                // Read the specified number of bytes
-                dataToEncrypt = ByteArray(bytesCount.toInt())
-                stream.read(dataToEncrypt, 0, dataToEncrypt.size)
-            } else {
-                // Read to the end of the file
-                dataToEncrypt = stream.readBytes()
-            }
+            stream.skip(offset)
+            val dataToEncrypt = ByteArray(bytesCount.toInt())
+            stream.read(dataToEncrypt, 0, bytesCount.toInt())
 
             // Encrypt the data using XChaCha20-Poly1305
             return encrypt_xchacha20poly1305(dataToEncrypt, secretKey)
         }
+
         return null
     }
 
@@ -142,11 +113,21 @@ class FileUtils(val context: Context) {
                         .getColumnIndex(OpenableColumns.DISPLAY_NAME)
                         .let { cursor.getString(it) }.encodeHeaderValue()
 
-                    val dateModifiedInSeconds =
+                    val dateModifiedInSeconds = try {
                         cursor.getLong(cursor.getColumnIndexOrThrow("last_modified"))
-                    fileLastModificationTime = Instant.ofEpochMilli(dateModifiedInSeconds * 1000L)
-                    size =
+                    } catch (e: IllegalArgumentException) {
+                        null
+                    }
+
+                    dateModifiedInSeconds?.let {
+                        fileLastModificationTime = Instant.ofEpochMilli(it * 1000L)
+                    }
+
+                    size = try {
                         cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE))
+                    } catch (e: IllegalArgumentException) {
+                        null
+                    }
                 }
             }
             fileType = context.contentResolver.getType(uri)
@@ -163,7 +144,7 @@ class FileUtils(val context: Context) {
             uri = uri,
             name = encodedFilename ?: "",
             mimeType = fileType ?: "application/octet-stream",
-            size = size ?: 0,
+            size = size ?: 0L,
             modifiedAt = fileLastModificationTime
         )
     }

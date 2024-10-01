@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.room.Room
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.utils.BioManager
+import com.mercata.pingworks.utils.CopyAttachmentService
 import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.SharedPreferences
@@ -16,9 +17,10 @@ class MainApplication : Application() {
 
     private val appModule = module {
         single { SharedPreferences(get(), get()) }
-        single { BioManager(get()) }
-        single { Downloader(get()) }
-        single { FileUtils(get()) }
+        factory { BioManager(get()) }
+        factory { Downloader(get()) }
+        factory { FileUtils(get()) }
+        factory { CopyAttachmentService(get()) }
         single {
             Room.databaseBuilder(
                 get(),

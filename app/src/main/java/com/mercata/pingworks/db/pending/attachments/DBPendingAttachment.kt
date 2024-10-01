@@ -20,19 +20,19 @@ data class DBPendingAttachment(
     @ColumnInfo("mime_name") val mimeType: String,
     @ColumnInfo("subject") val subject: String,
     @ColumnInfo("sending_date_timestamp") val sendingDateTimestamp: Long,
-    @ColumnInfo("size") val size: Long,
+    @ColumnInfo("size") val fullSize: Long,
     @ColumnInfo("modified_at_timestamp") val modifiedAtTimestamp: Long,
-    @ColumnInfo("part_number") val partNumber: Long,
+    @ColumnInfo("part_number") val partNumber: Int,
     @ColumnInfo("part_size") val partSize: Long,
     @ColumnInfo("checkSum") val checkSum: String,
     @ColumnInfo("offset") val offset: Long?,
-    @ColumnInfo("total_parts") val totalParts: Long,
+    @ColumnInfo("total_parts") val totalParts: Int,
 ) {
     fun getUrlInfo() = URLInfo(
         uri = Uri.parse(uri),
         name = fileName,
         mimeType = mimeType,
-        size = size,
+        size = fullSize,
         modifiedAt = Instant.ofEpochMilli(modifiedAtTimestamp)
     )
 
@@ -46,7 +46,7 @@ data class DBPendingAttachment(
         parentId = this.parentId,
         checksum = this.checkSum,
         category = MessageCategory.personal,
-        size = this.size,
+        size = this.fullSize,
         authorAddress = currentUserAddress,
         readersAddresses = recipients.map { it.address },
     )

@@ -37,6 +37,9 @@ interface MessagesDao {
     @Delete
     suspend fun delete(message: DBMessage)
 
+    @Delete
+    suspend fun deleteList(message: List<DBMessage>)
+
     @Query("DELETE FROM dbmessage")
     suspend fun deleteAll()
 

@@ -48,17 +48,15 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 syncContacts(sp, db.userDao())
                 syncAllMessages(db, sp, dl)
             }.join()
-            launch {
-                uploadPendingMessages(sp.getUserData()!!, db, fu)
-            }.join()
+            launch { uploadPendingMessages(sp.getUserData()!!, db, fu) }.join()
 
             updateState(currentState.copy(refreshing = false))
         }
     }
 
     private val dl: Downloader by inject()
+    private val fu: FileUtils by inject()
     private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
-
 
     fun onSearchQuery(query: String) {
         updateState(currentState.copy(query = query))
@@ -83,9 +81,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     }
 
     fun refresh() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(refreshing = true))
-            syncAllMessages(db, sp, dl)
+            launch { syncAllMessages(db, sp, dl) }.join()
+            launch { uploadPendingMessages(sp.getUserData()!!, db, fu) }.join()
             updateState(currentState.copy(refreshing = false))
         }
     }

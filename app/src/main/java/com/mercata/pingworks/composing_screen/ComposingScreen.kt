@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -132,13 +133,18 @@ fun SharedTransitionScope.ComposingScreen(
                 actions = {
                     IconButton(enabled = !state.loading,
                         onClick = {
+                            focusManager.clearFocus()
                             viewModel.send()
                         }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Localized description",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        if (state.loading) {
+                            CircularProgressIndicator()
+                        } else {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = stringResource(id = R.string.send),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 },
             )

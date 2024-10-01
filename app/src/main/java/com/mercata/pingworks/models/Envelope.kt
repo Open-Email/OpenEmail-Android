@@ -205,8 +205,8 @@ class Envelope(
         for (fileString in fileStrings) {
             val urlInfoDict = mutableMapOf<String, String>()
             var messageId: String? = null
-            var part: Long = 0
-            var totalParts: Long = 0
+            var part = 0
+            var totalParts = 0
             var modifiedAt = ""
 
             val keyValuePairs = fileString.split(";").map { it.trim() }
@@ -222,7 +222,7 @@ class Envelope(
                         "size" -> urlInfoDict["size"] = value
                         "id" -> messageId = value
                         "part" -> {
-                            val parts = value.split("/").mapNotNull { it.toLongOrNull() }
+                            val parts = value.split("/").mapNotNull { it.toIntOrNull() }
                             if (parts.size == 2) {
                                 if (parts[0] > 0) {
                                     part = parts[0] - 1

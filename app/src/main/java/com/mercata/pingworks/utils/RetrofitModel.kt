@@ -1,5 +1,6 @@
 package com.mercata.pingworks.utils
 
+import android.net.Uri
 import android.util.Log
 import com.mercata.pingworks.ANONYMOUS_ENCRYPTION_CIPHER
 import com.mercata.pingworks.BuildConfig
@@ -36,6 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Headers
@@ -47,6 +49,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
+import java.io.FileInputStream
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -437,10 +440,11 @@ suspend fun uploadPrivateMessage(
         val fileParts = arrayListOf<DBPendingAttachment>()
 
         composingData.attachments.forEach { attachment ->
-            val urlInfo = fileUtils.getURLInfo(attachment)
+            val uri = fileUtils.getUriForFile(attachment)
+            val urlInfo = fileUtils.getURLInfo(uri)
 
             if (urlInfo.size <= MAX_MESSAGE_SIZE) {
-                val checksum = fileUtils.getFileChecksum(attachment)
+                val checksum = fileUtils.getFileChecksum(uri)
                 val partMessageId = currentUser.newMessageId()
                 fileParts.add(
                     DBPendingAttachment(
@@ -449,7 +453,7 @@ suspend fun uploadPrivateMessage(
                         uri = urlInfo.uri.toString(),
                         fileName = urlInfo.name,
                         mimeType = urlInfo.mimeType,
-                        size = urlInfo.size,
+                        fullSize = urlInfo.size,
                         modifiedAtTimestamp = urlInfo.modifiedAt.toEpochMilli(),
                         partNumber = 1,
                         partSize = urlInfo.size,
@@ -462,53 +466,63 @@ suspend fun uploadPrivateMessage(
                 )
             } else {
                 //attachment too large. Split in chunks
+
+                var partCounter = 1
+                val buffer = ByteArray(MAX_MESSAGE_SIZE.toInt())
+                val totalParts = (urlInfo.size + MAX_MESSAGE_SIZE - 1) / urlInfo.size
                 var offset: Long = 0
-                var partCount: Long = 1
-                val totalParts = (urlInfo.size / MAX_MESSAGE_SIZE) + 1
 
-                while (offset < urlInfo.size) {
-                    val partMessageId = currentUser.newMessageId()
-                    val bytesCount = minOf(urlInfo.size - offset, MAX_MESSAGE_SIZE)
-                    val bytesChecksum =
-                        fileUtils.getFilePartChecksum(attachment, offset, bytesCount) ?: continue
+                FileInputStream(attachment).use { inputStream ->
+                    var bytesRead: Int
+                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
 
-                    fileParts.add(
-                        DBPendingAttachment(
-                            messageId = partMessageId,
-                            parentId = rootMessageId,
-                            uri = urlInfo.uri.toString(),
-                            fileName = urlInfo.name,
-                            mimeType = urlInfo.mimeType,
-                            size = urlInfo.size,
-                            modifiedAtTimestamp = urlInfo.modifiedAt.toEpochMilli(),
-                            partNumber = partCount,
-                            partSize = bytesCount,
-                            checkSum = bytesChecksum.first,
-                            offset = offset,
-                            totalParts = totalParts,
-                            sendingDateTimestamp = sendingDate.toEpochMilli(),
-                            subject = composingData.subject
+                        val partMessageId = currentUser.newMessageId()
+                        val bytesChecksum =
+                            fileUtils.getFilePartChecksum(buffer.sliceArray(offset.toInt()..<bytesRead))
+                        fileParts.add(
+                            DBPendingAttachment(
+                                messageId = partMessageId,
+                                parentId = rootMessageId,
+                                uri = urlInfo.uri.toString(),
+                                fileName = urlInfo.name,
+                                mimeType = urlInfo.mimeType,
+                                fullSize = urlInfo.size,
+                                modifiedAtTimestamp = urlInfo.modifiedAt.toEpochMilli(),
+                                partNumber = partCounter,
+                                partSize = bytesRead.toLong(),
+                                checkSum = bytesChecksum.first,
+                                offset = offset,
+                                totalParts = totalParts.toInt(),
+                                sendingDateTimestamp = sendingDate.toEpochMilli(),
+                                subject = composingData.subject
+                            )
                         )
-                    )
-
-                    offset += bytesCount
-                    partCount += 1
+                        offset += bytesRead
+                        partCounter++
+                    }
                 }
             }
         }
 
-        db.pendingMessagesDao().insert(pendingRootMessage)
-        db.pendingAttachmentsDao().insertAll(fileParts)
-        db.pendingReadersDao()
-            .insertAll(accessProfiles.map { it.toDBPendingReaderPublicData(rootMessageId) })
+        joinAll(
+            launch {
+                db.pendingMessagesDao().insert(pendingRootMessage)
+            }, launch {
+                db.pendingAttachmentsDao().insertAll(fileParts)
+            }, launch {
+                db.pendingReadersDao()
+                    .insertAll(accessProfiles.map { it.toDBPendingReaderPublicData(rootMessageId) })
+            })
 
         uploadPendingMessages(currentUser, db, fileUtils)
     }
 }
 
+
 suspend fun uploadPendingMessages(currentUser: UserData, db: AppDatabase, fileUtils: FileUtils) {
     withContext(Dispatchers.IO) {
         val pendingMessages = db.pendingMessagesDao().getAll()
+        println()
         val results: List<UploadResult> =
             pendingMessages.map { pendingMessage ->
                 async {
@@ -566,10 +580,22 @@ suspend fun uploadPendingMessages(currentUser: UserData, db: AppDatabase, fileUt
                     initial = arrayListOf(),
                     operation = { initial, new -> initial.apply { addAll(new.readers) } })
             )
+            pendingMessages.fold(initial = arrayListOf<Uri>(), operation = { initial, new ->
+                initial.apply { addAll(new.fileParts.map { Uri.parse(it.uri) }) }
+            }).forEach { uri ->
+                fileUtils.getFileFromUri(uri)?.delete()
+            }
         } else {
             results.filter { it.result is HttpResult.Success }.forEach { successful ->
                 if (successful.isAttachment) {
                     db.pendingAttachmentsDao().delete(successful.messageId)
+                    pendingMessages.forEach { message ->
+                        message.fileParts.firstOrNull { it.messageId == successful.messageId }?.uri?.let { uriStr ->
+                            fileUtils.getFileFromUri(
+                                Uri.parse(uriStr)
+                            )?.delete()
+                        }
+                    }
                 } else {
                     db.pendingMessagesDao().delete(successful.messageId)
                 }
@@ -631,8 +657,8 @@ private suspend fun uploadPrivateFileMessage(
     val encryptedData = fileUtils.encryptFilePartXChaCha20Poly1305(
         inputUri = urlInfo.uri!!,
         secretKey = accessKey,
-        bytesCount = pendingAttachment.size,
-        offset = pendingAttachment.offset
+        bytesCount = pendingAttachment.partSize,
+        offset = pendingAttachment.offset ?: 0
     )!!
 
     return getInstance("https://${currentUser.address.getMailHost()}").uploadMessageFile(
@@ -654,7 +680,17 @@ suspend fun saveMessagesToDb(
     withContext(Dispatchers.IO) {
         launch {
 
-            val envelopesPair = results.partition { envelope -> envelope.isRootMessage() }
+            val saved = messagesDao.getAll()
+
+            val newResults =
+                results.filterNot { envelope -> saved.any { dbMessage -> dbMessage.messageId == envelope.messageId } }
+
+            val removed =
+                saved.filterNot { dbMessage -> results.any { envelope -> envelope.messageId == dbMessage.messageId } }
+
+            messagesDao.deleteList(removed)
+
+            val envelopesPair = newResults.partition { envelope -> envelope.isRootMessage() }
 
             val rootEnvelopes = envelopesPair.first
             val attachmentEnvelopes = envelopesPair.second
@@ -671,26 +707,31 @@ suspend fun saveMessagesToDb(
                         name = fileInfo.urlInfo.name,
                         type = fileInfo.urlInfo.mimeType,
                         size = fileInfo.size,
-                        accessKey = attachmentEnvelopes.first { it.messageId == fileInfo.messageId }.accessKey,
+                        accessKey = attachmentEnvelopes.firstOrNull { it.messageId == fileInfo.messageId }?.accessKey,
                         createdTimestamp = fileInfo.urlInfo.modifiedAt.toEpochMilli(),
                     )
                 } ?: listOf()
             }.fold(
                 initial = arrayListOf(),
-                operation = { initial, new -> initial.apply { addAll(new) } })
-
-            messagesDao.insertAll(
-                rootMessages.map {
-                    DBMessage(
-                        messageId = it.first.messageId,
-                        authorAddress = it.first.contact.address,
-                        subject = it.first.contentHeaders.subject,
-                        textBody = it.second ?: "",
-                        isBroadcast = it.first.isBroadcast(),
-                        timestamp = it.first.contentHeaders.date.toEpochMilli(),
-                    )
+                operation = { initial, new ->
+                    initial.apply { addAll(new) }
                 })
-            attachmentsDao.insertAll(attachments)
+
+            joinAll(launch {
+                messagesDao.insertAll(
+                    rootMessages.map {
+                        DBMessage(
+                            messageId = it.first.messageId,
+                            authorAddress = it.first.contact.address,
+                            subject = it.first.contentHeaders.subject,
+                            textBody = it.second ?: "",
+                            isBroadcast = it.first.isBroadcast(),
+                            timestamp = it.first.contentHeaders.date.toEpochMilli(),
+                        )
+                    })
+            }, launch {
+                attachmentsDao.insertAll(attachments)
+            })
         }
     }
 }

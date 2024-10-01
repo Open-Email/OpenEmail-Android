@@ -11,15 +11,21 @@ import com.mercata.pingworks.models.ComposingData
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.Address
+import com.mercata.pingworks.utils.CopyAttachmentService
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
 import com.mercata.pingworks.utils.uploadPrivateMessage
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
+import java.io.File
 
 class ComposingViewModel(savedStateHandle: SavedStateHandle) :
     AbstractViewModel<ComposingState>(
@@ -34,6 +40,7 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
     }
 
     private val fileUtils: FileUtils by inject()
+    private val attachmentCopier: CopyAttachmentService by inject()
 
     fun updateTo(str: String) {
         updateState(currentState.copy(addressFieldText = str, addressErrorResId = null))
@@ -56,6 +63,7 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
         updateState(currentState.copy(body = str, bodyErrorResId = null))
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     fun send() {
         var valid = true
         if (currentState.addressErrorResId != null) {
@@ -79,23 +87,39 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
 
         if (!valid) return
 
-        GlobalScope.launch {
-            //TODO multiple recipients
+        viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(loading = true))
-            uploadPrivateMessage(
-                composingData = ComposingData(
-                    recipients = currentState.recipients,
-                    subject = currentState.subject,
-                    body = currentState.body,
-                    attachments = currentState.attachments
-                ),
-                fileUtils = fileUtils,
-                currentUser = sp.getUserData()!!,
-                currentUserPublicData = sp.getPublicUserData()!!,
-                db = db
-            )
+
+            val attachments: List<File> = if (currentState.attachments.isNotEmpty()) {
+                currentState.attachments.map { uri ->
+                    async {
+                        attachmentCopier.copyUriToLocalStorage(uri, fileUtils.getURLInfo(uri).name)
+                    }
+                }.awaitAll().filterNotNull()
+            } else {
+                listOf()
+            }
+
             updateState(currentState.copy(loading = false))
+
+            GlobalScope.launch {
+                //TODO multiple recipients
+                uploadPrivateMessage(
+                    composingData = ComposingData(
+                        recipients = currentState.recipients,
+                        subject = currentState.subject,
+                        body = currentState.body,
+                        attachments = attachments
+                    ),
+                    fileUtils = fileUtils,
+                    currentUser = sp.getUserData()!!,
+                    currentUserPublicData = sp.getPublicUserData()!!,
+                    db = db
+                )
+            }
         }
+
+
     }
 
 
