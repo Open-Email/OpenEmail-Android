@@ -35,13 +35,26 @@ fun PublicUserData.toDBPendingReaderPublicData(messageId: String) = DBPendingRea
     messageId = messageId
 )
 
+fun DBPendingReaderPublicData.toPublicUserData() = PublicUserData(
+    fullName = this.fullName,
+    address = this.address,
+    lastSeenPublic = this.lastSeenPublic,
+    lastSeen = this.lastSeenTimestamp?.let { Instant.ofEpochMilli(it) },
+    updated = this.updatedTimestamp?.let { Instant.ofEpochMilli(it) },
+    encryptionKeyId = this.encryptionKeyId,
+    encryptionKeyAlgorithm = this.encryptionKeyAlgorithm,
+    signingKeyAlgorithm = this.signingKeyAlgorithm,
+    publicEncryptionKey = this.publicEncryptionKey,
+    publicSigningKey = this.publicSigningKey
+)
+
 fun DBContact.toPublicUserData(): PublicUserData =
     PublicUserData(
         fullName = this.name ?: "",
         address = this.address,
         lastSeenPublic = this.lastSeenPublic,
-        lastSeen = Instant.parse(this.lastSeen),
-        updated = Instant.parse(this.lastSeen),
+        lastSeen = this.lastSeen?.let { Instant.parse(it) },
+        updated = this.lastSeen?.let { Instant.parse(it) },
         encryptionKeyId = this.publicEncryptionKeyId,
         encryptionKeyAlgorithm = this.encryptionKeyAlgorithm,
         signingKeyAlgorithm = this.signingKeyAlgorithm,

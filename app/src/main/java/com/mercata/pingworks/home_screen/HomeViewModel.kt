@@ -10,7 +10,9 @@ import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
 import com.mercata.pingworks.db.AppDatabase
+import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
+import com.mercata.pingworks.db.pending.DBPendingMessage
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.FileUtils
@@ -42,6 +44,13 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 updateList()
             }
         }
+        viewModelScope.launch {
+            db.pendingMessagesDao().getAllAsFlowWithAttachments().collect { pending ->
+                pendingMessages.clear()
+                pendingMessages.addAll(pending)
+                updateList()
+            }
+        }
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(refreshing = true))
             launch {
@@ -57,6 +66,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     private val dl: Downloader by inject()
     private val fu: FileUtils by inject()
     private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
+    private val pendingMessages: ArrayList<DBPendingMessage> = arrayListOf()
 
     fun onSearchQuery(query: String) {
         updateState(currentState.copy(query = query))
@@ -92,17 +102,37 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     private fun updateList() {
         val currentUserAddress = sp.getUserAddress()
         currentState.messages.clear()
-        currentState.messages.addAll(allMessages.asSequence().filter {
-            when (currentState.screen) {
-                HomeScreen.Broadcast -> it.message.message.isBroadcast && it.message.author?.address != currentUserAddress
-                HomeScreen.Outbox -> it.message.author?.address == currentUserAddress
-                HomeScreen.Inbox -> it.message.message.isBroadcast.not() &&
-                        it.message.author?.address != currentUserAddress
-            } && (it.message.message.subject.lowercase().contains(currentState.query.lowercase()) ||
-                    it.message.message.textBody.lowercase()
-                        .contains(currentState.query.lowercase()))
-        })
+
+        when (currentState.screen) {
+            HomeScreen.Pending -> {
+                currentState.messages.addAll(pendingMessages.filter { it.searchMatched() })
+            }
+
+            HomeScreen.Broadcast -> currentState.messages.addAll(allMessages.filter {
+                it.message.message.isBroadcast
+                        && it.message.author?.address != currentUserAddress
+                        && it.searchMatched()
+            })
+
+            HomeScreen.Outbox -> {
+                currentState.messages.addAll(allMessages.filter {
+                    it.message.author?.address == currentUserAddress && it.searchMatched()
+                })
+            }
+
+            HomeScreen.Inbox -> {
+                currentState.messages.addAll(allMessages.filter {
+                    it.message.message.isBroadcast.not() &&
+                            it.message.author?.address != currentUserAddress && it.searchMatched()
+                })
+            }
+        }
     }
+
+    private fun HomeItem.searchMatched(): Boolean =
+        this.getSubject().lowercase().contains(currentState.query.lowercase()) ||
+                this.getTextBody().lowercase().contains(currentState.query.lowercase())
+
 }
 
 data class HomeState(
@@ -111,7 +141,7 @@ data class HomeState(
     val query: String = "",
     val refreshing: Boolean = false,
     val screen: HomeScreen = HomeScreen.Broadcast,
-    val messages: SnapshotStateList<DBMessageWithDBAttachments> = mutableStateListOf(),
+    val messages: SnapshotStateList<HomeItem> = mutableStateListOf(),
     //TODO get unread statuses from DB
     val unread: Map<HomeScreen, Int> = mapOf()
 )
@@ -123,5 +153,7 @@ enum class HomeScreen(
 ) {
     Broadcast(R.string.broadcast_title, iconResId = R.drawable.cast),
     Inbox(R.string.inbox_title, Icons.Default.KeyboardArrowDown),
-    Outbox(R.string.outbox_title, Icons.Default.KeyboardArrowUp)
+    Outbox(R.string.outbox_title, Icons.Default.KeyboardArrowUp),
+    Pending(R.string.pending, iconResId = R.drawable.pending),
+
 }

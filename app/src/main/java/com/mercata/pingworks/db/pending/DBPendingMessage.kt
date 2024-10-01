@@ -2,12 +2,14 @@ package com.mercata.pingworks.db.pending
 
 import androidx.room.Embedded
 import androidx.room.Relation
+import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.db.pending.attachments.DBPendingAttachment
 import com.mercata.pingworks.db.pending.messages.DBPendingRootMessage
 import com.mercata.pingworks.db.pending.readers.DBPendingReaderPublicData
 import com.mercata.pingworks.models.ContentHeaders
 import com.mercata.pingworks.models.MessageCategory
 import com.mercata.pingworks.models.MessageFilePartInfo
+import com.mercata.pingworks.models.toPublicUserData
 import java.time.Instant
 
 data class DBPendingMessage(
@@ -22,7 +24,12 @@ data class DBPendingMessage(
         entityColumn = "message_id"
     )
     val readers: List<DBPendingReaderPublicData>
-) {
+) : HomeItem {
+    override fun getContacts() = readers.map { it.toPublicUserData() }
+    override fun getSubject() = message.subject
+    override fun getTextBody(): String = message.textBody
+    override fun getMessageId() = message.messageId
+
     fun getRootContentHeaders() = ContentHeaders(messageID = message.messageId,
         date = Instant.ofEpochMilli(message.timestamp),
         subject = message.subject,

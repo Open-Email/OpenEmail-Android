@@ -64,4 +64,5 @@
     <string name="subject_error">Subject cannot be empty</string>
     <string name="empty_email_body_error">Message body cannot be empty</string>
     <string name="send">Send</string>
+    <string name="pending">Pending</string>
 </resources>

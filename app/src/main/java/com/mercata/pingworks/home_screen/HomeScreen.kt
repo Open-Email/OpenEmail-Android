@@ -87,7 +87,7 @@ import com.mercata.pingworks.MESSAGE_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.NavigationDrawerBody
-import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
+import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.registration.UserData
 import kotlinx.coroutines.launch
 
@@ -264,7 +264,7 @@ fun SharedTransitionScope.HomeScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(items = state.messages,
-                        key = { it.message.message.messageId }) { item ->
+                        key = { it.getMessageId() }) { item ->
                         SwipeContainer(
                             modifier = modifier.animateItem(),
                             item = item,
@@ -277,7 +277,7 @@ fun SharedTransitionScope.HomeScreen(
                                 animatedVisibilityScope = animatedVisibilityScope,
                                 onMessageClicked = { message ->
                                     navController.navigate(
-                                        "MessageDetailsScreen/${message.message.message.messageId}",
+                                        "MessageDetailsScreen/${message.getMessageId()}",
                                     )
                                 })
                         }
@@ -298,18 +298,20 @@ fun SharedTransitionScope.HomeScreen(
 @Composable
 fun SharedTransitionScope.MessageViewHolder(
     currentUser: UserData,
-    item: DBMessageWithDBAttachments,
+    item: HomeItem,
     modifier: Modifier = Modifier,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    onMessageClicked: (message: DBMessageWithDBAttachments) -> Unit
+    onMessageClicked: (message: HomeItem) -> Unit
 ) {
-    val imageUrl = item.message.author?.imageUrl ?: currentUser.avatarLink
+
+    //TODO public image
+    val imageUrl = null//item.getContacts().firstOrNull().imageUrl ?: currentUser.avatarLink
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .sharedBounds(
                 sharedContentState = rememberSharedContentState(
-                    key = "message_bounds/${item.message.message.messageId}"
+                    key = "message_bounds/${item.getMessageId()}"
                 ),
                 animatedVisibilityScope = animatedVisibilityScope,
             )
@@ -327,7 +329,7 @@ fun SharedTransitionScope.MessageViewHolder(
             modifier = modifier
                 .sharedBounds(
                     sharedContentState = rememberSharedContentState(
-                        key = "message_image/${item.message.message.messageId}"
+                        key = "message_image/${item.getMessageId()}"
                     ),
                     animatedVisibilityScope = animatedVisibilityScope,
                 )
@@ -338,10 +340,12 @@ fun SharedTransitionScope.MessageViewHolder(
             if (imageUrl == null) {
                 Text(
                     text = "${
-                        if (item.message.author == null) {
+                        if (item.getContacts().isEmpty()) {
                             currentUser.name.first()
                         } else {
-                            item.message.author.name?.firstOrNull() ?: item.message.author.address.first()
+                            item.getContacts()
+                                .firstOrNull()?.fullName?.firstOrNull() ?: item.getContacts()
+                                .firstOrNull()?.address?.first() ?: ""
                         }
                     }",
                     style = MaterialTheme.typography.titleMedium,
@@ -353,7 +357,7 @@ fun SharedTransitionScope.MessageViewHolder(
                     modifier = modifier
                         .sharedBounds(
                             sharedContentState = rememberSharedContentState(
-                                key = "message_image/${item.message.message.messageId}"
+                                key = "message_image/${item.getMessageId()}"
                             ),
                             animatedVisibilityScope = animatedVisibilityScope,
                         )
@@ -370,11 +374,11 @@ fun SharedTransitionScope.MessageViewHolder(
                 modifier = modifier
                     .sharedBounds(
                         sharedContentState = rememberSharedContentState(
-                            key = "message_subject/${item.message.message.messageId}"
+                            key = "message_subject/${item.getMessageId()}"
                         ),
                         animatedVisibilityScope = animatedVisibilityScope,
                     ),
-                text = item.message.message.subject,
+                text = item.getSubject(),
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
                 style = MaterialTheme.typography.bodyMedium,
@@ -383,11 +387,11 @@ fun SharedTransitionScope.MessageViewHolder(
             Text(
                 modifier = modifier.sharedBounds(
                     sharedContentState = rememberSharedContentState(
-                        key = "message_body/${item.message.message.messageId}"
+                        key = "message_body/${item.getMessageId()}"
                     ),
                     animatedVisibilityScope = animatedVisibilityScope,
                 ),
-                text = item.message.message.textBody,
+                text = item.getTextBody(),
                 maxLines = 2,
                 style = MaterialTheme.typography.bodyMedium,
                 overflow = TextOverflow.Ellipsis,

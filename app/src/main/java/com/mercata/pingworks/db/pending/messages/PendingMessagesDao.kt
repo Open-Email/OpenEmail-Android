@@ -6,13 +6,18 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.db.pending.DBPendingMessage
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PendingMessagesDao {
 
     @Query("SELECT * FROM dbpendingrootmessage")
     suspend fun getAll(): List<DBPendingMessage>
+
+    @Query("SELECT * FROM dbpendingrootmessage ORDER BY timestamp DESC")
+    fun getAllAsFlowWithAttachments(): Flow<List<DBPendingMessage>>
 
     @Query("SELECT * FROM dbpendingrootmessage WHERE message_id = :id")
     suspend fun getById(id: String): DBPendingMessage
