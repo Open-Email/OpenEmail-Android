@@ -126,10 +126,11 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
         currentState.attachments.remove(attachment)
     }
 
-    fun checkAddressExist() {
+    fun attemptToAddAddress() {
+        if (currentState.addressFieldText.isBlank()) return
         if (!currentState.recipients.any { it.address == currentState.addressFieldText }) {
             viewModelScope.launch {
-                updateState(currentState.copy(loading = true))
+                updateState(currentState.copy(addressLoading = true))
                 when (val call =
                     safeApiCall { getProfilePublicData(currentState.addressFieldText) }) {
                     is HttpResult.Error -> {
@@ -140,13 +141,13 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
                         if (call.data == null) {
                             updateState(currentState.copy(addressErrorResId = R.string.invalid_email))
                         } else {
-                            updateState(currentState.copy(addressErrorResId = null))
+                            updateState(currentState.copy(addressErrorResId = null, addressFieldText = ""))
                             currentState.recipients.add(call.data)
                         }
 
                     }
                 }
-                updateState(currentState.copy(loading = false))
+                updateState(currentState.copy(addressLoading = false))
             }
         }
     }
@@ -159,6 +160,10 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
             }
         }
     }
+
+    fun removeRecipient(user: PublicUserData) {
+        currentState.recipients.remove(user)
+    }
 }
 
 data class ComposingState(
@@ -167,6 +172,7 @@ data class ComposingState(
     val body: String = "",
     val addressFieldText: Address = "",
     val recipients: SnapshotStateList<PublicUserData> = mutableStateListOf(),
+    val addressLoading: Boolean = false,
     val loading: Boolean = false,
     val addressErrorResId: Int? = null,
     val subjectErrorResId: Int? = null,

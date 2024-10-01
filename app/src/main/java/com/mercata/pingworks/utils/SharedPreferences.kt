@@ -147,7 +147,8 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
             encryptionKeyAlgorithm = ANONYMOUS_ENCRYPTION_CIPHER,
             signingKeyAlgorithm = SIGNING_ALGORITHM,
             publicEncryptionKey = encryptionKeys.pair.publicKey.asBytes.encodeToBase64(),
-            publicSigningKey = signingKeys.pair.publicKey.asBytes.encodeToBase64()
+            publicSigningKey = signingKeys.pair.publicKey.asBytes.encodeToBase64(),
+            imageUrl = null
         )
     }
 

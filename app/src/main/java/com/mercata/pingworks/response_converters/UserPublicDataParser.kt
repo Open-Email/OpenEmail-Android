@@ -52,7 +52,8 @@ class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
             encryptionKeyAlgorithm = encryptionData["algorithm"]!!,
             publicEncryptionKey = encryptionData["value"]!!,
             signingKeyAlgorithm = signingData["algorithm"]!!,
-            publicSigningKey = signingData["value"]!!
+            publicSigningKey = signingData["value"]!!,
+            imageUrl = null
         )
     }
 }

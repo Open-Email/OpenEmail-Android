@@ -9,6 +9,7 @@ import java.util.UUID
 
 data class PublicUserData(
     val fullName: String,
+    val imageUrl: String?,
     val address: Address,
     val lastSeenPublic: Boolean,
     val lastSeen: Instant?,
@@ -23,6 +24,7 @@ data class PublicUserData(
 fun PublicUserData.toDBPendingReaderPublicData(messageId: String) = DBPendingReaderPublicData(
     uuid = UUID.randomUUID().toString(),
     fullName = this.fullName,
+    imageUrl = this.imageUrl,
     address = this.address,
     lastSeenPublic = this.lastSeenPublic,
     lastSeenTimestamp = this.lastSeen?.toEpochMilli(),
@@ -37,6 +39,7 @@ fun PublicUserData.toDBPendingReaderPublicData(messageId: String) = DBPendingRea
 
 fun DBPendingReaderPublicData.toPublicUserData() = PublicUserData(
     fullName = this.fullName,
+    imageUrl = this.imageUrl,
     address = this.address,
     lastSeenPublic = this.lastSeenPublic,
     lastSeen = this.lastSeenTimestamp?.let { Instant.ofEpochMilli(it) },
@@ -51,6 +54,7 @@ fun DBPendingReaderPublicData.toPublicUserData() = PublicUserData(
 fun DBContact.toPublicUserData(): PublicUserData =
     PublicUserData(
         fullName = this.name ?: "",
+        imageUrl = this.imageUrl,
         address = this.address,
         lastSeenPublic = this.lastSeenPublic,
         lastSeen = this.lastSeen?.let { Instant.parse(it) },

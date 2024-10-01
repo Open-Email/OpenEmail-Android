@@ -65,4 +65,6 @@
     <string name="empty_email_body_error">Message body cannot be empty</string>
     <string name="send">Send</string>
     <string name="pending">Pending</string>
+    <string name="dismiss_address">Dismiss address</string>
+    <string name="add_recipient">Add recipient</string>
 </resources>

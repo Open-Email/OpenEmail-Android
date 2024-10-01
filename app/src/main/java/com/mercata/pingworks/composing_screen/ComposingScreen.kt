@@ -1,8 +1,12 @@
-@file:OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
+@file:OptIn(
+    ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class,
+    ExperimentalLayoutApi::class
+)
 
 package com.mercata.pingworks.composing_screen
 
 import android.net.Uri
+import android.widget.Space
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -10,25 +14,33 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
@@ -55,6 +67,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -62,13 +75,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.mercata.pingworks.ATTACHMENT_LIST_ITEM_HEIGHT
+import com.mercata.pingworks.CHIP_HEIGHT
+import com.mercata.pingworks.CHIP_ICON_SIZE
 import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
+import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
+import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.theme.bodyFontFamily
 import com.mercata.pingworks.utils.getNameFromURI
 
@@ -138,7 +157,7 @@ fun SharedTransitionScope.ComposingScreen(
                     }
                 },
                 actions = {
-                    IconButton(enabled = !state.loading,
+                    IconButton(enabled = !state.loading && state.recipients.isNotEmpty(),
                         onClick = {
                             focusManager.clearFocus()
                             viewModel.send()
@@ -149,7 +168,10 @@ fun SharedTransitionScope.ComposingScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Send,
                                 contentDescription = stringResource(id = R.string.send),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = if (state.recipients.isNotEmpty())
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.primaryContainer
                             )
                         }
                     }
@@ -158,6 +180,7 @@ fun SharedTransitionScope.ComposingScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
+                modifier = modifier.imePadding(),
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 onClick = {
@@ -172,7 +195,12 @@ fun SharedTransitionScope.ComposingScreen(
     ) { padding ->
         Column(
             modifier = modifier
-                .padding(padding)
+                .padding(
+                    start = padding.calculateLeftPadding(LayoutDirection.Ltr),
+                    end = padding.calculateRightPadding(LayoutDirection.Ltr),
+                    top = padding.calculateTopPadding()
+                )
+                .imePadding()
                 .verticalScroll(rememberScrollState())
         ) {
             Row(
@@ -206,39 +234,77 @@ fun SharedTransitionScope.ComposingScreen(
                     onCheckedChange = { viewModel.toggleBroadcast() })
             }
             AnimatedVisibility(visible = !state.broadcast) {
-                OutlinedTextField(
-                    value = state.addressFieldText,
-                    onValueChange = { str -> viewModel.updateTo(str) },
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Next,
-                        showKeyboardOnFocus = true,
-                    ),
-                    isError = state.addressErrorResId != null,
-                    keyboardActions = KeyboardActions(
-                        onNext = {
-                            focusManager.moveFocus(FocusDirection.Down)
+                Column {
+                    FlowRow(
+                        modifier = modifier.padding(horizontal = MARGIN_DEFAULT * 3 / 4),
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                        horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    ) {
+                        state.recipients.map { user ->
+                            AddressChip(modifier = modifier, user = user, onClick = { user ->
+                                //TODO open user details
+                            }, onDismiss = { user ->
+                                viewModel.removeRecipient(user)
+                            })
                         }
-                    ),
-                    label = {
-                        Text(stringResource(id = R.string.to_placeholder))
-                    },
-                    supportingText = {
-                        state.addressErrorResId?.let {
-                            Text(
-                                text = stringResource(id = it),
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    },
-                    modifier = modifier
-                        .padding(horizontal = MARGIN_DEFAULT)
-                        .focusRequester(toFocusRequester)
-                        .fillMaxWidth()
-                        .onFocusChanged { focusState ->
-                            if (!focusState.isFocused && state.addressFieldText.isNotBlank()) {
-                                viewModel.checkAddressExist()
+                    }
+                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                    OutlinedTextField(
+                        value = state.addressFieldText,
+                        suffix = {
+                            if (state.addressFieldText.isNotBlank()) {
+                                if (state.addressLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = modifier.size(
+                                            CHIP_ICON_SIZE
+                                        )
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.AddCircle,
+                                        modifier = modifier.clickable {
+                                            viewModel.attemptToAddAddress()
+                                        },
+                                        contentDescription = stringResource(
+                                            id = R.string.add_recipient
+                                        ),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
-                        })
+                        },
+                        onValueChange = { str -> viewModel.updateTo(str) },
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Next,
+                            showKeyboardOnFocus = true,
+                        ),
+                        isError = state.addressErrorResId != null,
+                        keyboardActions = KeyboardActions(
+                            onNext = {
+                                focusManager.moveFocus(FocusDirection.Down)
+                            }
+                        ),
+                        label = {
+                            Text(stringResource(id = R.string.to_placeholder))
+                        },
+                        supportingText = {
+                            state.addressErrorResId?.let {
+                                Text(
+                                    text = stringResource(id = it),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        },
+                        modifier = modifier
+                            .padding(horizontal = MARGIN_DEFAULT)
+                            .focusRequester(toFocusRequester)
+                            .fillMaxWidth()
+                            .onFocusChanged { focusState ->
+                                if (!focusState.isFocused) {
+                                    viewModel.attemptToAddAddress()
+                                }
+                            })
+                }
             }
             AnimatedVisibility(visible = !state.broadcast) {
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT / 2))
@@ -305,6 +371,65 @@ fun SharedTransitionScope.ComposingScreen(
                     attachment = attachmentUri,
                     viewModel = viewModel
                 )
+            }
+            Spacer(modifier = modifier.height(MARGIN_DEFAULT + 56.dp + padding.calculateBottomPadding()))
+        }
+    }
+}
+
+@Composable
+fun AddressChip(
+    modifier: Modifier = Modifier,
+    user: PublicUserData,
+    onClick: (address: PublicUserData) -> Unit,
+    onDismiss: (address: PublicUserData) -> Unit
+) {
+    Box(modifier.padding(MARGIN_DEFAULT / 4)) {
+        Box(
+            modifier = modifier
+                .height(CHIP_HEIGHT)
+                .clip(shape = CircleShape)
+                .clickable { onClick(user) }
+                .border(1.dp, color = MaterialTheme.colorScheme.onSurface, shape = CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                modifier = modifier.padding(start = MARGIN_DEFAULT/4),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = modifier
+                        .clip(CircleShape)
+                        .size(CHIP_ICON_SIZE)
+                ) {
+                    if (user.imageUrl == null) {
+                        Icon(
+                            Icons.Default.AccountCircle,
+                            contentDescription = stringResource(id = R.string.profile_image)
+                        )
+                    } else {
+                        AsyncImage(
+                            contentScale = ContentScale.Crop,
+                            modifier = modifier
+                                .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                                .size(CHIP_ICON_SIZE),
+                            model = user.imageUrl,
+                            contentDescription = stringResource(id = R.string.profile_image)
+                        )
+                    }
+                }
+                Spacer(modifier = modifier.width(MARGIN_DEFAULT/4))
+                Text(text = user.fullName, style = MaterialTheme.typography.bodySmall)
+                Spacer(modifier = modifier.width(MARGIN_DEFAULT/4))
+                Icon(
+                    modifier = modifier.clickable {
+                        onDismiss(user)
+                    },
+                    imageVector = Icons.Default.Clear,
+                    contentDescription = stringResource(id = R.string.dismiss_address)
+                )
+                Spacer(modifier = modifier.width(MARGIN_DEFAULT/2))
             }
         }
     }

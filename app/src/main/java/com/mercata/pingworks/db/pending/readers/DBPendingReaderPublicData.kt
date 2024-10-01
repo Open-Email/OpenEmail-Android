@@ -8,6 +8,7 @@ import androidx.room.PrimaryKey
 data class DBPendingReaderPublicData(
     @ColumnInfo("uuid") @PrimaryKey val uuid: String,
     @ColumnInfo("address") val address: String,
+    @ColumnInfo("image_url") val imageUrl: String?,
     @ColumnInfo("message_id", index = true) val messageId: String,
     @ColumnInfo("full_name") val fullName: String,
     @ColumnInfo("last_seen_public") val lastSeenPublic: Boolean,
