@@ -443,7 +443,9 @@ suspend fun uploadPrivateMessage(
             val urlInfo = fileUtils.getURLInfo(uri)
 
             if (urlInfo.size <= MAX_MESSAGE_SIZE) {
-                val checksum = fileUtils.getFileChecksum(uri)
+
+
+
                 val partMessageId = currentUser.newMessageId()
                 fileParts.add(
                     DBPendingAttachment(
@@ -456,7 +458,7 @@ suspend fun uploadPrivateMessage(
                         modifiedAtTimestamp = urlInfo.modifiedAt.toEpochMilli(),
                         partNumber = 1,
                         partSize = urlInfo.size,
-                        checkSum = checksum.first,
+                        checkSum = fileUtils.getFileChecksum(uri).first,
                         offset = null,
                         totalParts = 1,
                         sendingDateTimestamp = sendingDate.toEpochMilli(),
@@ -671,7 +673,7 @@ suspend fun saveMessagesToDb(
     results: List<Envelope>,
     messagesDao: MessagesDao,
     attachmentsDao: AttachmentsDao
-) {//ccc56a792afc33eb809e1f765f9049b45e121d3e61930d578b92fc3dd85b0b1c
+) {
     withContext(Dispatchers.IO) {
         launch {
 
