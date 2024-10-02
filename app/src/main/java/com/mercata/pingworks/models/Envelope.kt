@@ -132,12 +132,6 @@ class Envelope(
         for (readerLink in readerLinks) {
             val readerMap = parseHeaderAttributes(readerLink)
 
-            if (readerMap["fingerprint"] == null || readerMap["value"] == null || readerMap["link"] == null || readerMap["id"] == null) {
-                println("something null")
-            }
-            if (readerMap["link"] != connectionLink) {
-                println("link")
-            }
             val accessKeyFp = readerMap["fingerprint"] ?: continue
             val value = readerMap["value"] ?: continue
             val link = readerMap["link"] ?: continue

@@ -67,4 +67,5 @@
     <string name="pending">Pending</string>
     <string name="dismiss_address">Dismiss address</string>
     <string name="add_recipient">Add recipient</string>
+    <string name="receive_proadcasts">Receive broadcasts</string>
 </resources>

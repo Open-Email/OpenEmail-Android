@@ -19,11 +19,18 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
     init {
         val db: AppDatabase by inject()
         viewModelScope.launch {
-            updateState(
-                currentState.copy(
-                    contact = db.userDao().loadAllByIds(listOf(currentState.address)).first()
+            db.userDao().findByAddressFlow(currentState.address).collect { contact ->
+                updateState(
+                    currentState.copy(contact = contact)
                 )
-            )
+            }
+        }
+    }
+
+    fun toggleBroadcast() {
+        viewModelScope.launch {
+            db.userDao()
+                .update(currentState.contact!!.copy(receiveBroadcasts = !currentState.contact!!.receiveBroadcasts))
         }
     }
 
