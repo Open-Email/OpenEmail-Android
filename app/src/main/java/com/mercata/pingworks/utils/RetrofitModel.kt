@@ -197,6 +197,9 @@ suspend fun getAllBroadcastEnvelopesForContact(
     sharedPreferences: SharedPreferences,
     contact: DBContact
 ): List<Envelope> {
+    if (contact.receiveBroadcasts.not()) {
+        return listOf()
+    }
     return with(Dispatchers.IO) {
         val currentUser = sharedPreferences.getUserData()!!
         when (val idsCall = safeApiCall {
@@ -687,8 +690,7 @@ suspend fun saveMessagesToDb(
 
             messagesDao.deleteList(removed)
 
-            //TODO replace with newResults
-            val envelopesPair = results.partition { envelope -> envelope.isRootMessage() }
+            val envelopesPair = newResults.partition { envelope -> envelope.isRootMessage() }
 
             val rootEnvelopes = envelopesPair.first
             val attachmentEnvelopes = envelopesPair.second
@@ -773,18 +775,13 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
                         local.address == sp.getUserAddress() || result.any { remote -> remote.address == local.address }
                     })
 
-                    //inserting new contacts
-                    val broadcastReceivingAddresses =
-                        dao.getAll().filter { it.receiveBroadcasts }.map { it.address }
                     dao.insertAll(result.map { publicData ->
                         DBContact(
                             lastSeen = publicData.lastSeen?.toString(),
                             updated = publicData.updated?.toString(),
                             address = publicData.address,
                             name = publicData.fullName,
-                            receiveBroadcasts = broadcastReceivingAddresses.contains(
-                                publicData.address
-                            ),
+                            receiveBroadcasts = true,
                             signingKeyAlgorithm = publicData.signingKeyAlgorithm,
                             encryptionKeyAlgorithm = publicData.encryptionKeyAlgorithm,
                             publicEncryptionKey = publicData.publicEncryptionKey,

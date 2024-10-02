@@ -167,11 +167,20 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
     fun removeRecipient(user: PublicUserData) {
         currentState.recipients.remove(user)
     }
+
+    fun openUserDetails(user: PublicUserData) {
+        updateState(currentState.copy(openedAddressDetails = user))
+    }
+
+    fun closeUserDetails() {
+        updateState(currentState.copy(openedAddressDetails = null))
+    }
 }
 
 data class ComposingState(
     val sent: Boolean = false,
     val subject: String = "",
+    val openedAddressDetails: PublicUserData? = null,
     val body: String = "",
     val addressFieldText: Address = "",
     val recipients: SnapshotStateList<PublicUserData> = mutableStateListOf(),
