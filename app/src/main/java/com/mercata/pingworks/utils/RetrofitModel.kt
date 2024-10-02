@@ -516,7 +516,6 @@ suspend fun uploadPrivateMessage(
 suspend fun uploadPendingMessages(currentUser: UserData, db: AppDatabase, fileUtils: FileUtils) {
     withContext(Dispatchers.IO) {
         val pendingMessages = db.pendingMessagesDao().getAll()
-        println()
         val results: List<UploadResult> =
             pendingMessages.map { pendingMessage ->
                 async {
@@ -643,7 +642,9 @@ private suspend fun uploadPrivateFileMessage(
     val accessLinks = readers.generateAccessLinks(accessKey)
 
     val envelopeHeadersMap =
-        pendingAttachment.getContentHeaders(currentUser.address, readers)
+        pendingAttachment.getContentHeaders(
+            currentUser.address,
+            readers)
             .seal(accessKey, pendingAttachment.messageId, accessLinks, currentUser)
 
     val urlInfo = pendingAttachment.getUrlInfo()

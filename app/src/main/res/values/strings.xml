@@ -60,7 +60,7 @@
     <string name="to_placeholder">To:</string>
     <string name="subject_placeholder">Subject:</string>
     <string name="body_placeholder">Say something…</string>
-    <string name="empty_email_error">Fill address field or use Broadcast</string>
+    <string name="empty_email_error">Add address field or use Broadcast</string>
     <string name="subject_error">Subject cannot be empty</string>
     <string name="empty_email_body_error">Message body cannot be empty</string>
     <string name="send">Send</string>

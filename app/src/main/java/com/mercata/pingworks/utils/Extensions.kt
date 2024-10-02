@@ -16,7 +16,6 @@ import com.mercata.pingworks.SIGNING_ALGORITHM
 import com.mercata.pingworks.SYMMETRIC_CIPHER
 import com.mercata.pingworks.db.pending.readers.DBPendingReaderPublicData
 import com.mercata.pingworks.models.ContentHeaders
-import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import java.time.Instant
 import java.time.ZoneId
@@ -75,7 +74,8 @@ fun ContentHeaders.seal(
     val hashSum = entries.map { it.value }.joinToString("").hashedWithSha256()
     envelopeHeadersMap[HEADER_MESSAGE_ENVELOPE_CHECKSUM] =
         "algorithm=$CHECKSUM_ALGORITHM; order=${entries.joinToString(":") { it.key }}; value=${hashSum.first}"
-    val signedChecksum = hashSum.second.signDataBytes(currentUser.signingKeys.pair.secretKey).encodeToBase64()
+    val signedChecksum =
+        hashSum.second.signDataBytes(currentUser.signingKeys.pair.secretKey).encodeToBase64()
     envelopeHeadersMap[HEADER_MESSAGE_ENVELOPE_SIGNATURE] =
         "algorithm=$SIGNING_ALGORITHM; value=${signedChecksum}; id=${currentUser.encryptionKeys.id}"
 
@@ -83,6 +83,6 @@ fun ContentHeaders.seal(
 }
 
 fun Instant.toServerFormatString(): String {
-    return  DateTimeFormatter.ofPattern(DEFAULT_SERVER_DATE_FORMAT)
+    return DateTimeFormatter.ofPattern(DEFAULT_SERVER_DATE_FORMAT)
         .withZone(ZoneId.of("UTC")).format(this)
 }

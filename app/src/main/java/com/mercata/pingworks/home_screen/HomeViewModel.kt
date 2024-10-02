@@ -56,12 +56,9 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(refreshing = true))
-            launch {
-                syncContacts(sp, db.userDao())
-                syncAllMessages(db, sp, dl)
-            }.join()
-            launch { uploadPendingMessages(sp.getUserData()!!, db, fu) }.join()
-
+            syncContacts(sp, db.userDao())
+            uploadPendingMessages(sp.getUserData()!!, db, fu)
+            syncAllMessages(db, sp, dl)
             updateState(currentState.copy(refreshing = false))
         }
     }
@@ -96,8 +93,8 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     fun refresh() {
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(refreshing = true))
-            launch { syncAllMessages(db, sp, dl) }.join()
-            launch { uploadPendingMessages(sp.getUserData()!!, db, fu) }.join()
+            uploadPendingMessages(sp.getUserData()!!, db, fu)
+            syncAllMessages(db, sp, dl)
             updateState(currentState.copy(refreshing = false))
         }
     }

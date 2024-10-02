@@ -38,7 +38,7 @@ data class ContentHeaders(
         HEADER_CONTENT_CATEGORY to MessageCategory.personal.toString(),
         HEADER_CONTENT_DATE to date.toServerFormatString(),
         HEADER_CONTENT_SUBJECT to subject,
-        HEADER_CONTENT_READERS to readersAddresses.joinToString(separator = ", "),
+        HEADER_CONTENT_READERS to readersAddresses.filterNot { it == authorAddress }.joinToString(separator = ", "),
     )
 
     init {
@@ -49,7 +49,7 @@ data class ContentHeaders(
             contentHeadersMap[HEADER_CONTENT_SUBJECT_ID] = messageID
         }
 
-        filesHeader = fileParts?.joinToString(", ") { serializeMessageFileInfo(it) }?.also {
+        filesHeader = fileParts?.joinToString(", ") { serializeMessageFileInfo(it) }?.takeIf { it.isNotBlank() }?.also {
             contentHeadersMap[HEADER_CONTENT_FILES] = it
         }
 

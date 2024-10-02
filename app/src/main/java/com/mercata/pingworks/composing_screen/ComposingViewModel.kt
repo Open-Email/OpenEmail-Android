@@ -12,11 +12,13 @@ import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.Address
 import com.mercata.pingworks.utils.CopyAttachmentService
+import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
+import com.mercata.pingworks.utils.syncAllMessages
 import com.mercata.pingworks.utils.uploadPrivateMessage
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +42,7 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
     }
 
     private val fileUtils: FileUtils by inject()
+    private val dl: Downloader by inject()
     private val attachmentCopier: CopyAttachmentService by inject()
 
     fun updateTo(str: String) {
@@ -70,7 +73,7 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
             valid = false
         }
 
-        if (currentState.addressFieldText.isBlank() && currentState.broadcast.not()) {
+        if (currentState.recipients.isEmpty() && currentState.broadcast.not()) {
             updateState(currentState.copy(addressErrorResId = R.string.empty_email_error))
             valid = false
         }
@@ -103,7 +106,6 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
             updateState(currentState.copy(loading = false))
 
             GlobalScope.launch {
-                //TODO multiple recipients
                 uploadPrivateMessage(
                     composingData = ComposingData(
                         recipients = currentState.recipients,
@@ -116,6 +118,7 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
                     currentUserPublicData = sp.getPublicUserData()!!,
                     db = db
                 )
+                syncAllMessages(db, sp, dl)
             }
             updateState(currentState.copy(sent = true))
         }
