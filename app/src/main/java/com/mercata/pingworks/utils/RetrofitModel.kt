@@ -446,9 +446,6 @@ suspend fun uploadPrivateMessage(
             val urlInfo = fileUtils.getURLInfo(uri)
 
             if (urlInfo.size <= MAX_MESSAGE_SIZE) {
-
-
-
                 val partMessageId = currentUser.newMessageId()
                 fileParts.add(
                     DBPendingAttachment(

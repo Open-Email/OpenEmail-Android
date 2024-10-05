@@ -130,12 +130,13 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
     }
 
     fun attemptToAddAddress() {
-        if (currentState.addressFieldText.isBlank()) return
-        if (!currentState.recipients.any { it.address == currentState.addressFieldText }) {
+        val text = currentState.addressFieldText.trim()
+        if (text.isBlank()) return
+        if (!currentState.recipients.any { it.address == text }) {
             viewModelScope.launch {
                 updateState(currentState.copy(addressLoading = true))
                 when (val call =
-                    safeApiCall { getProfilePublicData(currentState.addressFieldText) }) {
+                    safeApiCall { getProfilePublicData(text) }) {
                     is HttpResult.Error -> {
                         updateState(currentState.copy(addressErrorResId = R.string.invalid_email))
                     }
@@ -147,7 +148,6 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
                             updateState(currentState.copy(addressErrorResId = null, addressFieldText = ""))
                             currentState.recipients.add(call.data)
                         }
-
                     }
                 }
                 updateState(currentState.copy(addressLoading = false))

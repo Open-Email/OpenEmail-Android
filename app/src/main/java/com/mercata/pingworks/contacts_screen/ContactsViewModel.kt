@@ -8,7 +8,6 @@ import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.models.PublicUserData
-import com.mercata.pingworks.models.toPublicUserData
 import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
@@ -38,7 +37,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
             db.userDao().getAllAsFlow().collect { dbEntities ->
                 if (currentState.itemToDelete == null) {
                     currentState.contacts.clear()
-                    currentState.contacts.addAll(dbEntities)
+                    currentState.contacts.addAll(dbEntities.filterNot { it.address == sp.getUserAddress() })
                 }
             }
         }

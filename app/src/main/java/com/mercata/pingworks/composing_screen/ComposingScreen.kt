@@ -51,6 +51,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -89,6 +90,7 @@ import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.models.PublicUserData
+import com.mercata.pingworks.theme.bodyFontFamily
 import com.mercata.pingworks.utils.getNameFromURI
 
 @Composable
@@ -204,8 +206,7 @@ fun SharedTransitionScope.ComposingScreen(
                     .imePadding()
                     .verticalScroll(rememberScrollState())
             ) {
-                //TODO uncomment when request ready
-                /*Row(
+                Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = modifier
                         .fillMaxWidth()
@@ -234,7 +235,7 @@ fun SharedTransitionScope.ComposingScreen(
                     Switch(
                         checked = state.broadcast,
                         onCheckedChange = { viewModel.toggleBroadcast() })
-                }*/
+                }
                 AnimatedVisibility(visible = !state.broadcast) {
                     Column {
                         FlowRow(
