@@ -2,6 +2,7 @@ package com.mercata.pingworks.utils
 
 import android.content.Context
 import android.util.Log
+import com.mercata.pingworks.BUFFER_SIZE
 import com.mercata.pingworks.db.attachments.DBAttachment
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.models.Envelope
@@ -76,7 +77,7 @@ class Downloader(val context: Context) {
                     }
                     file.createNewFile()
 
-                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                    val buffer = ByteArray(BUFFER_SIZE)
 
                     var bytesRead: Int
                     while (stream.read(buffer).also { bytesRead = it } != -1) {

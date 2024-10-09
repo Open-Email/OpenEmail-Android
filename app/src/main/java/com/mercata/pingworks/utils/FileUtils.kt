@@ -1,12 +1,13 @@
 package com.mercata.pingworks.utils
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.OpenableColumns
-import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.core.net.toFile
+import com.mercata.pingworks.BUFFER_SIZE
 import com.mercata.pingworks.models.URLInfo
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -97,6 +98,7 @@ class FileUtils(val context: Context) {
 
     @Throws(IOException::class)
     private fun skipFully(inputStream: InputStream, bytesToSkip: Long) {
+        context
         var remaining = bytesToSkip
         while (remaining > 0) {
             val skipped = inputStream.skip(remaining)
@@ -115,50 +117,69 @@ class FileUtils(val context: Context) {
             // Skip to the specified offset
             stream.skip(offset)
 
-            val encrypted = ByteArray(bytesCount.toInt())
+            val unencrypted = ByteArray(bytesCount.toInt())
 
-            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            val buffer = ByteArray(BUFFER_SIZE)
 
             var offsetRead = 0
             var byteRead: Int
 
             // Read until we've read bytesCount or reached the end of the stream
             while (offsetRead < bytesCount) {
-                val bytesToRead = minOf(DEFAULT_BUFFER_SIZE, (bytesCount - offsetRead).toInt())
+                val bytesToRead = minOf(BUFFER_SIZE, (bytesCount - offsetRead).toInt())
                 byteRead = stream.read(buffer, 0, bytesToRead)
 
                 if (byteRead == -1) break  // End of stream
 
-                // Encrypt only the bytes read
-                val src = encrypt_xchacha20poly1305(buffer.copyOfRange(0, byteRead), secretKey)
-
-                assert(
-                    buffer.copyOfRange(0, byteRead)
-                        .contentEquals(
-                            decrypt_xchacha20poly1305(
-                                cipherBytes = src!!,
-                                accessKey = secretKey
-                            )
-                        )
+                System.arraycopy(
+                    buffer.copyOfRange(0, byteRead),
+                    0,
+                    unencrypted,
+                    offsetRead,
+                    byteRead
                 )
-
-                Log.i("FileUtils", "Buffer: ${buffer.copyOfRange(0, byteRead).joinToString(", ")}")
-
-                src.let {
-                    // Ensure we don't exceed the bounds of the 'encrypted' array
-                    if (offsetRead + byteRead > encrypted.size) {
-                        throw IndexOutOfBoundsException("Encrypted data exceeds expected size.")
-                    }
-                    System.arraycopy(it, 0, encrypted, offsetRead, byteRead)
-                }
 
                 offsetRead += byteRead
             }
-            Log.i("FileUtils", "Unencrypted: ${stream.readBytes().joinToString(", ")}")
-            Log.i("FileUtils", "Secret key: $secretKey")
-            return encrypted
+
+            return encrypt_xchacha20poly1305(unencrypted, secretKey)
         }
 
+        return null
+    }
+
+    fun getAllBytesForUri(uri: Uri, offset: Long, bytesCount: Long): ByteArray? {
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            // Skip to the specified offset
+            stream.skip(offset)
+
+            val unencrypted = ByteArray(bytesCount.toInt())
+
+            val buffer = ByteArray(BUFFER_SIZE)
+
+            var offsetRead = 0
+            var byteRead: Int
+
+            // Read until we've read bytesCount or reached the end of the stream
+            while (offsetRead < bytesCount) {
+                val bytesToRead = minOf(BUFFER_SIZE, (bytesCount - offsetRead).toInt())
+                byteRead = stream.read(buffer, 0, bytesToRead)
+
+                if (byteRead == -1) break  // End of stream
+
+                System.arraycopy(
+                    buffer.copyOfRange(0, byteRead),
+                    0,
+                    unencrypted,
+                    offsetRead,
+                    byteRead
+                )
+
+                offsetRead += byteRead
+            }
+
+            return unencrypted
+        }
         return null
     }
 

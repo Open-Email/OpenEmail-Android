@@ -504,12 +504,6 @@ suspend fun uploadPrivateMessage(
             }
         }
 
-        //TODO remove
-        /*fileParts.forEach {
-            uploadPrivateFileMessage(currentUser, it, listOf(), fileUtils)
-        }*/
-
-        //TODO uncomment
         db.pendingMessagesDao().insert(pendingRootMessage)
         db.pendingAttachmentsDao().insertAll(fileParts)
         db.pendingReadersDao().insertAll(accessProfiles.map { it.toDBPendingReaderPublicData(rootMessageId) })
