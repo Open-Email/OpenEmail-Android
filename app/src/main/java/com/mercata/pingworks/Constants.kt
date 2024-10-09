@@ -20,6 +20,7 @@ const val MAX_MESSAGE_SIZE: Long = 64*1024*1024
 const val MAX_CHUNK_SIZE: Int = 1048576
 const val DEFAULT_CHUNK_SIZE: Int = 8192
 const val MIN_CHUNK_SIZE: Int = 1024
+const val DEFAULT_BUFFER_SIZE: Int = 1024 * 4
 
 val emailRegex = Regex("^[a-z0-9][a-z0-9\\.\\-_\\+]{2,}@[a-z0-9.-]+\\.[a-z]{2,}|xn--[a-z0-9]{2,}$")
 const val WELL_KNOWN_URI = ".well-known/mail.txt"

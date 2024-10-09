@@ -4,14 +4,17 @@ import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.core.net.toFile
 import com.mercata.pingworks.models.URLInfo
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.net.URLEncoder
 import java.nio.file.Files
+import java.security.DigestInputStream
 import java.security.MessageDigest
 import java.time.Instant
 
@@ -53,33 +56,54 @@ class FileUtils(val context: Context) {
         return null
     }
 
-    fun getFileChecksum(uri: Uri): Pair<String, ByteArray> {
-        val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
-        val sha256 = MessageDigest.getInstance("SHA-256")
 
-        val buffer = ByteArray(1024)
-        var bytesRead: Int
+    @Throws(IOException::class)
+    fun sha256fileSum(
+        uri: Uri,
+        fromOffset: Long = 0,
+        bytesCount: Int = 0
+    ): Triple<String, ByteArray, Long> {
+        var processedBytes: Long = 0
+        val bufferSize = 1024 * 1024
+        val messageDigest = MessageDigest.getInstance("SHA-256")
 
-        inputStream?.use { input ->
-            while (input.read(buffer).also { bytesRead = it } != -1) {
-                sha256.update(buffer, 0, bytesRead)
+        // Open an InputStream using ContentResolver for the given Uri
+        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            skipFully(inputStream, fromOffset) // Move to the correct offset
+
+            DigestInputStream(inputStream, messageDigest).use { dis ->
+                val buffer = ByteArray(bufferSize)
+                var bytesToRead: Long = if (bytesCount > 0) bytesCount.toLong() else Long.MAX_VALUE
+
+                while (bytesToRead > 0) {
+                    val maxReadSize = minOf(bufferSize.toLong(), bytesToRead)
+                    if (maxReadSize <= 0) break
+
+                    val bytesRead = dis.read(buffer, 0, maxReadSize.toInt())
+                    if (bytesRead == -1) break  // End of stream
+
+                    processedBytes += bytesRead
+                    bytesToRead -= bytesRead
+                }
             }
+        } ?: throw IOException("Unable to open InputStream for URI")
+
+        // Finalize the digest and convert to hex string
+        val digestBytes = messageDigest.digest()
+        val hashString = digestBytes.joinToString("") { "%02x".format(it) }
+
+        return Triple(hashString, digestBytes, processedBytes)
+    }
+
+    @Throws(IOException::class)
+    private fun skipFully(inputStream: InputStream, bytesToSkip: Long) {
+        var remaining = bytesToSkip
+        while (remaining > 0) {
+            val skipped = inputStream.skip(remaining)
+            if (skipped <= 0) throw IOException("Failed to skip bytes in InputStream")
+            remaining -= skipped
         }
-
-        val hashBytes = sha256.digest()
-
-        return hashBytes.joinToString("") { "%02x".format(it) } to hashBytes
     }
-
-    fun getFilePartChecksum(
-        chunkBytes: ByteArray
-    ): Pair<String, ByteArray> {
-        val md = MessageDigest.getInstance("SHA-256")
-        md.update(chunkBytes)
-        val bs = md.digest()
-        return bs.joinToString("") { "%02x".format(it) } to bs
-    }
-
 
     fun encryptFilePartXChaCha20Poly1305(
         inputUri: Uri,
@@ -90,24 +114,48 @@ class FileUtils(val context: Context) {
         context.contentResolver.openInputStream(inputUri)?.use { stream ->
             // Skip to the specified offset
             stream.skip(offset)
+
             val encrypted = ByteArray(bytesCount.toInt())
 
-            val bufferSize = 1024
-            val buffer = ByteArray(bufferSize)
-
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
 
             var offsetRead = 0
-
             var byteRead: Int
 
-                                                         //TODO check <=
-            while ((stream.read(buffer).also { byteRead = it }) < bytesCount.toInt()) {
-                encrypt_xchacha20poly1305(buffer, secretKey)?.let { src ->
-                    System.arraycopy(src, 0, encrypted, offsetRead, src.size)
+            // Read until we've read bytesCount or reached the end of the stream
+            while (offsetRead < bytesCount) {
+                val bytesToRead = minOf(DEFAULT_BUFFER_SIZE, (bytesCount - offsetRead).toInt())
+                byteRead = stream.read(buffer, 0, bytesToRead)
+
+                if (byteRead == -1) break  // End of stream
+
+                // Encrypt only the bytes read
+                val src = encrypt_xchacha20poly1305(buffer.copyOfRange(0, byteRead), secretKey)
+
+                assert(
+                    buffer.copyOfRange(0, byteRead)
+                        .contentEquals(
+                            decrypt_xchacha20poly1305(
+                                cipherBytes = src!!,
+                                accessKey = secretKey
+                            )
+                        )
+                )
+
+                Log.i("FileUtils", "Buffer: ${buffer.copyOfRange(0, byteRead).joinToString(", ")}")
+
+                src.let {
+                    // Ensure we don't exceed the bounds of the 'encrypted' array
+                    if (offsetRead + byteRead > encrypted.size) {
+                        throw IndexOutOfBoundsException("Encrypted data exceeds expected size.")
+                    }
+                    System.arraycopy(it, 0, encrypted, offsetRead, byteRead)
                 }
+
                 offsetRead += byteRead
             }
-
+            Log.i("FileUtils", "Unencrypted: ${stream.readBytes().joinToString(", ")}")
+            Log.i("FileUtils", "Secret key: $secretKey")
             return encrypted
         }
 

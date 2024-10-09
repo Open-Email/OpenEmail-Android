@@ -36,10 +36,7 @@ data class DBAttachment(
         other as DBAttachment
 
         if (attachmentMessageId != other.attachmentMessageId) return false
-        if (accessKey != null) {
-            if (other.accessKey == null) return false
-            if (!accessKey.contentEquals(other.accessKey)) return false
-        } else if (other.accessKey != null) return false
+        if (!accessKey.contentEquals(other.accessKey)) return false
         if (authorAddress != other.authorAddress) return false
         if (parentId != other.parentId) return false
         if (name != other.name) return false
@@ -55,7 +52,7 @@ data class DBAttachment(
 
     override fun hashCode(): Int {
         var result = attachmentMessageId.hashCode()
-        result = 31 * result + (accessKey?.contentHashCode() ?: 0)
+        result = 31 * result + accessKey.contentHashCode()
         result = 31 * result + authorAddress.hashCode()
         result = 31 * result + parentId.hashCode()
         result = 31 * result + name.hashCode()
@@ -67,5 +64,4 @@ data class DBAttachment(
         result = 31 * result + createdTimestamp.hashCode()
         return result
     }
-
 }

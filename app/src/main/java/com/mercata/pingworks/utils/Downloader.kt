@@ -76,31 +76,25 @@ class Downloader(val context: Context) {
                     }
                     file.createNewFile()
 
-                    val buffer = ByteArray(1024) // 1KB buffer
+                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
 
                     var bytesRead: Int
-                    val outputStream = ByteArrayOutputStream()
                     while (stream.read(buffer).also { bytesRead = it } != -1) {
-                        outputStream.write(buffer, 0, bytesRead)
+                        file.writeBytes(
+                            if (attachment.accessKey == null) {
+                                buffer.sliceArray(0..<bytesRead)
+                            } else {
+                                decrypt_xchacha20poly1305(
+                                    buffer.sliceArray(0..<bytesRead),
+                                    attachment.accessKey
+                                )
+                            }
+                        )
                         bytesCopied += bytesRead
 
                         emit(AttachmentResult(null, (bytesCopied / onePercent).toInt()))
                     }
 
-                    val allBytes = outputStream.toByteArray()
-
-                    file.writeBytes(
-                        if (attachment.accessKey == null) {
-                            allBytes
-                        } else {
-                            decrypt_xchacha20poly1305(
-                                allBytes,
-                                attachment.accessKey
-                            )
-                        }
-                    )
-
-                    outputStream.close()
                     emit(AttachmentResult(file, 100))
                 }
             }

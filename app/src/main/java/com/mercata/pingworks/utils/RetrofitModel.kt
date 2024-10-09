@@ -458,7 +458,7 @@ suspend fun uploadPrivateMessage(
                         modifiedAtTimestamp = urlInfo.modifiedAt.toEpochMilli(),
                         partNumber = 1,
                         partSize = urlInfo.size,
-                        checkSum = fileUtils.getFileChecksum(uri).first,
+                        checkSum = fileUtils.sha256fileSum(uri).first,
                         offset = null,
                         totalParts = 1,
                         sendingDateTimestamp = sendingDate.toEpochMilli(),
@@ -478,8 +478,7 @@ suspend fun uploadPrivateMessage(
                     while (inputStream.read(buffer).also { bytesRead = it } != -1) {
 
                         val partMessageId = currentUser.newMessageId()
-                        val bytesChecksum =
-                            fileUtils.getFilePartChecksum(buffer.sliceArray(offset.toInt()..<bytesRead))
+                        val bytesChecksum = fileUtils.sha256fileSum(uri, offset, bytesRead)
                         fileParts.add(
                             DBPendingAttachment(
                                 messageId = partMessageId,
@@ -505,10 +504,15 @@ suspend fun uploadPrivateMessage(
             }
         }
 
+        //TODO remove
+        /*fileParts.forEach {
+            uploadPrivateFileMessage(currentUser, it, listOf(), fileUtils)
+        }*/
+
+        //TODO uncomment
         db.pendingMessagesDao().insert(pendingRootMessage)
         db.pendingAttachmentsDao().insertAll(fileParts)
-        db.pendingReadersDao()
-            .insertAll(accessProfiles.map { it.toDBPendingReaderPublicData(rootMessageId) })
+        db.pendingReadersDao().insertAll(accessProfiles.map { it.toDBPendingReaderPublicData(rootMessageId) })
 
         uploadPendingMessages(currentUser, db, fileUtils)
     }
@@ -646,8 +650,8 @@ private suspend fun uploadPrivateFileMessage(
     val envelopeHeadersMap =
         pendingAttachment.getContentHeaders(
             currentUser.address,
-            readers)
-            .seal(accessKey, pendingAttachment.messageId, accessLinks, currentUser)
+            readers
+        ).seal(accessKey, pendingAttachment.messageId, accessLinks, currentUser)
 
     val urlInfo = pendingAttachment.getUrlInfo()
 
@@ -679,8 +683,7 @@ suspend fun saveMessagesToDb(
 
             val saved = messagesDao.getAll()
 
-            val newResults =
-                results.filterNot { envelope -> saved.any { dbMessage -> dbMessage.messageId == envelope.messageId } }
+            val newResults = results.filterNot { envelope -> saved.any { dbMessage -> dbMessage.messageId == envelope.messageId } }
 
             val removed =
                 saved.filterNot { dbMessage -> results.any { envelope -> envelope.messageId == dbMessage.messageId } }
@@ -696,7 +699,9 @@ suspend fun saveMessagesToDb(
 
             val attachments: List<DBAttachment> = rootMessages.map { root ->
                 val headers = root.first.contentHeaders
-                headers.fileParts?.map { fileInfo ->
+                headers.fileParts?.filter { fileInfo ->
+                    attachmentEnvelopes.firstOrNull { it.messageId == fileInfo.messageId }?.accessKey != null
+                }?.map { fileInfo ->
                     DBAttachment(
                         attachmentMessageId = fileInfo.messageId,
                         authorAddress = root.first.contact.address,
@@ -704,13 +709,10 @@ suspend fun saveMessagesToDb(
                         name = fileInfo.urlInfo.name,
                         type = fileInfo.urlInfo.mimeType,
                         fileSize = fileInfo.size,
-
-                        //TODO
                         partSize = fileInfo.size,
-
                         partIndex = fileInfo.part,
                         partsAmount = fileInfo.totalParts,
-                        accessKey = attachmentEnvelopes.firstOrNull { it.messageId == fileInfo.messageId }?.accessKey,
+                        accessKey = attachmentEnvelopes.first { it.messageId == fileInfo.messageId }.accessKey,
                         createdTimestamp = fileInfo.urlInfo.modifiedAt.toEpochMilli(),
                     )
                 } ?: listOf()
