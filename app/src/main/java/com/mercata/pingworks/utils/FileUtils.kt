@@ -1,6 +1,5 @@
 package com.mercata.pingworks.utils
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
@@ -9,7 +8,6 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toFile
 import com.mercata.pingworks.BUFFER_SIZE
 import com.mercata.pingworks.models.URLInfo
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -22,23 +20,6 @@ import java.time.Instant
 
 class FileUtils(val context: Context) {
 
-    fun getBytesFromUri(uri: Uri): ByteArray {
-        val inputStream = context.contentResolver.openInputStream(uri)
-        val byteBuffer = ByteArrayOutputStream()
-
-        val bufferSize = 1024
-        val buffer = ByteArray(bufferSize)
-
-        var len: Int
-
-        while ((inputStream!!.read(buffer).also { len = it }) != -1) {
-            byteBuffer.write(buffer, 0, len)
-        }
-
-        val result = byteBuffer.toByteArray()
-        inputStream.close()
-        return result
-    }
 
     fun getUriForFile(file: File): Uri {
         return FileProvider.getUriForFile(

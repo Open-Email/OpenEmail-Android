@@ -2,6 +2,8 @@ package com.mercata.pingworks.utils
 
 import android.content.Context
 import android.util.Log
+import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_ABYTES
+import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_NPUBBYTES
 import com.mercata.pingworks.BUFFER_SIZE
 import com.mercata.pingworks.db.attachments.DBAttachment
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
@@ -71,30 +73,48 @@ class Downloader(val context: Context) {
 
                     var bytesCopied = 0L
                     val onePercent = attachment.fileSize / 100
+
+                    val buffer = ByteArray(BUFFER_SIZE)
+
+                    var bytesRead: Int
+
+                    //TODO check unencrypted broadcast attachments
+                    //TODO combine multipart attachments
+                    val encryptedByteArraySize =
+                        if (attachment.accessKey == null) {
+                            attachment.fileSize.toInt()
+                        } else {
+                            attachment.fileSize.toInt() + XCHACHA20POLY1305_IETF_NPUBBYTES + XCHACHA20POLY1305_IETF_ABYTES
+                        }
+                    val encrypted = ByteArray(encryptedByteArraySize)
+
+                    while (stream.read(buffer).also { bytesRead = it } != -1) {
+                        System.arraycopy(
+                            buffer.copyOfRange(0, bytesRead),
+                            0,
+                            encrypted,
+                            bytesCopied.toInt(),
+                            bytesRead
+                        )
+
+                        bytesCopied += bytesRead
+
+                        //TODO emit multipart progress
+                        emit(AttachmentResult(null, (bytesCopied / onePercent).toInt()))
+                    }
+
+                    val decrypted = if (attachment.accessKey == null) {
+                        encrypted
+                    } else {
+                        decrypt_xchacha20poly1305(encrypted, attachment.accessKey)
+                    }
+
                     val file = File(folder, attachment.name)
                     if (file.exists()) {
                         file.delete()
                     }
                     file.createNewFile()
-
-                    val buffer = ByteArray(BUFFER_SIZE)
-
-                    var bytesRead: Int
-                    while (stream.read(buffer).also { bytesRead = it } != -1) {
-                        file.writeBytes(
-                            if (attachment.accessKey == null) {
-                                buffer.sliceArray(0..<bytesRead)
-                            } else {
-                                decrypt_xchacha20poly1305(
-                                    buffer.sliceArray(0..<bytesRead),
-                                    attachment.accessKey
-                                )
-                            }
-                        )
-                        bytesCopied += bytesRead
-
-                        emit(AttachmentResult(null, (bytesCopied / onePercent).toInt()))
-                    }
+                    file.writeBytes(decrypted)
 
                     emit(AttachmentResult(file, 100))
                 }
