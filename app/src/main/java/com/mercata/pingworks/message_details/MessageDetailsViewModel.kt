@@ -8,8 +8,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.db.AppDatabase
-import com.mercata.pingworks.db.attachments.DBAttachment
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
+import com.mercata.pingworks.db.messages.FusedAttachment
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.SharedPreferences
@@ -36,28 +36,28 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
                     currentUser = sp.getUserData(),
                 )
             )
-            currentState.downloadingAttachments.clear()
-            currentState.downloadingAttachments.putAll(dl.getDownloadedAttachmentsForMessage(message))
+            currentState.attachmentsWithStatus.clear()
+            currentState.attachmentsWithStatus.putAll(dl.getDownloadedAttachmentsForMessage(message))
         }
     }
 
     private val downloader: Downloader by inject()
 
-    fun downloadFile(attachment: DBAttachment) {
-        currentState.downloadingAttachments[attachment] = Downloader.AttachmentResult(null, 0)
+    fun downloadFile(attachment: FusedAttachment) {
+        currentState.attachmentsWithStatus[attachment] = Downloader.AttachmentResult(null, 0)
         viewModelScope.launch(Dispatchers.IO) {
             downloader.downloadAttachment(sp.getUserData()!!, attachment)
                 .collect { result ->
-                    currentState.downloadingAttachments[attachment] = result
+                    currentState.attachmentsWithStatus[attachment] = result
                 }
         }
     }
 
-    fun share(uri: Uri, attachment: DBAttachment) {
+    fun share(uri: Uri, attachment: FusedAttachment) {
         val sendIntent: Intent = Intent().apply {
             action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_STREAM, uri)
-            type = attachment.type
+            type = attachment.fileType
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
@@ -74,5 +74,5 @@ data class MessageDetailsState(
     val shareIntent: Intent? = null,
     val message: DBMessageWithDBAttachments? = null,
     val currentUser: UserData? = null,
-    val downloadingAttachments: SnapshotStateMap<DBAttachment, Downloader.AttachmentResult> = mutableStateMapOf()
+    val attachmentsWithStatus: SnapshotStateMap<FusedAttachment, Downloader.AttachmentResult> = mutableStateMapOf()
 )

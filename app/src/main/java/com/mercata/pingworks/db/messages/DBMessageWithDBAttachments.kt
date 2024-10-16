@@ -12,10 +12,17 @@ data class DBMessageWithDBAttachments(
         parentColumn = "message_id",
         entityColumn = "parent_id"
     )
-    val attachments: List<DBAttachment>
+    val attachmentParts: List<DBAttachment>
 ) : HomeItem {
     override fun getContacts() = message.author?.toPublicUserData()?.let { listOf(it) } ?: listOf()
     override fun getSubject() = message.message.subject
     override fun getTextBody() = message.message.textBody
     override fun getMessageId() = message.message.messageId
+
+    fun getAttachments(): List<FusedAttachment> =
+        attachmentParts.groupBy { dbAttachment -> dbAttachment.name }.map { multipart ->
+            FusedAttachment(multipart.key, multipart.value.first().fileSize, multipart.value.first().type, multipart.value)
+        }
 }
+
+data class FusedAttachment(val name: String, val fileSize: Long, val fileType: String, val parts: List<DBAttachment>)

@@ -69,7 +69,7 @@ import com.mercata.pingworks.DEFAULT_DATE_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
-import com.mercata.pingworks.db.attachments.DBAttachment
+import com.mercata.pingworks.db.messages.FusedAttachment
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloaded
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloading
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.NotDownloaded
@@ -252,7 +252,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                     ),
                 text = message?.textBody ?: ""
             )
-            messageWithAttachments?.attachments?.takeIf { it.isNotEmpty() }?.let { attachments ->
+            messageWithAttachments?.getAttachments()?.takeIf { it.isNotEmpty() }?.let { attachments ->
                 Column {
                     Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                     Text(
@@ -280,11 +280,11 @@ fun SharedTransitionScope.MessageDetailsScreen(
 @Composable
 fun AttachmentViewHolder(
     modifier: Modifier = Modifier,
-    attachment: DBAttachment,
+    attachment: FusedAttachment,
     state: MessageDetailsState,
     viewModel: MessageDetailsViewModel
 ) {
-    val type = attachment.type.lowercase()
+    val type = attachment.fileType.lowercase()
     val imageResource = if (type.contains("pdf")) {
         R.drawable.pdf
     } else if (type.contains("image")) {
@@ -297,10 +297,10 @@ fun AttachmentViewHolder(
         R.drawable.file
     }
 
-    val status = if (state.downloadingAttachments[attachment] == null) {
+    val status = if (state.attachmentsWithStatus[attachment] == null) {
         NotDownloaded
     } else {
-        if (state.downloadingAttachments[attachment]!!.file == null) {
+        if (state.attachmentsWithStatus[attachment]!!.file == null) {
             Downloading
         } else {
             Downloaded
@@ -322,7 +322,7 @@ fun AttachmentViewHolder(
                             FileProvider.getUriForFile(
                                 context,
                                 "${BuildConfig.APPLICATION_ID}.fileprovider",
-                                state.downloadingAttachments[attachment]?.file!!
+                                state.attachmentsWithStatus[attachment]?.file!!
                             )
                         viewModel.share(contentUri, attachment)
                     }
@@ -371,7 +371,7 @@ fun AttachmentViewHolder(
             Downloading -> {
                 CircularProgressIndicator(
                     modifier = modifier.size(CONTACT_LIST_ITEM_IMAGE_SIZE),
-                    progress = { state.downloadingAttachments[attachment]!!.percentage / 100f })
+                    progress = { state.attachmentsWithStatus[attachment]!!.percentage / 100f })
             }
         }
 
