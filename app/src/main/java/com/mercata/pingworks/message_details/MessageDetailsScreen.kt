@@ -252,27 +252,28 @@ fun SharedTransitionScope.MessageDetailsScreen(
                     ),
                 text = message?.textBody ?: ""
             )
-            messageWithAttachments?.getAttachments()?.takeIf { it.isNotEmpty() }?.let { attachments ->
-                Column {
-                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                    Text(
-                        text = stringResource(id = R.string.attachments_label),
-                        modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
-                        maxLines = 1,
-                        style = MaterialTheme.typography.bodyMedium,
-                        overflow = TextOverflow.Ellipsis,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    attachments.map { attachment ->
-                        AttachmentViewHolder(
-                            modifier = modifier,
-                            attachment = attachment,
-                            viewModel = viewModel,
-                            state = state,
+            messageWithAttachments?.getAttachments()?.takeIf { it.isNotEmpty() }
+                ?.let { attachments ->
+                    Column {
+                        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                        Text(
+                            text = stringResource(id = R.string.attachments_label),
+                            modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                            maxLines = 1,
+                            style = MaterialTheme.typography.bodyMedium,
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = FontWeight.Bold,
                         )
+                        attachments.map { attachment ->
+                            AttachmentViewHolder(
+                                modifier = modifier,
+                                attachment = attachment,
+                                viewModel = viewModel,
+                                state = state,
+                            )
+                        }
                     }
                 }
-            }
         }
     }
 }
@@ -369,9 +370,13 @@ fun AttachmentViewHolder(
             }
 
             Downloading -> {
-                CircularProgressIndicator(
-                    modifier = modifier.size(CONTACT_LIST_ITEM_IMAGE_SIZE),
-                    progress = { state.attachmentsWithStatus[attachment]!!.percentage / 100f })
+                if (state.attachmentsWithStatus[attachment]!!.percentage == -2) {
+                    CircularProgressIndicator(modifier = modifier.size(CONTACT_LIST_ITEM_IMAGE_SIZE))
+                } else {
+                    CircularProgressIndicator(
+                        modifier = modifier.size(CONTACT_LIST_ITEM_IMAGE_SIZE),
+                        progress = { state.attachmentsWithStatus[attachment]!!.percentage / 100f })
+                }
             }
         }
 
