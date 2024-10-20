@@ -414,18 +414,26 @@ suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: Download
     }
 }
 
-suspend fun uploadPrivateMessage(
+suspend fun uploadMessage(
     composingData: ComposingData,
     fileUtils: FileUtils,
     currentUser: UserData,
     currentUserPublicData: PublicUserData,
-    db: AppDatabase
+    db: AppDatabase,
+    isBroadcast: Boolean
 ) {
     withContext(Dispatchers.IO) {
         val rootMessageId = currentUser.newMessageId()
         val sendingDate = Instant.now()
         val accessProfiles =
-            arrayListOf(currentUserPublicData).apply { addAll(composingData.recipients) }
+            if (isBroadcast)
+                null
+            else
+                arrayListOf(currentUserPublicData).apply {
+                    addAll(
+                        composingData.recipients
+                    )
+                }
 
         val pendingRootMessage = DBPendingRootMessage(
             messageId = rootMessageId,
@@ -436,7 +444,7 @@ suspend fun uploadPrivateMessage(
             size = composingData.body.toByteArray().size.toLong(),
             authorAddress = currentUser.address,
             textBody = composingData.body,
-            isBroadcast = false
+            isBroadcast = isBroadcast
         )
 
         val fileParts = arrayListOf<DBPendingAttachment>()
@@ -462,7 +470,8 @@ suspend fun uploadPrivateMessage(
                         offset = null,
                         totalParts = 1,
                         sendingDateTimestamp = sendingDate.toEpochMilli(),
-                        subject = composingData.subject
+                        subject = composingData.subject,
+                        isBroadcast = isBroadcast
                     )
                 )
             } else {
@@ -494,7 +503,8 @@ suspend fun uploadPrivateMessage(
                                 offset = offset,
                                 totalParts = totalParts.toInt(),
                                 sendingDateTimestamp = sendingDate.toEpochMilli(),
-                                subject = composingData.subject
+                                subject = composingData.subject,
+                                isBroadcast = isBroadcast
                             )
                         )
                         offset += bytesRead
@@ -506,8 +516,10 @@ suspend fun uploadPrivateMessage(
 
         db.pendingMessagesDao().insert(pendingRootMessage)
         db.pendingAttachmentsDao().insertAll(fileParts)
-        db.pendingReadersDao().insertAll(accessProfiles.map { it.toDBPendingReaderPublicData(rootMessageId) })
-
+        if (!isBroadcast) {
+            db.pendingReadersDao()
+                .insertAll(accessProfiles!!.map { it.toDBPendingReaderPublicData(rootMessageId) })
+        }
         uploadPendingMessages(currentUser, db, fileUtils)
     }
 }
@@ -526,7 +538,7 @@ suspend fun uploadPendingMessages(currentUser: UserData, db: AppDatabase, fileUt
                                 messageId = pendingMessage.message.messageId,
                                 isAttachment = false,
                                 result = safeApiCall {
-                                    uploadPrivateRootMessage(
+                                    uploadRootMessage(
                                         pendingRootMessage = pendingMessage.message,
                                         recipients = pendingMessage.readers,
                                         content = pendingMessage.getRootContentHeaders(),
@@ -542,7 +554,7 @@ suspend fun uploadPendingMessages(currentUser: UserData, db: AppDatabase, fileUt
                                     messageId = part.messageId,
                                     isAttachment = true,
                                     result = safeApiCall {
-                                        uploadPrivateFileMessage(
+                                        uploadFileMessage(
                                             currentUser = currentUser,
                                             pendingAttachment = part,
                                             readers = pendingMessage.readers,
@@ -603,7 +615,7 @@ data class UploadResult(
     val result: HttpResult<Void>
 )
 
-private suspend fun uploadPrivateRootMessage(
+private suspend fun uploadRootMessage(
     pendingRootMessage: DBPendingRootMessage,
     recipients: List<DBPendingReaderPublicData>,
     content: ContentHeaders,
@@ -614,12 +626,22 @@ private suspend fun uploadPrivateRootMessage(
     val accessLinks = recipients.generateAccessLinks(accessKey)
 
     val envelopeHeadersMap =
-        content.seal(accessKey, content.messageID, accessLinks, currentUser)
+        content.seal(
+            accessKey,
+            content.messageID,
+            accessLinks,
+            currentUser,
+            pendingRootMessage.isBroadcast
+        )
 
-    val sealedBody = encrypt_xchacha20poly1305(
-        secretKey = accessKey,
-        message = pendingRootMessage.textBody.toByteArray()
-    )
+    val sealedBody =
+        if (pendingRootMessage.isBroadcast)
+            pendingRootMessage.textBody.toByteArray()
+        else
+            encrypt_xchacha20poly1305(
+                secretKey = accessKey,
+                message = pendingRootMessage.textBody.toByteArray()
+            )
 
     return getInstance("https://${currentUser.address.getMailHost()}").uploadMessageFile(
         sotnHeader = currentUser.sign(),
@@ -631,11 +653,11 @@ private suspend fun uploadPrivateRootMessage(
     )
 }
 
-private suspend fun uploadPrivateFileMessage(
+private suspend fun uploadFileMessage(
     currentUser: UserData,
     pendingAttachment: DBPendingAttachment,
     readers: List<DBPendingReaderPublicData>,
-    fileUtils: FileUtils
+    fileUtils: FileUtils,
 ): Response<Void> {
     val accessKey = generateRandomBytes(32)
 
@@ -645,16 +667,30 @@ private suspend fun uploadPrivateFileMessage(
         pendingAttachment.getContentHeaders(
             currentUser.address,
             readers
-        ).seal(accessKey, pendingAttachment.messageId, accessLinks, currentUser)
+        ).seal(
+            accessKey,
+            pendingAttachment.messageId,
+            accessLinks,
+            currentUser,
+            pendingAttachment.isBroadcast
+        )
 
     val urlInfo = pendingAttachment.getUrlInfo()
 
-    val encryptedData = fileUtils.encryptFilePartXChaCha20Poly1305(
-        inputUri = urlInfo.uri!!,
-        secretKey = accessKey,
-        bytesCount = pendingAttachment.partSize,
-        offset = pendingAttachment.offset ?: 0
-    )!!
+    val encryptedData =
+        if (pendingAttachment.isBroadcast)
+            fileUtils.getAllBytesForUri(
+                uri = urlInfo.uri!!,
+                offset = pendingAttachment.offset ?: 0,
+                bytesCount = pendingAttachment.partSize
+            )
+        else
+            fileUtils.encryptFilePartXChaCha20Poly1305(
+                inputUri = urlInfo.uri!!,
+                secretKey = accessKey,
+                bytesCount = pendingAttachment.partSize,
+                offset = pendingAttachment.offset ?: 0
+            )!!
 
     return getInstance("https://${currentUser.address.getMailHost()}").uploadMessageFile(
         sotnHeader = currentUser.sign(),
@@ -662,7 +698,7 @@ private suspend fun uploadPrivateFileMessage(
         headers = envelopeHeadersMap.filter { it.key.startsWith(HEADER_PREFIX) },
         hostPart = currentUser.address.getHost(),
         localPart = currentUser.address.getLocal(),
-        file = encryptedData.toRequestBody("application/octet-stream".toMediaTypeOrNull())
+        file = encryptedData!!.toRequestBody("application/octet-stream".toMediaTypeOrNull())
     )
 }
 
@@ -677,7 +713,8 @@ suspend fun saveMessagesToDb(
 
             val saved = messagesDao.getAll()
 
-            val newResults = results.filterNot { envelope -> saved.any { dbMessage -> dbMessage.messageId == envelope.messageId } }
+            val newResults =
+                results.filterNot { envelope -> saved.any { dbMessage -> dbMessage.messageId == envelope.messageId } }
 
             val removed =
                 saved.filterNot { dbMessage -> results.any { envelope -> envelope.messageId == dbMessage.messageId } }

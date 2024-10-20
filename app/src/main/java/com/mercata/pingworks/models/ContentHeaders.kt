@@ -26,7 +26,7 @@ data class ContentHeaders(
     val size: Long,
     val checksum: String,
     val authorAddress: Address,
-    val readersAddresses: List<Address>,
+    val readersAddresses: List<Address>?,
 ) {
     private val filesHeader: String?
     val contentHeadersText: String
@@ -38,10 +38,14 @@ data class ContentHeaders(
         HEADER_CONTENT_CATEGORY to MessageCategory.personal.toString(),
         HEADER_CONTENT_DATE to date.toServerFormatString(),
         HEADER_CONTENT_SUBJECT to subject,
-        HEADER_CONTENT_READERS to readersAddresses.filterNot { it == authorAddress }.joinToString(separator = ", "),
+
     )
 
     init {
+        readersAddresses?.let {
+            HEADER_CONTENT_READERS to readersAddresses.filterNot { it == authorAddress }.joinToString(separator = ", ")
+        }
+
         parentId?.let {
             contentHeadersMap[HEADER_CONTENT_SUBJECT_ID] = parentId
             contentHeadersMap[HEADER_CONTENT_PARENT_ID] = parentId
@@ -52,7 +56,6 @@ data class ContentHeaders(
         filesHeader = fileParts?.joinToString(", ") { serializeMessageFileInfo(it) }?.takeIf { it.isNotBlank() }?.also {
             contentHeadersMap[HEADER_CONTENT_FILES] = it
         }
-
 
         contentHeadersText =
             contentHeadersMap.entries.joinToString("\n") { "${it.key}: ${it.value}" }

@@ -55,7 +55,8 @@ fun ContentHeaders.seal(
     accessKey: ByteArray,
     messageId: String,
     accessLinks: String,
-    currentUser: UserData
+    currentUser: UserData,
+    isBroadcast: Boolean
 ): Map<String, String> {
 
     val contentHeaderBytes = encrypt_xchacha20poly1305(
@@ -63,11 +64,25 @@ fun ContentHeaders.seal(
         accessKey
     )!!
     val envelopeHeadersMap = hashMapOf(
-        HEADER_MESSAGE_ID to messageId,
-        HEADER_MESSAGE_ENCRYPTION to "algorithm=$SYMMETRIC_CIPHER",
-        HEADER_MESSAGE_ACCESS to accessLinks,
-        HEADER_MESSAGE_HEADERS to "algorithm=$SYMMETRIC_CIPHER; value=${contentHeaderBytes.encodeToBase64()}"
+        HEADER_MESSAGE_ID to messageId
     )
+
+    if (isBroadcast) {
+        envelopeHeadersMap.putAll(
+            listOf(
+                HEADER_MESSAGE_HEADERS to "value=${contentHeaderBytes.encodeToBase64()}"
+            )
+        )
+    } else {
+        envelopeHeadersMap.putAll(
+            listOf(
+                HEADER_MESSAGE_ID to messageId,
+                HEADER_MESSAGE_ENCRYPTION to "algorithm=$SYMMETRIC_CIPHER",
+                HEADER_MESSAGE_ACCESS to accessLinks,
+                HEADER_MESSAGE_HEADERS to "algorithm=$SYMMETRIC_CIPHER; value=${contentHeaderBytes.encodeToBase64()}"
+            )
+        )
+    }
 
     val entries = envelopeHeadersMap.entries.asSequence().sortedBy { it.key }
 

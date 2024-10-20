@@ -160,7 +160,7 @@ fun SharedTransitionScope.ComposingScreen(
                         }
                     },
                     actions = {
-                        IconButton(enabled = !state.loading && state.recipients.isNotEmpty(),
+                        IconButton(enabled = (!state.loading && state.recipients.isNotEmpty()) || state.broadcast,
                             onClick = {
                                 focusManager.clearFocus()
                                 viewModel.send()

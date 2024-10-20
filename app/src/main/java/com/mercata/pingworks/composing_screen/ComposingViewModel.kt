@@ -19,7 +19,7 @@ import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
 import com.mercata.pingworks.utils.syncAllMessages
-import com.mercata.pingworks.utils.uploadPrivateMessage
+import com.mercata.pingworks.utils.uploadMessage
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -106,7 +106,7 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
             updateState(currentState.copy(loading = false))
 
             GlobalScope.launch {
-                uploadPrivateMessage(
+                uploadMessage(
                     composingData = ComposingData(
                         recipients = currentState.recipients,
                         subject = currentState.subject,
@@ -116,7 +116,8 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
                     fileUtils = fileUtils,
                     currentUser = sp.getUserData()!!,
                     currentUserPublicData = sp.getPublicUserData()!!,
-                    db = db
+                    db = db,
+                    isBroadcast = currentState.broadcast
                 )
                 syncAllMessages(db, sp, dl)
             }

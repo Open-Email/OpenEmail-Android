@@ -27,6 +27,7 @@ data class DBPendingAttachment(
     @ColumnInfo("checkSum") val checkSum: String,
     @ColumnInfo("offset") val offset: Long?,
     @ColumnInfo("total_parts") val totalParts: Int,
+    @ColumnInfo("is_broadcast") val isBroadcast: Boolean,
 ) {
     fun getUrlInfo() = URLInfo(
         uri = Uri.parse(uri),

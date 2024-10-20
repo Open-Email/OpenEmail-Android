@@ -49,6 +49,6 @@ data class DBPendingMessage(
         size = message.size,
         checksum = message.checksum,
         authorAddress = message.authorAddress,
-        readersAddresses = readers.map { it.address }
+        readersAddresses = if (message.isBroadcast) null else readers.map { it.address }
     )
 }
