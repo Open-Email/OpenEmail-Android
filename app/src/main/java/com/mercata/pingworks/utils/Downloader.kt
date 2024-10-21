@@ -38,7 +38,7 @@ class Downloader(val context: Context) {
         messageWithDBAttachments.getAttachments().forEach { attachment ->
             downloaded.firstOrNull { file -> file.name == attachment.name && file.length() == attachment.fileSize }
                 ?.let { file ->
-                    rv[attachment] = AttachmentResult(file, 100)
+                    rv[attachment] = AttachmentResult(file, Progress(100))
                 }
         }
         return rv
@@ -52,8 +52,6 @@ class Downloader(val context: Context) {
             File(folder, attachment.name).delete()
         }
     }
-
-    data class AttachmentResult(val file: File?, val percentage: Int)
 
     //emits -1 on error
     fun downloadAttachment(
@@ -72,7 +70,7 @@ class Downloader(val context: Context) {
             }) {
                 is HttpResult.Error -> {
                     Log.e("DOWNLOAD FILE", call.message ?: call.code.toString())
-                    emit(AttachmentResult(null, -1))
+                    emit(AttachmentResult(null, Error()))
                 }
 
                 is HttpResult.Success -> {
@@ -85,7 +83,7 @@ class Downloader(val context: Context) {
             emit(
                 AttachmentResult(
                     null,
-                    -2
+                    Indefinite()
                 )
             )
 
@@ -136,7 +134,7 @@ class Downloader(val context: Context) {
             }
 
             if (decryptedParts.contains(null)) {
-                emit(AttachmentResult(null, -1))
+                emit(AttachmentResult(null, Error()))
                 return@flow
             }
 
@@ -154,34 +152,7 @@ class Downloader(val context: Context) {
                     it?.delete()
                 }
             }
-            emit(AttachmentResult(fusedFile, 100))
-
-
-            //TODO remove
-            /*val resolver = context.contentResolver
-            val contentValues = ContentValues().apply {
-                put(MediaStore.Video.Media.DISPLAY_NAME, fusedFile.name)
-                put(MediaStore.Video.Media.MIME_TYPE, "video/x-msvideo")
-                put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_MOVIES)
-            }
-            val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
-
-            uri?.let {
-                resolver.openOutputStream(uri).use { outputStream ->
-                    fusedFile.inputStream().use { inputStream ->
-                        val buffer = ByteArray(1024 * 1024) // Buffer size of 1 MB
-                        var bytesRead: Int
-
-                        // Read from the source and write to the output stream in chunks
-                        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                            outputStream?.write(buffer, 0, bytesRead)
-                        }
-                    }
-                }
-                Log.d("FileCopy", "Video copied successfully to Movies directory.")
-            } ?: run {
-                Log.e("FileCopy", "Failed to create URI in MediaStore.")
-            }*/
+            emit(AttachmentResult(fusedFile, Progress(100)))
         }
     }.flowOn(Dispatchers.IO)
 
@@ -207,7 +178,6 @@ class Downloader(val context: Context) {
 
             var bytesRead: Int
 
-            //TODO check unencrypted broadcast attachments
             val encryptedByteArraySize =
                 if (attachment.accessKey == null) {
                     attachment.fileSize.toInt()
@@ -227,7 +197,7 @@ class Downloader(val context: Context) {
 
                 bytesCopied += bytesRead
 
-                emit(AttachmentResult(null, (bytesCopied / onePercent).toInt()))
+                emit(AttachmentResult(null, Progress((bytesCopied / onePercent).toInt())))
             }
 
             val decrypted = if (attachment.accessKey == null || !decrypt) {
@@ -251,7 +221,7 @@ class Downloader(val context: Context) {
             }
             file.createNewFile()
             file.writeBytes(decrypted)
-            emit(AttachmentResult(file, 100))
+            emit(AttachmentResult(file, Progress(100)))
         }.flowOn(Dispatchers.IO)
 
     suspend fun downloadMessagesPayload(
@@ -306,3 +276,9 @@ class Downloader(val context: Context) {
         }
     }
 }
+
+abstract class DownloadStatus(val percent: Int?)
+class Error: DownloadStatus(null)
+class Progress(percent: Int): DownloadStatus(percent)
+class Indefinite: DownloadStatus(null)
+data class AttachmentResult(val file: File?, val status: DownloadStatus)

@@ -135,13 +135,13 @@ fun SharedTransitionScope.ContactDetailsScreen(
                 Icon(
                     painter = painterResource(id = R.drawable.cast),
                     contentDescription = stringResource(
-                        id = R.string.receive_proadcasts
+                        id = R.string.receive_broadcasts
                     ),
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = modifier.width(MARGIN_DEFAULT))
                 Text(
-                    stringResource(id = R.string.receive_proadcasts),
+                    stringResource(id = R.string.receive_broadcasts),
                     fontFamily = bodyFontFamily,
                     softWrap = true
                 )

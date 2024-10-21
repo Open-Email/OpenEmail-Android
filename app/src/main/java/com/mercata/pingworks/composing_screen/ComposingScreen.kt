@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -85,13 +84,16 @@ import com.mercata.pingworks.ATTACHMENT_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.CHIP_HEIGHT
 import com.mercata.pingworks.CHIP_ICON_SIZE
 import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
-import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
+import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.theme.bodyFontFamily
 import com.mercata.pingworks.utils.getNameFromURI
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 @Composable
 fun SharedTransitionScope.ComposingScreen(
@@ -100,6 +102,7 @@ fun SharedTransitionScope.ComposingScreen(
     modifier: Modifier = Modifier,
     viewModel: ComposingViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val toFocusRequester = remember { FocusRequester() }
     val subjectFocusRequester = remember { FocusRequester() }
@@ -115,6 +118,28 @@ fun SharedTransitionScope.ComposingScreen(
     LaunchedEffect(state.sent) {
         if (state.sent) {
             navController.popBackStack()
+        }
+    }
+
+    LaunchedEffect(state.replyMessage) {
+        if (state.replyMessage != null) {
+
+            val time: String? = state.replyMessage?.message?.timestamp?.let {
+                ZonedDateTime.ofInstant(
+                    Instant.ofEpochMilli(it), ZoneId.systemDefault()
+                ).format(DEFAULT_DATE_TIME_FORMAT)
+            }
+
+            val reply = String.format(
+                context.getString(R.string.reply_header),
+                time,
+                state.replyMessage?.author?.name,
+                state.replyMessage?.message?.textBody,
+                state.replyMessage?.message?.subject
+            )
+
+            viewModel.updateBody(reply)
+            viewModel.consumeReplyData()
         }
     }
 
@@ -140,7 +165,7 @@ fun SharedTransitionScope.ComposingScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = state.currentUser!!.address,
+                                text = state.currentUser?.address ?: "",
                                 maxLines = 1,
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,

@@ -208,7 +208,13 @@ fun SharedTransitionScope.HomeScreen(
                                             onValueChange = {
                                                 viewModel.onSearchQuery(it)
                                             })
-                                        IconButton(onClick = { viewModel.onSearchQuery("") }) {
+                                        IconButton(onClick = {
+                                            if (state.query.isEmpty()) {
+                                                viewModel.toggleSearch()
+                                            } else {
+                                                viewModel.onSearchQuery("")
+                                            }
+                                        }) {
                                             Icon(
                                                 Icons.Rounded.Clear,
                                                 stringResource(id = R.string.clear_button),

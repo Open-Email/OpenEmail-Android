@@ -67,5 +67,7 @@
     <string name="pending">Pending</string>
     <string name="dismiss_address">Dismiss address</string>
     <string name="add_recipient">Add recipient</string>
-    <string name="receive_proadcasts">Receive broadcasts</string>
+    <string name="receive_broadcasts">Receive broadcasts</string>
+    <string name="reply_button">Reply</string>
+    <string name="reply_header">On %s %s wrote:\n<![CDATA[>]]> %s\n\n%s</string>
 </resources>

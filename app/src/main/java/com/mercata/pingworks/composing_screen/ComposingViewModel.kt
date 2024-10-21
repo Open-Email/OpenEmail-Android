@@ -7,6 +7,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
+import com.mercata.pingworks.db.AppDatabase
+import com.mercata.pingworks.db.messages.MessageWithAuthor
 import com.mercata.pingworks.models.ComposingData
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
@@ -32,13 +34,22 @@ import java.io.File
 class ComposingViewModel(savedStateHandle: SavedStateHandle) :
     AbstractViewModel<ComposingState>(
         ComposingState(
-            addressFieldText = savedStateHandle.get<String>("contactAddress") ?: ""
+            addressFieldText = savedStateHandle.get<String>("contactAddress") ?: "",
         )
     ) {
 
     init {
-        val sp: SharedPreferences by inject()
-        updateState(currentState.copy(currentUser = sp.getUserData()))
+        viewModelScope.launch {
+            val sp: SharedPreferences by inject()
+            val db: AppDatabase by inject()
+            updateState(currentState.copy(loading = true))
+
+            val replyMessage: MessageWithAuthor? = db.messagesDao().getById(savedStateHandle.get<String>("replyMessageId") ?: "")?.message
+
+            updateState(currentState.copy(loading = false, replyMessage = replyMessage, currentUser = sp.getUserData()))
+        }
+
+
     }
 
     private val fileUtils: FileUtils by inject()
@@ -176,12 +187,17 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
     fun closeUserDetails() {
         updateState(currentState.copy(openedAddressDetails = null))
     }
+
+    fun consumeReplyData() {
+        updateState(currentState.copy(replyMessage = null))
+    }
 }
 
 data class ComposingState(
     val sent: Boolean = false,
     val subject: String = "",
     val openedAddressDetails: PublicUserData? = null,
+    val replyMessage: MessageWithAuthor? = null,
     val body: String = "",
     val addressFieldText: Address = "",
     val recipients: SnapshotStateList<PublicUserData> = mutableStateListOf(),

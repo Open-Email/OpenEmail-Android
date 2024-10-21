@@ -23,7 +23,7 @@ interface MessagesDao {
     suspend fun getAllWithAttachments(): List<DBMessageWithDBAttachments>
 
     @Query("SELECT * FROM dbmessage WHERE message_id = :id")
-    suspend fun getById(id: String): DBMessageWithDBAttachments
+    suspend fun getById(id: String): DBMessageWithDBAttachments?
 
     @Query("SELECT * FROM dbmessage WHERE author_address = :address")
     suspend fun getAllForContactAddress(address: String): List<DBMessageWithDBAttachments>

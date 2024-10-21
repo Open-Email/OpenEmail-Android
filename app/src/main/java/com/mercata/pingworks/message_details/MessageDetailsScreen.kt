@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -73,6 +74,7 @@ import com.mercata.pingworks.db.messages.FusedAttachment
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloaded
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloading
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.NotDownloaded
+import com.mercata.pingworks.utils.Indefinite
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -141,13 +143,25 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         )
                     }
                 },
+                actions = {
+                    if (!state.noReply) {
+                        IconButton(onClick = {
+                            navController.navigate("ComposingScreen/${state.message?.message?.message?.authorAddress}/${state.message?.getMessageId()}")
+                        }) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.reply),
+                                contentDescription = stringResource(R.string.reply_button)
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         navController.popBackStack()
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Localized description"
+                            contentDescription = stringResource(R.string.back_button)
                         )
                     }
                 },
@@ -161,19 +175,21 @@ fun SharedTransitionScope.MessageDetailsScreen(
                 .padding(padding)
                 .padding(vertical = MARGIN_DEFAULT)
         ) {
-            Text(
-                modifier = modifier
-                    .padding(horizontal = MARGIN_DEFAULT)
-                    .sharedBounds(
-                        sharedContentState = rememberSharedContentState(
-                            key = "message_subject/${state.messageId}"
+            SelectionContainer {
+                Text(
+                    modifier = modifier
+                        .padding(horizontal = MARGIN_DEFAULT)
+                        .sharedBounds(
+                            sharedContentState = rememberSharedContentState(
+                                key = "message_subject/${state.messageId}"
+                            ),
+                            animatedVisibilityScope = animatedVisibilityScope,
                         ),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                    ),
-                text = subject,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold
-            )
+                    text = subject,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
             Spacer(modifier = modifier.height(MARGIN_DEFAULT))
 
             Row(
@@ -219,39 +235,47 @@ fun SharedTransitionScope.MessageDetailsScreen(
                 messageWithAuthor?.author?.let { author ->
                     Column {
                         author.name?.let { name ->
+                            SelectionContainer {
+                                Text(
+                                    text = name,
+                                    maxLines = 2,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        SelectionContainer {
                             Text(
-                                text = name,
+                                text = author.address,
                                 maxLines = 2,
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                        Text(
-                            text = author.address,
-                            maxLines = 2,
-                            style = MaterialTheme.typography.bodyMedium,
-                            overflow = TextOverflow.Ellipsis
-                        )
                     }
                 }
 
                 Spacer(modifier.weight(1f))
+                SelectionContainer {
+                    Text(date)
+                }
 
-                Text(date)
             }
             Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-            Text(
-                modifier = modifier
-                    .padding(horizontal = MARGIN_DEFAULT)
-                    .sharedBounds(
-                        sharedContentState = rememberSharedContentState(
-                            key = "message_body/${state.messageId}"
+            SelectionContainer {
+                Text(
+                    modifier = modifier
+                        .padding(horizontal = MARGIN_DEFAULT)
+                        .sharedBounds(
+                            sharedContentState = rememberSharedContentState(
+                                key = "message_body/${state.messageId}"
+                            ),
+                            animatedVisibilityScope = animatedVisibilityScope,
                         ),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                    ),
-                text = message?.textBody ?: ""
-            )
+                    text = message?.textBody ?: ""
+                )
+            }
             messageWithAttachments?.getAttachments()?.takeIf { it.isNotEmpty() }
                 ?.let { attachments ->
                     Column {
@@ -370,12 +394,12 @@ fun AttachmentViewHolder(
             }
 
             Downloading -> {
-                if (state.attachmentsWithStatus[attachment]!!.percentage == -2) {
+                if (state.attachmentsWithStatus[attachment]!!.status is Indefinite) {
                     CircularProgressIndicator(modifier = modifier.size(CONTACT_LIST_ITEM_IMAGE_SIZE))
                 } else {
                     CircularProgressIndicator(
                         modifier = modifier.size(CONTACT_LIST_ITEM_IMAGE_SIZE),
-                        progress = { state.attachmentsWithStatus[attachment]!!.percentage / 100f })
+                        progress = { state.attachmentsWithStatus[attachment]!!.status.percent!! / 100f })
                 }
             }
         }

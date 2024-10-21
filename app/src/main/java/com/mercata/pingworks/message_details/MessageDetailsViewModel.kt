@@ -11,8 +11,13 @@ import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.db.messages.FusedAttachment
 import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.utils.AttachmentResult
 import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.HttpResult
+import com.mercata.pingworks.utils.Progress
 import com.mercata.pingworks.utils.SharedPreferences
+import com.mercata.pingworks.utils.getProfilePublicData
+import com.mercata.pingworks.utils.safeApiCall
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
@@ -20,7 +25,7 @@ import org.koin.core.component.inject
 class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
     AbstractViewModel<MessageDetailsState>(
         MessageDetailsState(
-            messageId = savedStateHandle.get<String>("messageId")!!
+            messageId = savedStateHandle.get<String>("messageId")!!,
         )
     ) {
 
@@ -30,21 +35,37 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
         val sp: SharedPreferences by inject()
         viewModelScope.launch {
             val message = db.messagesDao().getById(currentState.messageId)
-            updateState(
-                currentState.copy(
-                    message = message,
-                    currentUser = sp.getUserData(),
+
+            launch {
+                when (val call =
+                    safeApiCall { getProfilePublicData(message?.message?.author?.address ?: "") }) {
+                    is HttpResult.Error -> updateState(currentState.copy(noReply = true))
+                    is HttpResult.Success -> updateState(currentState.copy(noReply = call.data?.publicEncryptionKey.isNullOrBlank()))
+                }
+            }
+
+            launch {
+                updateState(
+                    currentState.copy(
+                        message = message,
+                        currentUser = sp.getUserData(),
+                    )
                 )
-            )
-            currentState.attachmentsWithStatus.clear()
-            currentState.attachmentsWithStatus.putAll(dl.getDownloadedAttachmentsForMessage(message))
+                currentState.attachmentsWithStatus.clear()
+                currentState.attachmentsWithStatus.putAll(
+                    dl.getDownloadedAttachmentsForMessage(
+                        message!!
+                    )
+                )
+            }
+
         }
     }
 
     private val downloader: Downloader by inject()
 
     fun downloadFile(attachment: FusedAttachment) {
-        currentState.attachmentsWithStatus[attachment] = Downloader.AttachmentResult(null, 0)
+        currentState.attachmentsWithStatus[attachment] = AttachmentResult(null, Progress(0))
         viewModelScope.launch(Dispatchers.IO) {
             downloader.downloadAttachment(sp.getUserData()!!, attachment)
                 .collect { result ->
@@ -71,8 +92,9 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
 
 data class MessageDetailsState(
     val messageId: String,
+    val noReply: Boolean = true,
     val shareIntent: Intent? = null,
     val message: DBMessageWithDBAttachments? = null,
     val currentUser: UserData? = null,
-    val attachmentsWithStatus: SnapshotStateMap<FusedAttachment, Downloader.AttachmentResult> = mutableStateMapOf()
+    val attachmentsWithStatus: SnapshotStateMap<FusedAttachment, AttachmentResult> = mutableStateMapOf()
 )

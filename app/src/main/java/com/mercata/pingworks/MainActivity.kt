@@ -130,12 +130,16 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                         composable(
-                            route = "ComposingScreen/{contactAddress}",
+                            route = "ComposingScreen/{contactAddress}/{replyMessageId}",
                             arguments = listOf(
                                 navArgument("contactAddress") {
                                     type = NavType.StringType
                                     nullable = true
-                                }
+                                },
+                                navArgument("replyMessageId") {
+                                    type = NavType.StringType
+                                    nullable = true
+                                },
                             ),
                             enterTransition = { fadeIn() },
                             exitTransition = { fadeOut() },
