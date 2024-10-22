@@ -248,7 +248,7 @@ fun SharedTransitionScope.HomeScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     onClick = {
-                        navController.navigate("ComposingScreen/null")
+                        navController.navigate("ComposingScreen/null/null")
                     }) {
                     Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
                 }
