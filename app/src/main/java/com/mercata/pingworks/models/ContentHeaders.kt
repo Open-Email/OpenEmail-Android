@@ -43,7 +43,7 @@ data class ContentHeaders(
 
     init {
         readersAddresses?.let {
-            HEADER_CONTENT_READERS to readersAddresses.filterNot { it == authorAddress }.joinToString(separator = ", ")
+            contentHeadersMap[HEADER_CONTENT_READERS] = readersAddresses.filterNot { it == authorAddress }.joinToString(separator = ", ")
         }
 
         parentId?.let {
