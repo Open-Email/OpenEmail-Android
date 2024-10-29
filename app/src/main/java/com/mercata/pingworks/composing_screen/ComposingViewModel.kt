@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 import java.io.File
 
-class ComposingViewModel(savedStateHandle: SavedStateHandle) :
+class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     AbstractViewModel<ComposingState>(
         ComposingState(
             addressFieldText = savedStateHandle.get<String>("contactAddress") ?: "",
@@ -48,8 +48,6 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
 
             updateState(currentState.copy(loading = false, replyMessage = replyMessage, currentUser = sp.getUserData()))
         }
-
-
     }
 
     private val fileUtils: FileUtils by inject()
@@ -128,7 +126,8 @@ class ComposingViewModel(savedStateHandle: SavedStateHandle) :
                     currentUser = sp.getUserData()!!,
                     currentUserPublicData = sp.getPublicUserData()!!,
                     db = db,
-                    isBroadcast = currentState.broadcast
+                    isBroadcast = currentState.broadcast,
+                    replyToSubjectId = savedStateHandle.get<String>("replyMessageId")
                 )
                 syncAllMessages(db, sp, dl)
             }

@@ -18,6 +18,7 @@ import java.time.Instant
 
 data class ContentHeaders(
     val messageID: String,
+    val subjectId: String?,
     val date: Instant,
     val subject: String,
     val parentId: String?,
@@ -39,21 +40,25 @@ data class ContentHeaders(
         HEADER_CONTENT_DATE to date.toServerFormatString(),
         HEADER_CONTENT_SUBJECT to subject,
 
-    )
+        )
 
     init {
         readersAddresses?.let {
-            contentHeadersMap[HEADER_CONTENT_READERS] = readersAddresses.filterNot { it == authorAddress }.joinToString(separator = ", ")
+            contentHeadersMap[HEADER_CONTENT_READERS] =
+                it.filterNot { address -> address == authorAddress }.joinToString(separator = ", ")
         }
 
         parentId?.let {
-            contentHeadersMap[HEADER_CONTENT_SUBJECT_ID] = parentId
-            contentHeadersMap[HEADER_CONTENT_PARENT_ID] = parentId
-        } ?: run {
-            contentHeadersMap[HEADER_CONTENT_SUBJECT_ID] = messageID
+            contentHeadersMap[HEADER_CONTENT_SUBJECT_ID] = it
+            contentHeadersMap[HEADER_CONTENT_PARENT_ID] = it
         }
 
-        filesHeader = fileParts?.joinToString(", ") { serializeMessageFileInfo(it) }?.takeIf { it.isNotBlank() }?.also {
+        subjectId?.let {
+            contentHeadersMap[HEADER_CONTENT_SUBJECT_ID] = it
+        }
+
+        filesHeader = fileParts?.joinToString(", ") { serializeMessageFileInfo(it) }
+            ?.takeIf { it.isNotBlank() }?.also {
             contentHeadersMap[HEADER_CONTENT_FILES] = it
         }
 

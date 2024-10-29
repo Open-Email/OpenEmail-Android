@@ -34,6 +34,7 @@ data class DBPendingMessage(
         date = Instant.ofEpochMilli(message.timestamp),
         subject = message.subject,
         parentId = null,
+        subjectId = message.subjectId,
         fileParts = fileParts.map { dbPart ->
             MessageFilePartInfo(
                 urlInfo = dbPart.getUrlInfo(),

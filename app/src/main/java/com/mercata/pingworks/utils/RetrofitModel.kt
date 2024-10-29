@@ -156,7 +156,7 @@ suspend fun uploadContact(
     )
 }
 
-suspend fun getAllContacts(sharedPreferences: SharedPreferences): Response<List<String>> {
+private suspend fun getAllContacts(sharedPreferences: SharedPreferences): Response<List<String>> {
     val currentUser = sharedPreferences.getUserData()!!
     return getInstance("https://${currentUser.address.getMailHost()}").getAllContacts(
         sotnHeader = currentUser.sign(),
@@ -178,7 +178,7 @@ suspend fun deleteContact(
     )
 }
 
-suspend fun getAllBroadcastEnvelopes(
+private suspend fun getAllBroadcastEnvelopes(
     sharedPreferences: SharedPreferences,
     contactsDao: ContactsDao
 ): List<Envelope> {
@@ -193,7 +193,7 @@ suspend fun getAllBroadcastEnvelopes(
     }
 }
 
-suspend fun getAllBroadcastEnvelopesForContact(
+private suspend fun getAllBroadcastEnvelopesForContact(
     sharedPreferences: SharedPreferences,
     contact: DBContact
 ): List<Envelope> {
@@ -227,7 +227,7 @@ suspend fun getAllBroadcastEnvelopesForContact(
     }
 }
 
-suspend fun getAllPrivateEnvelopesForContact(
+private suspend fun getAllPrivateEnvelopesForContact(
     sharedPreferences: SharedPreferences,
     contact: DBContact
 ): List<Envelope> {
@@ -259,7 +259,7 @@ suspend fun getAllPrivateEnvelopesForContact(
     }
 }
 
-suspend fun getAllPrivateEnvelopes(
+private suspend fun getAllPrivateEnvelopes(
     sharedPreferences: SharedPreferences,
     contactsDao: ContactsDao
 ): List<Envelope> {
@@ -420,7 +420,8 @@ suspend fun uploadMessage(
     currentUser: UserData,
     currentUserPublicData: PublicUserData,
     db: AppDatabase,
-    isBroadcast: Boolean
+    isBroadcast: Boolean,
+    replyToSubjectId: String?
 ) {
     withContext(Dispatchers.IO) {
         val rootMessageId = currentUser.newMessageId()
@@ -437,6 +438,7 @@ suspend fun uploadMessage(
 
         val pendingRootMessage = DBPendingRootMessage(
             messageId = rootMessageId,
+            subjectId = replyToSubjectId,
             timestamp = sendingDate.toEpochMilli(),
             subject = composingData.subject,
             checksum = composingData.body.hashedWithSha256().first,
@@ -458,6 +460,7 @@ suspend fun uploadMessage(
                 fileParts.add(
                     DBPendingAttachment(
                         messageId = partMessageId,
+                        subjectId = replyToSubjectId,
                         parentId = rootMessageId,
                         uri = urlInfo.uri.toString(),
                         fileName = urlInfo.name,
@@ -491,6 +494,7 @@ suspend fun uploadMessage(
                         fileParts.add(
                             DBPendingAttachment(
                                 messageId = partMessageId,
+                                subjectId = replyToSubjectId,
                                 parentId = rootMessageId,
                                 uri = urlInfo.uri.toString(),
                                 fileName = urlInfo.name,
@@ -762,6 +766,7 @@ suspend fun saveMessagesToDb(
                         textBody = it.second ?: "",
                         isBroadcast = it.first.isBroadcast(),
                         timestamp = it.first.contentHeaders.date.toEpochMilli(),
+                        readerAddresses = it.first.contentHeaders.readersAddresses?.joinToString(",")
                     )
                 })
             attachmentsDao.insertAll(attachments)

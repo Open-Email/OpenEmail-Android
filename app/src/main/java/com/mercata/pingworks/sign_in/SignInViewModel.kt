@@ -5,7 +5,6 @@ import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
-import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
@@ -15,8 +14,8 @@ import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.SigningKeys
 import com.mercata.pingworks.utils.encodeToBase64
 import com.mercata.pingworks.utils.getHost
+import com.mercata.pingworks.utils.getLocal
 import com.mercata.pingworks.utils.getProfilePublicData
-import com.mercata.pingworks.utils.getWellKnownHosts
 import com.mercata.pingworks.utils.loginCall
 import com.mercata.pingworks.utils.safeApiCall
 import kotlinx.coroutines.launch
@@ -74,9 +73,10 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
         }
         viewModelScope.launch {
             updateState(currentState.copy(loading = true))
-            when (val call = safeApiCall { getWellKnownHosts(currentState.emailInput.getHost()) }) {
+            when (val call =
+                safeApiCall { getProfilePublicData(currentState.emailInput) }) {
                 is HttpResult.Success -> {
-                    if (call.data?.isNotEmpty() == true) {
+                    if (call.data != null) {
                         if (sp.getUserAddress() == currentState.emailInput && sp.isBiometry()) {
                             updateState(currentState.copy(biometryShown = true))
                         } else {
@@ -197,6 +197,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                 is HttpResult.Error -> {
                     updateState(currentState.copy(registrationError = call.message))
                 }
+
                 is HttpResult.Success -> {
                     sp.saveUserKeys(userData)
                     updateState(currentState.copy(isLoggedIn = true))

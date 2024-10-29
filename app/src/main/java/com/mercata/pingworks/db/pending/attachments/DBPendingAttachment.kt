@@ -14,6 +14,7 @@ import java.time.Instant
 @Entity
 data class DBPendingAttachment(
     @PrimaryKey @ColumnInfo("message_id") val messageId: String,
+    @ColumnInfo("subject_id") val subjectId: String?,
     @ColumnInfo("parent_id", index = true) val parentId: String,
     @ColumnInfo("uri") val uri: String,
     @ColumnInfo("file_name") val fileName: String,
@@ -42,6 +43,7 @@ data class DBPendingAttachment(
         recipients: List<DBPendingReaderPublicData>
     ) = ContentHeaders(
         messageID = this.messageId,
+        subjectId = this.subjectId,
         date = Instant.ofEpochMilli(this.sendingDateTimestamp),
         subject = this.subject,
         parentId = this.parentId,

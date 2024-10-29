@@ -18,6 +18,7 @@ import com.mercata.pingworks.db.contacts.DBContact
 )
 data class DBPendingRootMessage(
     @PrimaryKey @ColumnInfo("message_id", index = true) val messageId: String,
+    @ColumnInfo("subject_id") val subjectId: String?,
     @ColumnInfo("timestamp") val timestamp: Long,
     @ColumnInfo("subject") val subject: String,
     @ColumnInfo("checksum") val checksum: String,
