@@ -44,9 +44,16 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             val db: AppDatabase by inject()
             updateState(currentState.copy(loading = true))
 
-            val replyMessage: MessageWithAuthor? = db.messagesDao().getById(savedStateHandle.get<String>("replyMessageId") ?: "")?.message
+            val replyMessage: MessageWithAuthor? = db.messagesDao()
+                .getById(savedStateHandle.get<String>("replyMessageId") ?: "")?.message
 
-            updateState(currentState.copy(loading = false, replyMessage = replyMessage, currentUser = sp.getUserData()))
+            updateState(
+                currentState.copy(
+                    loading = false,
+                    replyMessage = replyMessage,
+                    currentUser = sp.getUserData()
+                )
+            )
         }
     }
 
@@ -127,7 +134,8 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                     currentUserPublicData = sp.getPublicUserData()!!,
                     db = db,
                     isBroadcast = currentState.broadcast,
-                    replyToSubjectId = savedStateHandle.get<String>("replyMessageId")
+                    replyToSubjectId = savedStateHandle.get<String>("replyMessageId"),
+                    sp = sp
                 )
                 syncAllMessages(db, sp, dl)
             }
@@ -156,7 +164,12 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                         if (call.data == null) {
                             updateState(currentState.copy(addressErrorResId = R.string.invalid_email))
                         } else {
-                            updateState(currentState.copy(addressErrorResId = null, addressFieldText = ""))
+                            updateState(
+                                currentState.copy(
+                                    addressErrorResId = null,
+                                    addressFieldText = ""
+                                )
+                            )
                             currentState.recipients.add(call.data)
                         }
                     }

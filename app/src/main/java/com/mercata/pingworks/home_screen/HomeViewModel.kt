@@ -57,7 +57,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(refreshing = true))
             syncContacts(sp, db.userDao())
-            uploadPendingMessages(sp.getUserData()!!, db, fu)
+            uploadPendingMessages(sp.getUserData()!!, db, fu, sp)
             syncAllMessages(db, sp, dl)
             updateState(currentState.copy(refreshing = false))
         }
@@ -93,7 +93,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     fun refresh() {
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(refreshing = true))
-            uploadPendingMessages(sp.getUserData()!!, db, fu)
+            uploadPendingMessages(sp.getUserData()!!, db, fu, sp)
             syncAllMessages(db, sp, dl)
             updateState(currentState.copy(refreshing = false))
         }
@@ -148,12 +148,13 @@ data class HomeState(
 
 enum class HomeScreen(
     val titleResId: Int,
+    val outbox: Boolean,
     val icon: ImageVector? = null,
     val iconResId: Int? = null,
 ) {
-    Broadcast(R.string.broadcast_title, iconResId = R.drawable.cast),
-    Inbox(R.string.inbox_title, Icons.Default.KeyboardArrowDown),
-    Outbox(R.string.outbox_title, Icons.Default.KeyboardArrowUp),
-    Pending(R.string.pending, iconResId = R.drawable.pending),
+    Broadcast(R.string.broadcast_title, iconResId = R.drawable.cast, outbox = false),
+    Inbox(R.string.inbox_title, icon = Icons.Default.KeyboardArrowDown, outbox = false),
+    Outbox(R.string.outbox_title, icon = Icons.Default.KeyboardArrowUp, outbox = true),
+    Pending(R.string.pending, iconResId = R.drawable.pending, outbox = true),
 
 }

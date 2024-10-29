@@ -21,6 +21,21 @@ data class PublicUserData(
     val publicSigningKey: String,
 )
 
+fun PublicUserData.toDBContact() = DBContact(
+    address = this.address,
+    lastSeenPublic = this.lastSeenPublic,
+    encryptionKeyAlgorithm = this.encryptionKeyAlgorithm,
+    signingKeyAlgorithm = this.signingKeyAlgorithm,
+    publicEncryptionKey = this.publicEncryptionKey,
+    publicSigningKey = this.publicSigningKey,
+    updated = this.updated?.toString(),
+    lastSeen = this.lastSeen?.toString(),
+    name = this.fullName,
+    receiveBroadcasts = true,
+    imageUrl = null, //TODO
+    publicEncryptionKeyId = this.encryptionKeyId
+)
+
 fun PublicUserData.toDBPendingReaderPublicData(messageId: String) = DBPendingReaderPublicData(
     uuid = UUID.randomUUID().toString(),
     fullName = this.fullName,

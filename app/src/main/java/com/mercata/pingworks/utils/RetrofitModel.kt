@@ -25,7 +25,9 @@ import com.mercata.pingworks.models.ContentHeaders
 import com.mercata.pingworks.models.Envelope
 import com.mercata.pingworks.models.MessageCategory
 import com.mercata.pingworks.models.PublicUserData
+import com.mercata.pingworks.models.toDBContact
 import com.mercata.pingworks.models.toDBPendingReaderPublicData
+import com.mercata.pingworks.models.toPublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.response_converters.ContactsListConverterFactory
 import com.mercata.pingworks.response_converters.EnvelopeIdsListConverterFactory
@@ -420,6 +422,7 @@ suspend fun uploadMessage(
     currentUser: UserData,
     currentUserPublicData: PublicUserData,
     db: AppDatabase,
+    sp: SharedPreferences,
     isBroadcast: Boolean,
     replyToSubjectId: String?
 ) {
@@ -518,56 +521,69 @@ suspend fun uploadMessage(
             }
         }
 
+        db.userDao().insertAll(composingData.recipients.map { it.toDBContact() })
         db.pendingMessagesDao().insert(pendingRootMessage)
         db.pendingAttachmentsDao().insertAll(fileParts)
         if (!isBroadcast) {
             db.pendingReadersDao()
                 .insertAll(accessProfiles!!.map { it.toDBPendingReaderPublicData(rootMessageId) })
         }
-        uploadPendingMessages(currentUser, db, fileUtils)
+        uploadPendingMessages(currentUser, db, fileUtils, sp)
     }
 }
 
 
-suspend fun uploadPendingMessages(currentUser: UserData, db: AppDatabase, fileUtils: FileUtils) {
+suspend fun uploadPendingMessages(
+    currentUser: UserData,
+    db: AppDatabase,
+    fileUtils: FileUtils,
+    sp: SharedPreferences
+) {
     withContext(Dispatchers.IO) {
         val pendingMessages = db.pendingMessagesDao().getAll()
         val results: List<UploadResult> =
             pendingMessages.map { pendingMessage ->
                 async {
-                    arrayListOf(
+                    val messagesToUpload = arrayListOf(
                         //root message
                         async {
                             UploadResult(
                                 messageId = pendingMessage.message.messageId,
                                 isAttachment = false,
-                                result = safeApiCall {
+                                messagesResult = safeApiCall {
                                     uploadRootMessage(
                                         pendingRootMessage = pendingMessage.message,
                                         recipients = pendingMessage.readers,
                                         content = pendingMessage.getRootContentHeaders(),
                                         currentUser = currentUser
                                     )
-                                })
+                                },
+                                contactResult = pendingMessage.readers.map { reader ->
+                                    async {
+                                        safeApiCall { uploadContact(reader.toPublicUserData(), sp) }
+                                    }
+                                }.awaitAll()
+                            )
                         }
-                    ).apply {
-                        //attachments
-                        addAll(pendingMessage.fileParts.map { part ->
-                            async {
-                                UploadResult(
-                                    messageId = part.messageId,
-                                    isAttachment = true,
-                                    result = safeApiCall {
-                                        uploadFileMessage(
-                                            currentUser = currentUser,
-                                            pendingAttachment = part,
-                                            readers = pendingMessage.readers,
-                                            fileUtils = fileUtils
-                                        )
-                                    })
-                            }
-                        })
-                    }.awaitAll()
+                    )
+                    messagesToUpload.addAll(pendingMessage.fileParts.map { part ->
+                        async {
+                            UploadResult(
+                                messageId = part.messageId,
+                                isAttachment = true,
+                                messagesResult = safeApiCall {
+                                    uploadFileMessage(
+                                        currentUser = currentUser,
+                                        pendingAttachment = part,
+                                        readers = pendingMessage.readers,
+                                        fileUtils = fileUtils
+                                    )
+                                },
+                                contactResult = listOf() //No need to upload contacts for every attachment, they will be uploaded with Root only once
+                            )
+                        }
+                    })
+                    messagesToUpload.awaitAll()
                 }
             }.awaitAll().fold(
                 initial = arrayListOf(),
@@ -575,7 +591,7 @@ suspend fun uploadPendingMessages(currentUser: UserData, db: AppDatabase, fileUt
 
 
         val everyPartUploaded: Boolean =
-            results.any { it.result !is HttpResult.Success }.not()
+            results.any { it.messagesResult !is HttpResult.Success }.not()
 
         if (everyPartUploaded) {
             db.pendingMessagesDao().deleteList(pendingMessages.map { it.message })
@@ -595,7 +611,7 @@ suspend fun uploadPendingMessages(currentUser: UserData, db: AppDatabase, fileUt
                 fileUtils.getFileFromUri(uri)?.delete()
             }
         } else {
-            results.filter { it.result is HttpResult.Success }.forEach { successful ->
+            results.filter { it.messagesResult is HttpResult.Success }.forEach { successful ->
                 if (successful.isAttachment) {
                     db.pendingAttachmentsDao().delete(successful.messageId)
                     pendingMessages.forEach { message ->
@@ -616,7 +632,8 @@ suspend fun uploadPendingMessages(currentUser: UserData, db: AppDatabase, fileUt
 data class UploadResult(
     val messageId: String,
     val isAttachment: Boolean,
-    val result: HttpResult<Void>
+    val messagesResult: HttpResult<Void>,
+    val contactResult: List<HttpResult<Void>>
 )
 
 private suspend fun uploadRootMessage(

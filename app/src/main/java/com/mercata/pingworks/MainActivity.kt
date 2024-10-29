@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalSharedTransitionApi::class)
+@file:OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 
 package com.mercata.pingworks
 
@@ -12,6 +12,7 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -112,10 +113,14 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                         composable(
-                            route = "MessageDetailsScreen/{messageId}",
+                            route = "MessageDetailsScreen/{messageId}/{outbox}",
                             arguments = listOf(
                                 navArgument("messageId") {
                                     type = NavType.StringType
+                                    nullable = false
+                                },
+                                navArgument("outbox") {
+                                    type = NavType.BoolType
                                     nullable = false
                                 }
                             ),

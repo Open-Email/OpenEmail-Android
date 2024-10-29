@@ -283,7 +283,7 @@ fun SharedTransitionScope.HomeScreen(
                                 animatedVisibilityScope = animatedVisibilityScope,
                                 onMessageClicked = { message ->
                                     navController.navigate(
-                                        "MessageDetailsScreen/${message.getMessageId()}",
+                                        "MessageDetailsScreen/${message.getMessageId()}/${state.screen.outbox}",
                                     )
                                 })
                         }

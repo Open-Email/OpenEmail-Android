@@ -10,6 +10,7 @@ import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.db.messages.FusedAttachment
+import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.AttachmentResult
 import com.mercata.pingworks.utils.Downloader
@@ -19,6 +20,8 @@ import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
@@ -33,7 +36,7 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
         val db: AppDatabase by inject()
         val dl: Downloader by inject()
         val sp: SharedPreferences by inject()
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val message = db.messagesDao().getById(currentState.messageId)
 
             launch {
@@ -59,6 +62,21 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
                 )
             }
 
+            launch {
+                if (savedStateHandle.get<Boolean>("outbox")!!) {
+                    val readersPublicData: List<PublicUserData?>? =
+                        message?.message?.message?.readerAddresses?.split(",")?.map {
+                            async {
+                                when (val call = safeApiCall { getProfilePublicData(it) }) {
+                                    is HttpResult.Error -> null
+                                    is HttpResult.Success -> call.data
+                                }
+                            }
+                        }?.awaitAll()
+
+                    updateState(currentState.copy(outboxAddresses = readersPublicData?.filterNotNull() ?: listOf()))
+                }
+            }
         }
     }
 
@@ -92,6 +110,7 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
 
 data class MessageDetailsState(
     val messageId: String,
+    val outboxAddresses: List<PublicUserData>? = null,
     val noReply: Boolean = true,
     val shareIntent: Intent? = null,
     val message: DBMessageWithDBAttachments? = null,

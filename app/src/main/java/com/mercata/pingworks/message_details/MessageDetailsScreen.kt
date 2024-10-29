@@ -18,6 +18,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -70,6 +72,7 @@ import com.mercata.pingworks.DEFAULT_DATE_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
+import com.mercata.pingworks.composing_screen.AddressChip
 import com.mercata.pingworks.db.messages.FusedAttachment
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloaded
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloading
@@ -80,6 +83,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.math.roundToInt
 
+@ExperimentalLayoutApi
 @Composable
 fun SharedTransitionScope.MessageDetailsScreen(
     navController: NavController,
@@ -99,6 +103,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
     val messageWithAttachments = state.message
     val messageWithAuthor = messageWithAttachments?.message
     val message = messageWithAuthor?.message
+    val outbox: Boolean = state.outboxAddresses != null
 
     val date: String = message?.timestamp?.let {
         ZonedDateTime.ofInstant(
@@ -192,75 +197,88 @@ fun SharedTransitionScope.MessageDetailsScreen(
             }
             Spacer(modifier = modifier.height(MARGIN_DEFAULT))
 
-            Row(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = MARGIN_DEFAULT)
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = modifier
-                        .sharedBounds(
-                            sharedContentState = rememberSharedContentState(
-                                key = "message_image/${state.messageId}"
-                            ),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                        )
-                        .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
-                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                        .background(MaterialTheme.colorScheme.primary)
-                ) {
-                    if (messageWithAuthor?.author?.imageUrl == null) {
-                        Text(
-                            text = "${
-                                if (messageWithAuthor?.author == null) {
-                                    //outbox message
-                                    state.currentUser?.name?.first() ?: ""
-                                } else {
-                                    messageWithAuthor.author.name?.firstOrNull() ?: messageWithAuthor.author.address.first()
-                                }
-                            }",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        AsyncImage(
-                            contentScale = ContentScale.Crop,
-                            model = messageWithAuthor.author.imageUrl,
-                            contentDescription = stringResource(id = R.string.profile_image)
-                        )
+            if (outbox) {
+                Column {
+                    SelectionContainer(modifier = modifier.padding(horizontal = MARGIN_DEFAULT)) {
+                        Text(date)
+                    }
+                    FlowRow(modifier = modifier.padding(horizontal = MARGIN_DEFAULT/2)) {
+                        state.outboxAddresses!!.map {
+                            AddressChip(modifier = modifier, user = it, onClick = { user ->
+                                navController.navigate(
+                                    "ContactDetailsScreen/${user.address}"
+                                )
+                            })
+                        }
                     }
                 }
-                Spacer(modifier = modifier.width(MARGIN_DEFAULT))
-                messageWithAuthor?.author?.let { author ->
-                    Column {
-                        author.name?.let { name ->
+            } else {
+                Row(
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MARGIN_DEFAULT)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = modifier
+                            .sharedBounds(
+                                sharedContentState = rememberSharedContentState(
+                                    key = "message_image/${state.messageId}"
+                                ),
+                                animatedVisibilityScope = animatedVisibilityScope,
+                            )
+                            .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                            .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                            .background(MaterialTheme.colorScheme.primary)
+                    ) {
+                        if (messageWithAuthor?.author?.imageUrl == null) {
+                            Text(
+                                text = "${
+                                    messageWithAuthor?.author?.name?.firstOrNull() ?: messageWithAuthor?.author?.address?.first()
+                                }",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            AsyncImage(
+                                contentScale = ContentScale.Crop,
+                                model = messageWithAuthor.author.imageUrl,
+                                contentDescription = stringResource(id = R.string.profile_image)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = modifier.width(MARGIN_DEFAULT))
+
+                    messageWithAuthor?.author?.let { author ->
+                        Column {
+                            author.name?.let { name ->
+                                SelectionContainer {
+                                    Text(
+                                        text = name,
+                                        maxLines = 2,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
                             SelectionContainer {
                                 Text(
-                                    text = name,
+                                    text = author.address,
                                     maxLines = 2,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
-                        SelectionContainer {
-                            Text(
-                                text = author.address,
-                                maxLines = 2,
-                                style = MaterialTheme.typography.bodyMedium,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
                     }
-                }
+                    Spacer(modifier.weight(1f))
+                    SelectionContainer {
+                        Text(date)
+                    }
 
-                Spacer(modifier.weight(1f))
-                SelectionContainer {
-                    Text(date)
                 }
-
             }
             Spacer(modifier = modifier.height(MARGIN_DEFAULT))
             SelectionContainer {

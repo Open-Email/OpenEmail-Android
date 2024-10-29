@@ -455,7 +455,7 @@ fun AddressChip(
     modifier: Modifier = Modifier,
     user: PublicUserData,
     onClick: (address: PublicUserData) -> Unit,
-    onDismiss: (address: PublicUserData) -> Unit
+    onDismiss: ((address: PublicUserData) -> Unit)? = null
 ) {
     Box(modifier.padding(MARGIN_DEFAULT / 4)) {
         Box(
@@ -492,13 +492,15 @@ fun AddressChip(
                 Spacer(modifier = modifier.width(MARGIN_DEFAULT / 4))
                 Text(text = user.fullName, style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = modifier.width(MARGIN_DEFAULT / 4))
-                Icon(
-                    modifier = modifier.clickable {
-                        onDismiss(user)
-                    },
-                    imageVector = Icons.Default.Clear,
-                    contentDescription = stringResource(id = R.string.dismiss_address)
-                )
+                if (onDismiss != null) {
+                    Icon(
+                        modifier = modifier.clickable {
+                            onDismiss(user)
+                        },
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = stringResource(id = R.string.dismiss_address)
+                    )
+                }
                 Spacer(modifier = modifier.width(MARGIN_DEFAULT / 2))
             }
         }
