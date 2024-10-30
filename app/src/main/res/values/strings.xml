@@ -74,4 +74,5 @@
     <string name="exit_composing_confirmation">Do you want to save this message as a draft?</string>
     <string name="save_as_draft">Save as draft</string>
     <string name="close_without_saving">Exit without saving</string>
+    <string name="downloaded_attachments">Downloaded attachments</string>
 </resources>

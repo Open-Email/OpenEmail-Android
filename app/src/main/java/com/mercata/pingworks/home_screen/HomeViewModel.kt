@@ -16,6 +16,7 @@ import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.db.drafts.DBDraftWithReaders
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.db.pending.DBPendingMessage
+import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.FileUtils
@@ -29,6 +30,13 @@ import org.koin.core.component.inject
 
 class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
+    private val dl: Downloader by inject()
+    private val fu: FileUtils by inject()
+    private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
+    private val pendingMessages: ArrayList<DBPendingMessage> = arrayListOf()
+    private val draftMessages: ArrayList<DBDraftWithReaders> = arrayListOf()
+    private val cachedAttachments: ArrayList<CachedAttachment> = arrayListOf()
+
     init {
         val sp: SharedPreferences by inject()
         val db: AppDatabase by inject()
@@ -40,14 +48,14 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 screen = sp.getSelectedNavigationScreen()
             )
         )
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             db.messagesDao().getAllAsFlowWithAttachments().collect { dbEntities ->
                 allMessages.clear()
                 allMessages.addAll(dbEntities)
                 updateList()
             }
         }
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             db.pendingMessagesDao().getAllAsFlowWithAttachments().collect { pending ->
                 pendingMessages.clear()
                 pendingMessages.addAll(pending)
@@ -55,13 +63,18 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 updateList()
             }
         }
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             db.draftDao().getAll().collect { drafts ->
                 draftMessages.clear()
                 draftMessages.addAll(drafts)
                 currentState.unread[HomeScreen.Drafts] = draftMessages.size
                 updateList()
             }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            cachedAttachments.clear()
+            cachedAttachments.addAll(dl.getCachedAttachments())
+            updateList()
         }
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(refreshing = true))
@@ -71,12 +84,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             updateState(currentState.copy(refreshing = false))
         }
     }
-
-    private val dl: Downloader by inject()
-    private val fu: FileUtils by inject()
-    private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
-    private val pendingMessages: ArrayList<DBPendingMessage> = arrayListOf()
-    private val draftMessages: ArrayList<DBDraftWithReaders> = arrayListOf()
 
     fun onSearchQuery(query: String) {
         updateState(currentState.copy(query = query))
@@ -105,6 +112,8 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             updateState(currentState.copy(refreshing = true))
             uploadPendingMessages(sp.getUserData()!!, db, fu, sp)
             syncAllMessages(db, sp, dl)
+            cachedAttachments.clear()
+            cachedAttachments.addAll(dl.getCachedAttachments())
             updateState(currentState.copy(refreshing = false))
         }
     }
@@ -140,6 +149,8 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                             it.message.author?.address != currentUserAddress && it.searchMatched()
                 })
             }
+
+            HomeScreen.DownloadedAttachments -> currentState.messages.addAll(cachedAttachments.filter { it.searchMatched() })
         }
     }
 
@@ -176,5 +187,10 @@ enum class HomeScreen(
     Inbox(R.string.inbox_title, icon = Icons.Default.KeyboardArrowDown, outbox = false),
     Outbox(R.string.outbox_title, icon = Icons.Default.KeyboardArrowUp, outbox = true),
     Pending(R.string.pending, iconResId = R.drawable.pending, outbox = true),
-    Drafts(R.string.drafts, iconResId = R.drawable.draft, outbox = true)
+    Drafts(R.string.drafts, iconResId = R.drawable.draft, outbox = true),
+    DownloadedAttachments(
+        R.string.downloaded_attachments,
+        iconResId = R.drawable.download,
+        outbox = false
+    )
 }

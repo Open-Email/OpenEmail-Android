@@ -5,6 +5,9 @@
 
 package com.mercata.pingworks.home_screen
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -16,7 +19,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -94,6 +96,7 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.common.NavigationDrawerBody
 import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.db.drafts.DBDraftWithReaders
+import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.registration.UserData
 import kotlinx.coroutines.launch
 
@@ -112,6 +115,11 @@ fun SharedTransitionScope.HomeScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val focusManager = LocalFocusManager.current
     val searchFocusRequester = remember { FocusRequester() }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        //ignore
+    }
 
     val state by viewModel.state.collectAsState()
 
@@ -299,6 +307,18 @@ fun SharedTransitionScope.HomeScreen(
                                 onMessageClicked = { message ->
 
                                     when (message) {
+                                        is CachedAttachment -> {
+                                            val attachment = item as CachedAttachment
+                                            val intent: Intent = Intent().apply {
+                                                action = Intent.ACTION_SEND
+                                                putExtra(Intent.EXTRA_STREAM, attachment.uri)
+                                                type = attachment.type
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            val shareIntent = Intent.createChooser(intent, null)
+                                            launcher.launch(shareIntent)
+                                        }
+
                                         is DBDraftWithReaders -> navController.navigate(
                                             "ComposingScreen/null/${state.screen.outbox}/${message.draft.draftId}",
                                         )
@@ -332,8 +352,6 @@ fun SharedTransitionScope.MessageViewHolder(
     onMessageClicked: (message: HomeItem) -> Unit
 ) {
 
-    //TODO public image
-    val imageUrl = null //item.getContacts().firstOrNull().imageUrl ?: currentUser.avatarLink
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -365,36 +383,61 @@ fun SharedTransitionScope.MessageViewHolder(
                 .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                 .background(MaterialTheme.colorScheme.primary)
         ) {
-            if (imageUrl == null) {
-                Text(
-                    text = "${
-                        if (item.getContacts().isEmpty()) {
-                            currentUser.name.first()
-                        } else {
-                            item.getContacts()
-                                .firstOrNull()?.fullName?.firstOrNull() ?: item.getContacts()
-                                .firstOrNull()?.address?.first() ?: ""
-                        }
-                    }",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            } else {
-                AsyncImage(
-                    contentScale = ContentScale.Crop,
-                    modifier = modifier
-                        .sharedBounds(
-                            sharedContentState = rememberSharedContentState(
-                                key = "message_image/${item.getMessageId()}"
-                            ),
-                            animatedVisibilityScope = animatedVisibilityScope,
+            when (item) {
+                is CachedAttachment -> {
+                    val resId = if (item.type?.contains("image") == true) {
+                        R.drawable.image
+                    } else if (item.type?.contains("video") == true) {
+                        R.drawable.video
+                    } else if (item.type?.contains("audio") == true) {
+                        R.drawable.sound
+                    } else {
+                        R.drawable.file
+                    }
+
+                    Icon(
+                        painter = painterResource(resId), contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+
+                else -> {
+                    //TODO public image
+                    val imageUrl =
+                        null //item.getContacts().firstOrNull().imageUrl ?: currentUser.avatarLink
+                    if (imageUrl == null) {
+                        Text(
+                            text = "${
+                                if (item.getContacts().isEmpty()) {
+                                    currentUser.name.first()
+                                } else {
+                                    item.getContacts()
+                                        .firstOrNull()?.fullName?.firstOrNull() ?: item.getContacts()
+                                        .firstOrNull()?.address?.first() ?: ""
+                                }
+                            }",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
-                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                        .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
-                    model = imageUrl,
-                    contentDescription = stringResource(id = R.string.profile_image)
-                )
+                    } else {
+                        AsyncImage(
+                            contentScale = ContentScale.Crop,
+                            modifier = modifier
+                                .sharedBounds(
+                                    sharedContentState = rememberSharedContentState(
+                                        key = "message_image/${item.getMessageId()}"
+                                    ),
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                )
+                                .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
+                            model = imageUrl,
+                            contentDescription = stringResource(id = R.string.profile_image)
+                        )
+                    }
+                }
             }
+
         }
         Spacer(modifier = modifier.width(MARGIN_DEFAULT))
         Column {

@@ -2,12 +2,15 @@ package com.mercata.pingworks.utils
 
 import android.content.Context
 import android.util.Log
+import android.webkit.MimeTypeMap
+import androidx.core.net.toUri
 import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_ABYTES
 import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_NPUBBYTES
 import com.mercata.pingworks.BUFFER_SIZE
 import com.mercata.pingworks.db.attachments.DBAttachment
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.db.messages.FusedAttachment
+import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.models.Envelope
 import com.mercata.pingworks.registration.UserData
 import kotlinx.coroutines.Deferred
@@ -22,6 +25,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.util.Locale
 import kotlin.text.Charsets.UTF_8
 
 
@@ -29,6 +33,24 @@ class Downloader(val context: Context) {
 
     companion object {
         const val FOLDER_NAME = "messages"
+    }
+
+    fun getCachedAttachments(): List<CachedAttachment> {
+        val folder = File(context.filesDir, FOLDER_NAME)
+        folder.mkdirs()
+        return folder.listFiles()?.map {
+            val uri = it.toUri()
+            CachedAttachment(
+                uri,
+                name = uri.toString().substringAfterLast("/"),
+                type = getMimeTypeFromFile(it)
+            )
+        } ?: listOf()
+    }
+
+    private fun getMimeTypeFromFile(file: File): String? {
+        val extension = MimeTypeMap.getFileExtensionFromUrl(file.name)
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.lowercase(Locale.getDefault()))
     }
 
     fun getDownloadedAttachmentsForMessage(messageWithDBAttachments: DBMessageWithDBAttachments): Map<FusedAttachment, AttachmentResult> {
@@ -278,7 +300,7 @@ class Downloader(val context: Context) {
 }
 
 abstract class DownloadStatus(val percent: Int?)
-class Error: DownloadStatus(null)
-class Progress(percent: Int): DownloadStatus(percent)
-class Indefinite: DownloadStatus(null)
+class Error : DownloadStatus(null)
+class Progress(percent: Int) : DownloadStatus(percent)
+class Indefinite : DownloadStatus(null)
 data class AttachmentResult(val file: File?, val status: DownloadStatus)
