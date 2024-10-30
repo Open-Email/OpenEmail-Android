@@ -16,12 +16,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -72,6 +75,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -82,6 +86,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
+import com.mercata.pingworks.DEFAULT_LIST_ITEM_STATUS_ICON_SIZE
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
@@ -281,6 +286,7 @@ fun SharedTransitionScope.HomeScreen(
                                         viewModel.deleteDraft(draft as DBDraftWithReaders)
                                     }
                                 }
+
                                 else -> null
                             },
                             onUpdateReadState = { i ->
@@ -418,6 +424,21 @@ fun SharedTransitionScope.MessageViewHolder(
                 style = MaterialTheme.typography.bodyMedium,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+        if (item.hasAttachments()) {
+            Spacer(
+                modifier
+                    .widthIn(min = MARGIN_DEFAULT)
+                    .fillMaxWidth()
+            )
+            Column {
+                Icon(
+                    modifier = modifier.requiredSize(DEFAULT_LIST_ITEM_STATUS_ICON_SIZE),
+                    painter = painterResource(R.drawable.attach),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    contentDescription = null
+                )
+            }
         }
     }
 }

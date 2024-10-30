@@ -29,6 +29,7 @@ data class DBPendingMessage(
     override fun getSubject() = message.subject
     override fun getTextBody(): String = message.textBody
     override fun getMessageId() = message.messageId
+    override fun hasAttachments(): Boolean = fileParts.isNotEmpty()
 
     fun getRootContentHeaders() = ContentHeaders(messageID = message.messageId,
         date = Instant.ofEpochMilli(message.timestamp),

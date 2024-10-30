@@ -22,4 +22,7 @@ data class DBDraftWithReaders(
     override fun getTextBody(): String = draft.textBody
 
     override fun getMessageId(): String = draft.draftId
+
+    override fun hasAttachments(): Boolean =
+        draft.attachmentUriList?.split(",").isNullOrEmpty().not()
 }

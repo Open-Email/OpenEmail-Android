@@ -18,6 +18,7 @@ data class DBMessageWithDBAttachments(
     override fun getSubject() = message.message.subject
     override fun getTextBody() = message.message.textBody
     override fun getMessageId() = message.message.messageId
+    override fun hasAttachments(): Boolean = attachmentParts.isNotEmpty()
 
     fun getAttachments(): List<FusedAttachment> =
         attachmentParts.groupBy { dbAttachment -> dbAttachment.name }.map { multipart ->
