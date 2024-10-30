@@ -88,6 +88,7 @@ import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.NavigationDrawerBody
 import com.mercata.pingworks.db.HomeItem
+import com.mercata.pingworks.db.drafts.DBDraftWithReaders
 import com.mercata.pingworks.registration.UserData
 import kotlinx.coroutines.launch
 
@@ -248,7 +249,7 @@ fun SharedTransitionScope.HomeScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     onClick = {
-                        navController.navigate("ComposingScreen/null/null")
+                        navController.navigate("ComposingScreen/null/null/null")
                     }) {
                     Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
                 }
@@ -274,6 +275,14 @@ fun SharedTransitionScope.HomeScreen(
                         SwipeContainer(
                             modifier = modifier.animateItem(),
                             item = item,
+                            onDelete = when (item) {
+                                is DBDraftWithReaders -> {
+                                    { draft ->
+                                        viewModel.deleteDraft(draft as DBDraftWithReaders)
+                                    }
+                                }
+                                else -> null
+                            },
                             onUpdateReadState = { i ->
                                 //TODO change read state
                             }) {
@@ -282,9 +291,16 @@ fun SharedTransitionScope.HomeScreen(
                                 currentUser = state.currentUser!!,
                                 animatedVisibilityScope = animatedVisibilityScope,
                                 onMessageClicked = { message ->
-                                    navController.navigate(
-                                        "MessageDetailsScreen/${message.getMessageId()}/${state.screen.outbox}",
-                                    )
+
+                                    when (message) {
+                                        is DBDraftWithReaders -> navController.navigate(
+                                            "ComposingScreen/null/${state.screen.outbox}/${message.draft.draftId}",
+                                        )
+
+                                        else -> navController.navigate(
+                                            "MessageDetailsScreen/${message.getMessageId()}/${state.screen.outbox}",
+                                        )
+                                    }
                                 })
                         }
                     }

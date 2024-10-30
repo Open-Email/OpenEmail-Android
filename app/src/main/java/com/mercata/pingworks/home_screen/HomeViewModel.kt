@@ -13,6 +13,7 @@ import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.HomeItem
+import com.mercata.pingworks.db.drafts.DBDraftWithReaders
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.db.pending.DBPendingMessage
 import com.mercata.pingworks.registration.UserData
@@ -54,6 +55,14 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 updateList()
             }
         }
+        viewModelScope.launch {
+            db.draftDao().getAll().collect { drafts ->
+                draftMessages.clear()
+                draftMessages.addAll(drafts)
+                currentState.unread[HomeScreen.Drafts] = draftMessages.size
+                updateList()
+            }
+        }
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(refreshing = true))
             syncContacts(sp, db.userDao())
@@ -67,6 +76,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     private val fu: FileUtils by inject()
     private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
     private val pendingMessages: ArrayList<DBPendingMessage> = arrayListOf()
+    private val draftMessages: ArrayList<DBDraftWithReaders> = arrayListOf()
 
     fun onSearchQuery(query: String) {
         updateState(currentState.copy(query = query))
@@ -104,6 +114,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         currentState.messages.clear()
 
         when (currentState.screen) {
+            HomeScreen.Drafts -> {
+                currentState.messages.addAll(draftMessages.filter { it.searchMatched() })
+            }
+
             HomeScreen.Pending -> {
                 currentState.messages.addAll(pendingMessages.filter { it.searchMatched() })
             }
@@ -133,6 +147,12 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         this.getSubject().lowercase().contains(currentState.query.lowercase()) ||
                 this.getTextBody().lowercase().contains(currentState.query.lowercase())
 
+    fun deleteDraft(draft: DBDraftWithReaders) {
+        viewModelScope.launch(Dispatchers.IO) {
+            db.draftDao().delete(draft.draft.draftId)
+        }
+    }
+
 }
 
 data class HomeState(
@@ -156,5 +176,5 @@ enum class HomeScreen(
     Inbox(R.string.inbox_title, icon = Icons.Default.KeyboardArrowDown, outbox = false),
     Outbox(R.string.outbox_title, icon = Icons.Default.KeyboardArrowUp, outbox = true),
     Pending(R.string.pending, iconResId = R.drawable.pending, outbox = true),
-
+    Drafts(R.string.drafts, iconResId = R.drawable.draft, outbox = true)
 }

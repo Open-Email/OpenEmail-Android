@@ -1,6 +1,7 @@
 package com.mercata.pingworks.models
 
 import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.db.drafts.draft_reader.DBDraftReader
 import com.mercata.pingworks.db.pending.readers.DBPendingReaderPublicData
 import com.mercata.pingworks.utils.Address
 import java.time.Instant
@@ -52,31 +53,17 @@ fun PublicUserData.toDBPendingReaderPublicData(messageId: String) = DBPendingRea
     messageId = messageId
 )
 
-fun DBPendingReaderPublicData.toPublicUserData() = PublicUserData(
-    fullName = this.fullName,
-    imageUrl = this.imageUrl,
-    address = this.address,
-    lastSeenPublic = this.lastSeenPublic,
-    lastSeen = this.lastSeenTimestamp?.let { Instant.ofEpochMilli(it) },
-    updated = this.updatedTimestamp?.let { Instant.ofEpochMilli(it) },
-    encryptionKeyId = this.encryptionKeyId,
-    encryptionKeyAlgorithm = this.encryptionKeyAlgorithm,
-    signingKeyAlgorithm = this.signingKeyAlgorithm,
-    publicEncryptionKey = this.publicEncryptionKey,
-    publicSigningKey = this.publicSigningKey
+fun PublicUserData.toDBDraftReader(draftId: String) = DBDraftReader(
+    fullName = fullName,
+    imageUrl = imageUrl,
+    address = address,
+    lastSeenPublic = lastSeenPublic,
+    lastSeenTimestamp = lastSeen?.toEpochMilli(),
+    updatedTimestamp = updated?.toEpochMilli(),
+    encryptionKeyId = encryptionKeyId,
+    encryptionKeyAlgorithm = encryptionKeyAlgorithm,
+    signingKeyAlgorithm = signingKeyAlgorithm,
+    publicEncryptionKey = publicEncryptionKey,
+    publicSigningKey = publicSigningKey,
+    draftId = draftId
 )
-
-fun DBContact.toPublicUserData(): PublicUserData =
-    PublicUserData(
-        fullName = this.name ?: "",
-        imageUrl = this.imageUrl,
-        address = this.address,
-        lastSeenPublic = this.lastSeenPublic,
-        lastSeen = this.lastSeen?.let { Instant.parse(it) },
-        updated = this.lastSeen?.let { Instant.parse(it) },
-        encryptionKeyId = this.publicEncryptionKeyId,
-        encryptionKeyAlgorithm = this.encryptionKeyAlgorithm,
-        signingKeyAlgorithm = this.signingKeyAlgorithm,
-        publicEncryptionKey = this.publicEncryptionKey,
-        publicSigningKey = this.publicSigningKey
-    )

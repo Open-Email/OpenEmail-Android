@@ -6,6 +6,10 @@ import com.mercata.pingworks.db.attachments.AttachmentsDao
 import com.mercata.pingworks.db.attachments.DBAttachment
 import com.mercata.pingworks.db.contacts.ContactsDao
 import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.db.drafts.DBDraft
+import com.mercata.pingworks.db.drafts.DraftDao
+import com.mercata.pingworks.db.drafts.draft_reader.DBDraftReader
+import com.mercata.pingworks.db.drafts.draft_reader.DraftReaderDao
 import com.mercata.pingworks.db.messages.DBMessage
 import com.mercata.pingworks.db.messages.MessagesDao
 import com.mercata.pingworks.db.pending.attachments.DBPendingAttachment
@@ -21,7 +25,9 @@ import com.mercata.pingworks.db.pending.readers.PendingReadersDao
         DBAttachment::class,
         DBPendingRootMessage::class,
         DBPendingAttachment::class,
-        DBPendingReaderPublicData::class],
+        DBPendingReaderPublicData::class,
+        DBDraft::class,
+        DBDraftReader::class],
     version = 1
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -31,4 +37,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pendingMessagesDao(): PendingMessagesDao
     abstract fun pendingAttachmentsDao(): PendingAttachmentsDao
     abstract fun pendingReadersDao(): PendingReadersDao
+    abstract fun draftDao(): DraftDao
+    abstract fun draftReaderDao(): DraftReaderDao
 }

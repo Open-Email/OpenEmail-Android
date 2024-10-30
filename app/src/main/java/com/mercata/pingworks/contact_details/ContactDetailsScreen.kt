@@ -69,7 +69,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 onClick = {
-                    navController.navigate("ComposingScreen/${state.address}")
+                    navController.navigate("ComposingScreen/${state.address}/null")
                 }) {
                 Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
             }

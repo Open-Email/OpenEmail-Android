@@ -135,13 +135,17 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                         composable(
-                            route = "ComposingScreen/{contactAddress}/{replyMessageId}",
+                            route = "ComposingScreen/{contactAddress}/{replyMessageId}/{draftId}",
                             arguments = listOf(
                                 navArgument("contactAddress") {
                                     type = NavType.StringType
                                     nullable = true
                                 },
                                 navArgument("replyMessageId") {
+                                    type = NavType.StringType
+                                    nullable = true
+                                },
+                                navArgument("draftId") {
                                     type = NavType.StringType
                                     nullable = true
                                 },

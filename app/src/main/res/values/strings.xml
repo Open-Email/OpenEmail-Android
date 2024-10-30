@@ -70,4 +70,5 @@
     <string name="receive_broadcasts">Receive broadcasts</string>
     <string name="reply_button">Reply</string>
     <string name="reply_header">On %s %s wrote:\n<![CDATA[>]]> %s\n\n%s</string>
+    <string name="drafts">Drafts</string>
 </resources>

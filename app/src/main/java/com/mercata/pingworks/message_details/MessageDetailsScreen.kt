@@ -151,7 +151,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                 actions = {
                     if (!state.noReply) {
                         IconButton(onClick = {
-                            navController.navigate("ComposingScreen/${state.message?.message?.message?.authorAddress}/${state.message?.getMessageId()}")
+                            navController.navigate("ComposingScreen/${state.message?.message?.message?.authorAddress}/${state.message?.getMessageId()}/null")
                         }) {
                             Icon(
                                 painter = painterResource(id = R.drawable.reply),

@@ -8,9 +8,11 @@ import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
 import com.mercata.pingworks.db.AppDatabase
+import com.mercata.pingworks.db.drafts.DBDraft
+import com.mercata.pingworks.db.drafts.draft_reader.toPublicUserData
 import com.mercata.pingworks.db.messages.MessageWithAuthor
-import com.mercata.pingworks.models.ComposingData
 import com.mercata.pingworks.models.PublicUserData
+import com.mercata.pingworks.models.toDBDraftReader
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.Address
 import com.mercata.pingworks.utils.CopyAttachmentService
@@ -27,9 +29,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
-import java.io.File
+import java.util.UUID
 
 class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     AbstractViewModel<ComposingState>(
@@ -39,47 +42,111 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     ) {
 
     init {
-        viewModelScope.launch {
-            val sp: SharedPreferences by inject()
-            val db: AppDatabase by inject()
-            updateState(currentState.copy(loading = true))
+        viewModelScope.launch(Dispatchers.IO) {
+            initDraftId()
 
-            val replyMessage: MessageWithAuthor? = db.messagesDao()
-                .getById(savedStateHandle.get<String>("replyMessageId") ?: "")?.message
-
-            updateState(
-                currentState.copy(
-                    loading = false,
-                    replyMessage = replyMessage,
-                    currentUser = sp.getUserData()
-                )
-            )
+            launch { listenToDraftChanges() }
+            launch { listenToDraftReaders() }
+            launch { consumeRelyMessage() }
         }
     }
 
+    private lateinit var draftId: String
     private val fileUtils: FileUtils by inject()
     private val dl: Downloader by inject()
     private val attachmentCopier: CopyAttachmentService by inject()
+    private val draftDB = db.draftDao()
+
+    private suspend fun initDraftId() {
+        val oldDraftId = savedStateHandle.get<String>("draftId")
+        if (oldDraftId == null) {
+            draftId = UUID.randomUUID().toString()
+            db.draftDao().insert(
+                DBDraft(
+                    draftId = draftId,
+                    attachmentUriList = null,
+                    subject = "",
+                    textBody = "",
+                    isBroadcast = false,
+                    timestamp = System.currentTimeMillis(),
+                    readerAddresses = null
+                )
+            )
+        } else {
+            draftId = oldDraftId
+
+        }
+    }
+
+    private suspend fun listenToDraftReaders() {
+        db.draftReaderDao().getAllAsFlow(draftId = draftId).collect { draftReaders ->
+            currentState.recipients.clear()
+            currentState.recipients.addAll(draftReaders.map { it.toPublicUserData() })
+        }
+    }
+
+    private suspend fun listenToDraftChanges() {
+        db.draftDao().getByIdFlow(draftId).collect { draft ->
+            draft?.let {
+                draft.draft.attachmentUriList?.split(",")?.map { Uri.parse(it) }
+                    ?.let { draftAttachments ->
+                        currentState.attachments.clear()
+                        currentState.attachments.addAll(draftAttachments)
+                    }
+                delay(100)
+                updateState(
+                    currentState.copy(
+                        subject = draft.draft.subject,
+                        body = draft.draft.textBody,
+                        broadcast = draft.draft.isBroadcast,
+                    )
+                )
+            }
+        }
+    }
+
+    private suspend fun consumeRelyMessage() {
+        val sp: SharedPreferences by inject()
+        val db: AppDatabase by inject()
+        updateState(currentState.copy(loading = true))
+
+        val replyMessage: MessageWithAuthor? = db.messagesDao()
+            .getById(savedStateHandle.get<String>("replyMessageId") ?: "")?.message
+
+
+        updateState(
+            currentState.copy(
+                loading = false,
+                replyMessage = replyMessage,
+                currentUser = sp.getUserData()
+            )
+        )
+    }
 
     fun updateTo(str: String) {
         updateState(currentState.copy(addressFieldText = str, addressErrorResId = null))
     }
 
     fun updateSubject(str: String) {
-        updateState(currentState.copy(subject = str, subjectErrorResId = null))
+        viewModelScope.launch(Dispatchers.IO) {
+            draftDB.update(draftDB.getById(draftId)!!.draft.copy(subject = str))
+        }
+        updateState(currentState.copy(subjectErrorResId = null))
     }
 
     fun toggleBroadcast() {
-        updateState(
-            currentState.copy(
-                broadcast = !currentState.broadcast,
-                addressErrorResId = null
-            )
-        )
+        viewModelScope.launch(Dispatchers.IO) {
+            val draft = draftDB.getById(draftId)!!
+            draftDB.update(draft.draft.copy(isBroadcast = !draft.draft.isBroadcast))
+        }
+        updateState(currentState.copy(addressErrorResId = null))
     }
 
     fun updateBody(str: String) {
-        updateState(currentState.copy(body = str, bodyErrorResId = null))
+        viewModelScope.launch(Dispatchers.IO) {
+            draftDB.update(draftDB.getById(draftId)!!.draft.copy(textBody = str))
+        }
+        updateState(currentState.copy(bodyErrorResId = null))
     }
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -106,53 +173,43 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
         if (!valid) return
 
-        viewModelScope.launch(Dispatchers.IO) {
-            updateState(currentState.copy(loading = true))
-
-            val attachments: List<File> = if (currentState.attachments.isNotEmpty()) {
-                currentState.attachments.map { uri ->
-                    async {
-                        attachmentCopier.copyUriToLocalStorage(uri, fileUtils.getURLInfo(uri).name)
-                    }
-                }.awaitAll().filterNotNull()
-            } else {
-                listOf()
-            }
-
-            updateState(currentState.copy(loading = false))
-
-            GlobalScope.launch {
-                uploadMessage(
-                    composingData = ComposingData(
-                        recipients = currentState.recipients,
-                        subject = currentState.subject,
-                        body = currentState.body,
-                        attachments = attachments
-                    ),
-                    fileUtils = fileUtils,
-                    currentUser = sp.getUserData()!!,
-                    currentUserPublicData = sp.getPublicUserData()!!,
-                    db = db,
-                    isBroadcast = currentState.broadcast,
-                    replyToSubjectId = savedStateHandle.get<String>("replyMessageId"),
-                    sp = sp
-                )
-                syncAllMessages(db, sp, dl)
-            }
-            updateState(currentState.copy(sent = true))
+        GlobalScope.launch(Dispatchers.IO) {
+            val draftWithRecipients = db.draftDao().getById(draftId)!!
+            uploadMessage(
+                draft = draftWithRecipients.draft,
+                recipients = draftWithRecipients.readers.map { it.toPublicUserData() },
+                fileUtils = fileUtils,
+                currentUser = sp.getUserData()!!,
+                currentUserPublicData = sp.getPublicUserData()!!,
+                db = db,
+                isBroadcast = currentState.broadcast,
+                replyToSubjectId = savedStateHandle.get<String>("replyMessageId"),
+                sp = sp
+            )
+            syncAllMessages(db, sp, dl)
         }
+        updateState(currentState.copy(sent = true))
     }
 
 
     fun removeAttachment(attachment: Uri) {
-        currentState.attachments.remove(attachment)
+        viewModelScope.launch(Dispatchers.IO) {
+            val draft = draftDB.getById(draftId)!!
+            val uris: ArrayList<String> = arrayListOf<String>().apply {
+                addAll(
+                    draft.draft.attachmentUriList?.split(",") ?: listOf()
+                )
+            }
+            uris.remove(attachment.toString())
+            draftDB.update(draft.draft.copy(attachmentUriList = uris.joinToString(",").takeIf { it.isNotEmpty() }))
+        }
     }
 
     fun attemptToAddAddress() {
         val text = currentState.addressFieldText.trim()
         if (text.isBlank()) return
         if (!currentState.recipients.any { it.address == text }) {
-            viewModelScope.launch {
+            viewModelScope.launch(Dispatchers.IO) {
                 updateState(currentState.copy(addressLoading = true))
                 when (val call =
                     safeApiCall { getProfilePublicData(text) }) {
@@ -170,7 +227,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                                     addressFieldText = ""
                                 )
                             )
-                            currentState.recipients.add(call.data)
+                            db.draftReaderDao().insert(call.data.toDBDraftReader(draftId))
                         }
                     }
                 }
@@ -180,16 +237,32 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     }
 
     fun addAttachments(attachmentUris: List<Uri>) {
-        updateState(currentState.copy(bodyErrorResId = null))
-        attachmentUris.forEach {
-            if (!currentState.attachments.contains(it)) {
-                currentState.attachments.add(it)
-            }
+        viewModelScope.launch(Dispatchers.IO) {
+            updateState(currentState.copy(loading = true))
+
+            val attachmentUriStrings: List<String> = attachmentUris.map { uri ->
+                async {
+                    attachmentCopier.copyUriToLocalStorage(uri, fileUtils.getURLInfo(uri).name)
+                }
+            }.awaitAll().map { it.toString() }
+            val draft = draftDB.getById(draftId)!!
+            val uris = draft.draft.attachmentUriList?.split(",") ?: listOf()
+
+            draftDB.update(draft.draft.copy(attachmentUriList = hashSetOf<String>().apply {
+                addAll(uris)
+                addAll(attachmentUriStrings)
+            }.joinToString(",").takeIf { it.isNotEmpty() }))
+
+            updateState(currentState.copy(loading = false))
         }
+
+        updateState(currentState.copy(bodyErrorResId = null))
     }
 
     fun removeRecipient(user: PublicUserData) {
-        currentState.recipients.remove(user)
+        viewModelScope.launch(Dispatchers.IO) {
+           db.draftReaderDao().delete(user.address)
+        }
     }
 
     fun openUserDetails(user: PublicUserData) {

@@ -19,12 +19,6 @@ interface PendingMessagesDao {
     @Query("SELECT * FROM dbpendingrootmessage ORDER BY timestamp DESC")
     fun getAllAsFlowWithAttachments(): Flow<List<DBPendingMessage>>
 
-    @Query("SELECT * FROM dbpendingrootmessage WHERE message_id = :id")
-    suspend fun getById(id: String): DBPendingMessage
-
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertAll(messages: List<DBPendingRootMessage>)
-
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(vararg message: DBPendingRootMessage)
 
@@ -33,10 +27,4 @@ interface PendingMessagesDao {
 
     @Delete
     suspend fun deleteList(messages: List<DBPendingRootMessage>)
-
-    @Query("DELETE FROM dbpendingrootmessage")
-    suspend fun deleteAll()
-
-    @Update
-    suspend fun update(message: DBPendingRootMessage)
 }

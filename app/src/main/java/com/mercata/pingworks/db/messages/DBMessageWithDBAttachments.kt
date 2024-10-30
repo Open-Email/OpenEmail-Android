@@ -4,7 +4,7 @@ import androidx.room.Embedded
 import androidx.room.Relation
 import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.db.attachments.DBAttachment
-import com.mercata.pingworks.models.toPublicUserData
+import com.mercata.pingworks.db.contacts.toPublicUserData
 
 data class DBMessageWithDBAttachments(
     @Embedded val message: MessageWithAuthor,

@@ -2,6 +2,7 @@ package com.mercata.pingworks.utils
 
 import android.content.Context
 import android.net.Uri
+import androidx.core.net.toUri
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
@@ -10,7 +11,7 @@ import java.io.InputStream
 
 class CopyAttachmentService(val context: Context) {
 
-    fun copyUriToLocalStorage(uri: Uri, outputFileName: String): File? {
+    fun copyUriToLocalStorage(uri: Uri, outputFileName: String): Uri? {
         try {
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
 
@@ -26,7 +27,7 @@ class CopyAttachmentService(val context: Context) {
 
             inputStream?.close()
 
-            return outputFile
+            return outputFile.toUri()
         } catch (e: IOException) {
             e.printStackTrace()
         } catch (e: FileNotFoundException) {

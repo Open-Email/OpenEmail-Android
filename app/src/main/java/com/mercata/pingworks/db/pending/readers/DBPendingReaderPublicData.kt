@@ -3,6 +3,8 @@ package com.mercata.pingworks.db.pending.readers
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.mercata.pingworks.models.PublicUserData
+import java.time.Instant
 
 @Entity
 data class DBPendingReaderPublicData(
@@ -19,4 +21,19 @@ data class DBPendingReaderPublicData(
     @ColumnInfo("signing_key_algorithm") val signingKeyAlgorithm: String,
     @ColumnInfo("public_encryption_key") val publicEncryptionKey: String,
     @ColumnInfo("public_signing_key") val publicSigningKey: String,
+)
+
+
+fun DBPendingReaderPublicData.toPublicUserData() = PublicUserData(
+    fullName = this.fullName,
+    imageUrl = this.imageUrl,
+    address = this.address,
+    lastSeenPublic = this.lastSeenPublic,
+    lastSeen = this.lastSeenTimestamp?.let { Instant.ofEpochMilli(it) },
+    updated = this.updatedTimestamp?.let { Instant.ofEpochMilli(it) },
+    encryptionKeyId = this.encryptionKeyId,
+    encryptionKeyAlgorithm = this.encryptionKeyAlgorithm,
+    signingKeyAlgorithm = this.signingKeyAlgorithm,
+    publicEncryptionKey = this.publicEncryptionKey,
+    publicSigningKey = this.publicSigningKey
 )

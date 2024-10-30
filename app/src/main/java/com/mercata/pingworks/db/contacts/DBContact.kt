@@ -3,6 +3,8 @@ package com.mercata.pingworks.db.contacts
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.mercata.pingworks.models.PublicUserData
+import java.time.Instant
 
 @Entity
 data class DBContact(
@@ -18,3 +20,18 @@ data class DBContact(
     @ColumnInfo(name = "public_encryption_key") val publicEncryptionKey: String,
     @ColumnInfo(name = "public_encryption_key_id") val publicEncryptionKeyId: String,
     @ColumnInfo(name = "public_signing_key") val publicSigningKey: String)
+
+fun DBContact.toPublicUserData(): PublicUserData =
+    PublicUserData(
+        fullName = this.name ?: "",
+        imageUrl = this.imageUrl,
+        address = this.address,
+        lastSeenPublic = this.lastSeenPublic,
+        lastSeen = this.lastSeen?.let { Instant.parse(it) },
+        updated = this.lastSeen?.let { Instant.parse(it) },
+        encryptionKeyId = this.publicEncryptionKeyId,
+        encryptionKeyAlgorithm = this.encryptionKeyAlgorithm,
+        signingKeyAlgorithm = this.signingKeyAlgorithm,
+        publicEncryptionKey = this.publicEncryptionKey,
+        publicSigningKey = this.publicSigningKey
+    )

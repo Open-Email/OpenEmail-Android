@@ -13,21 +13,21 @@ import com.mercata.pingworks.db.attachments.AttachmentsDao
 import com.mercata.pingworks.db.attachments.DBAttachment
 import com.mercata.pingworks.db.contacts.ContactsDao
 import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.db.drafts.DBDraft
 import com.mercata.pingworks.db.messages.DBMessage
 import com.mercata.pingworks.db.messages.MessagesDao
 import com.mercata.pingworks.db.pending.attachments.DBPendingAttachment
 import com.mercata.pingworks.db.pending.messages.DBPendingRootMessage
 import com.mercata.pingworks.db.pending.readers.DBPendingReaderPublicData
+import com.mercata.pingworks.db.pending.readers.toPublicUserData
 import com.mercata.pingworks.exceptions.EnvelopeAuthenticity
 import com.mercata.pingworks.exceptions.SignatureMismatch
-import com.mercata.pingworks.models.ComposingData
 import com.mercata.pingworks.models.ContentHeaders
 import com.mercata.pingworks.models.Envelope
 import com.mercata.pingworks.models.MessageCategory
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.models.toDBContact
 import com.mercata.pingworks.models.toDBPendingReaderPublicData
-import com.mercata.pingworks.models.toPublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.response_converters.ContactsListConverterFactory
 import com.mercata.pingworks.response_converters.EnvelopeIdsListConverterFactory
@@ -50,7 +50,6 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
-import java.io.FileInputStream
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -417,7 +416,8 @@ suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: Download
 }
 
 suspend fun uploadMessage(
-    composingData: ComposingData,
+    draft: DBDraft,
+    recipients: List<PublicUserData>,
     fileUtils: FileUtils,
     currentUser: UserData,
     currentUserPublicData: PublicUserData,
@@ -435,7 +435,7 @@ suspend fun uploadMessage(
             else
                 arrayListOf(currentUserPublicData).apply {
                     addAll(
-                        composingData.recipients
+                        recipients
                     )
                 }
 
@@ -443,19 +443,18 @@ suspend fun uploadMessage(
             messageId = rootMessageId,
             subjectId = replyToSubjectId,
             timestamp = sendingDate.toEpochMilli(),
-            subject = composingData.subject,
-            checksum = composingData.body.hashedWithSha256().first,
+            subject = draft.subject,
+            checksum = draft.textBody.hashedWithSha256().first,
             category = MessageCategory.personal.name,
-            size = composingData.body.toByteArray().size.toLong(),
+            size = draft.textBody.toByteArray().size.toLong(),
             authorAddress = currentUser.address,
-            textBody = composingData.body,
+            textBody = draft.textBody,
             isBroadcast = isBroadcast
         )
 
         val fileParts = arrayListOf<DBPendingAttachment>()
 
-        composingData.attachments.forEach { attachment ->
-            val uri = fileUtils.getUriForFile(attachment)
+        draft.attachmentUriList?.split(",")?.map { Uri.parse(it) }?.forEach { uri ->
             val urlInfo = fileUtils.getURLInfo(uri)
 
             if (urlInfo.size <= MAX_MESSAGE_SIZE) {
@@ -476,7 +475,7 @@ suspend fun uploadMessage(
                         offset = null,
                         totalParts = 1,
                         sendingDateTimestamp = sendingDate.toEpochMilli(),
-                        subject = composingData.subject,
+                        subject = draft.subject,
                         isBroadcast = isBroadcast
                     )
                 )
@@ -488,7 +487,7 @@ suspend fun uploadMessage(
                 val totalParts = (urlInfo.size + MAX_MESSAGE_SIZE - 1) / urlInfo.size
                 var offset: Long = 0
 
-                FileInputStream(attachment).use { inputStream ->
+                fileUtils.getInputStreamFromUri(uri)?.use { inputStream ->
                     var bytesRead: Int
                     while (inputStream.read(buffer).also { bytesRead = it } != -1) {
 
@@ -510,7 +509,7 @@ suspend fun uploadMessage(
                                 offset = offset,
                                 totalParts = totalParts.toInt(),
                                 sendingDateTimestamp = sendingDate.toEpochMilli(),
-                                subject = composingData.subject,
+                                subject = draft.subject,
                                 isBroadcast = isBroadcast
                             )
                         )
@@ -521,7 +520,7 @@ suspend fun uploadMessage(
             }
         }
 
-        db.userDao().insertAll(composingData.recipients.map { it.toDBContact() })
+        db.userDao().insertAll(recipients.map { it.toDBContact() })
         db.pendingMessagesDao().insert(pendingRootMessage)
         db.pendingAttachmentsDao().insertAll(fileParts)
         if (!isBroadcast) {

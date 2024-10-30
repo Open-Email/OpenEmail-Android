@@ -50,7 +50,7 @@ class FileUtils(val context: Context) {
         val messageDigest = MessageDigest.getInstance("SHA-256")
 
         // Open an InputStream using ContentResolver for the given Uri
-        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+        getInputStreamFromUri(uri)?.use { inputStream ->
             skipFully(inputStream, fromOffset) // Move to the correct offset
 
             DigestInputStream(inputStream, messageDigest).use { dis ->
@@ -94,7 +94,7 @@ class FileUtils(val context: Context) {
         bytesCount: Long,
         offset: Long
     ): ByteArray? {
-        context.contentResolver.openInputStream(inputUri)?.use { stream ->
+        getInputStreamFromUri(inputUri)?.use { stream ->
             // Skip to the specified offset
             stream.skip(offset)
 
@@ -130,7 +130,7 @@ class FileUtils(val context: Context) {
     }
 
     fun getAllBytesForUri(uri: Uri, offset: Long, bytesCount: Long): ByteArray? {
-        context.contentResolver.openInputStream(uri)?.use { stream ->
+        getInputStreamFromUri(uri)?.use { stream ->
             // Skip to the specified offset
             stream.skip(offset)
 
@@ -213,6 +213,7 @@ class FileUtils(val context: Context) {
         )
     }
 
+    fun getInputStreamFromUri(uri: Uri): InputStream? = context.contentResolver.openInputStream(uri)
 
     private fun String.encodeHeaderValue() = URLEncoder.encode(this, Charsets.UTF_8.name()) ?: ""
 }
