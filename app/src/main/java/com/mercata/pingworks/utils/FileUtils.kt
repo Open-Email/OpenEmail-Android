@@ -7,6 +7,7 @@ import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
 import androidx.core.net.toFile
 import com.mercata.pingworks.BUFFER_SIZE
+import com.mercata.pingworks.BuildConfig
 import com.mercata.pingworks.models.URLInfo
 import java.io.File
 import java.io.IOException
@@ -24,7 +25,7 @@ class FileUtils(val context: Context) {
     fun getUriForFile(file: File): Uri {
         return FileProvider.getUriForFile(
             context,
-            "${context.packageName}.fileprovider", // authority should match the one defined in the manifest
+            "${BuildConfig.APPLICATION_ID}.fileprovider", // authority should match the one defined in the manifest
             file
         )
     }

@@ -1,7 +1,6 @@
 package com.mercata.pingworks.message_details
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.lifecycle.SavedStateHandle
@@ -14,6 +13,7 @@ import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.AttachmentResult
 import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.Progress
 import com.mercata.pingworks.utils.SharedPreferences
@@ -81,6 +81,7 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
     }
 
     private val downloader: Downloader by inject()
+    private val fileUtils: FileUtils by inject()
 
     fun downloadFile(attachment: FusedAttachment) {
         currentState.attachmentsWithStatus[attachment] = AttachmentResult(null, Progress(0))
@@ -92,7 +93,8 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
         }
     }
 
-    fun share(uri: Uri, attachment: FusedAttachment) {
+    fun share(attachment: FusedAttachment) {
+        val uri = fileUtils.getUriForFile(currentState.attachmentsWithStatus[attachment]?.file!!)
         val sendIntent: Intent = Intent().apply {
             action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_STREAM, uri)

@@ -77,6 +77,7 @@ import com.mercata.pingworks.db.messages.FusedAttachment
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloaded
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloading
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.NotDownloaded
+import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.Indefinite
 import java.time.Instant
 import java.time.ZoneId
@@ -350,8 +351,6 @@ fun AttachmentViewHolder(
         }
     }
 
-    val context = LocalContext.current
-
     Row(verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxSize()
@@ -361,13 +360,7 @@ fun AttachmentViewHolder(
                 when (status) {
                     NotDownloaded -> viewModel.downloadFile(attachment)
                     Downloaded -> {
-                        val contentUri: Uri =
-                            FileProvider.getUriForFile(
-                                context,
-                                "${BuildConfig.APPLICATION_ID}.fileprovider",
-                                state.attachmentsWithStatus[attachment]?.file!!
-                            )
-                        viewModel.share(contentUri, attachment)
+                        viewModel.share(attachment)
                     }
 
                     Downloading -> {

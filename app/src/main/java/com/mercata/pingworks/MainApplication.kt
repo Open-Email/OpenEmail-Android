@@ -18,7 +18,7 @@ class MainApplication : Application() {
     private val appModule = module {
         single { SharedPreferences(get(), get()) }
         factory { BioManager(get()) }
-        factory { Downloader(get()) }
+        factory { Downloader(get(), get()) }
         factory { FileUtils(get()) }
         factory { CopyAttachmentService(get()) }
         single {

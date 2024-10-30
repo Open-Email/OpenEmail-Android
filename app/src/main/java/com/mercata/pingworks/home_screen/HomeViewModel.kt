@@ -164,6 +164,13 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
+    fun deleteAttachment(item: CachedAttachment) {
+        dl.deleteFile(item.uri)
+        cachedAttachments.clear()
+        cachedAttachments.addAll(dl.getCachedAttachments())
+        updateList()
+    }
+
 }
 
 data class HomeState(

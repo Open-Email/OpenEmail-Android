@@ -1,9 +1,9 @@
 package com.mercata.pingworks.utils
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import android.webkit.MimeTypeMap
-import androidx.core.net.toUri
 import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_ABYTES
 import com.goterl.lazysodium.interfaces.AEAD.XCHACHA20POLY1305_IETF_NPUBBYTES
 import com.mercata.pingworks.BUFFER_SIZE
@@ -29,7 +29,7 @@ import java.util.Locale
 import kotlin.text.Charsets.UTF_8
 
 
-class Downloader(val context: Context) {
+class Downloader(val context: Context, private val fileUtils: FileUtils) {
 
     companion object {
         const val FOLDER_NAME = "messages"
@@ -39,18 +39,23 @@ class Downloader(val context: Context) {
         val folder = File(context.filesDir, FOLDER_NAME)
         folder.mkdirs()
         return folder.listFiles()?.map {
-            val uri = it.toUri()
+            val uri = fileUtils.getUriForFile(it)
             CachedAttachment(
                 uri,
-                name = uri.toString().substringAfterLast("/"),
+                name = it.name,
                 type = getMimeTypeFromFile(it)
             )
         } ?: listOf()
     }
 
+    fun deleteFile(uri: Uri) {
+        context.contentResolver.delete(uri, null, null)
+    }
+
     private fun getMimeTypeFromFile(file: File): String? {
         val extension = MimeTypeMap.getFileExtensionFromUrl(file.name)
-        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.lowercase(Locale.getDefault()))
+        return MimeTypeMap.getSingleton()
+            .getMimeTypeFromExtension(extension.lowercase(Locale.getDefault()))
     }
 
     fun getDownloadedAttachmentsForMessage(messageWithDBAttachments: DBMessageWithDBAttachments): Map<FusedAttachment, AttachmentResult> {
