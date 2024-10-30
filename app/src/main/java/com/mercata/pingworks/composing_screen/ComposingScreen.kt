@@ -6,6 +6,7 @@
 package com.mercata.pingworks.composing_screen
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -43,11 +44,13 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -60,6 +63,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,6 +78,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -91,6 +96,7 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.theme.bodyFontFamily
 import com.mercata.pingworks.utils.getNameFromURI
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -103,6 +109,7 @@ fun SharedTransitionScope.ComposingScreen(
     viewModel: ComposingViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val toFocusRequester = remember { FocusRequester() }
     val subjectFocusRequester = remember { FocusRequester() }
@@ -114,6 +121,10 @@ fun SharedTransitionScope.ComposingScreen(
         }
 
     val state by viewModel.state.collectAsState()
+
+    BackHandler(enabled = true) {
+        viewModel.confirmExit()
+    }
 
     LaunchedEffect(state.sent) {
         if (state.sent) {
@@ -445,6 +456,54 @@ fun SharedTransitionScope.ComposingScreen(
                 text = {
                     Text(text = state.openedAddressDetails!!.address)
                 }
+            )
+        }
+
+        if (state.confirmExitDialogShown) {
+            AlertDialog(
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = stringResource(id = R.string.warning))
+                    }
+                },
+                text = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = stringResource(id = R.string.exit_composing_confirmation),  textAlign = TextAlign.Center)
+                        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                        ElevatedButton(modifier = modifier.fillMaxWidth(), onClick = {
+                            viewModel.closeExitConfirmation()
+                            navController.popBackStack(route = "HomeScreen", inclusive = false)
+                        }) {
+                            Text(stringResource(id = R.string.save_as_draft))
+                        }
+                        OutlinedButton(modifier = modifier.fillMaxWidth(), onClick = {
+                            coroutineScope.launch {
+                                viewModel.closeExitConfirmation()
+                                viewModel.deleteDraft()
+                                navController.popBackStack(route = "HomeScreen", inclusive = false)
+                            }
+                        }) {
+                            Text(stringResource(id = R.string.close_without_saving))
+                        }
+                    }
+                },
+
+                onDismissRequest = {
+                    viewModel.closeExitConfirmation()
+                },
+                confirmButton = {
+                    TextButton(
+                        //modifier = modifier.fillMaxWidth(),
+                        onClick = {
+                            viewModel.closeExitConfirmation()
+                        }
+                    ) {
+                        Text(stringResource(id = R.string.cancel_button))
+                    }
+                },
             )
         }
     }

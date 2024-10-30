@@ -71,4 +71,7 @@
     <string name="reply_button">Reply</string>
     <string name="reply_header">On %s %s wrote:\n<![CDATA[>]]> %s\n\n%s</string>
     <string name="drafts">Drafts</string>
+    <string name="exit_composing_confirmation">Do you want to save this message as a draft?</string>
+    <string name="save_as_draft">Save as draft</string>
+    <string name="close_without_saving">Exit without saving</string>
 </resources>

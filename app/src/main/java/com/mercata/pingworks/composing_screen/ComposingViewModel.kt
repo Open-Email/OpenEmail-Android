@@ -31,6 +31,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
 import java.util.UUID
 
@@ -43,9 +44,27 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
+            val db: AppDatabase by inject()
             initDraftId()
 
-            launch { listenToDraftChanges() }
+            launch {
+                delay(100)
+                db.draftDao().getById(draftId)?.let { draft ->
+                    updateState(
+                        currentState.copy(
+                            subject = draft.getSubject(),
+                            body = draft.getTextBody(),
+                            broadcast = draft.draft.isBroadcast
+                        )
+                    )
+                    currentState.recipients.clear()
+                    currentState.recipients.addAll(draft.readers.map { it.toPublicUserData() })
+                    currentState.attachments.clear()
+                    currentState.attachments.addAll(
+                        draft.draft.attachmentUriList?.split(",")?.map { Uri.parse(it) }
+                            ?: listOf())
+                }
+            }
             launch { listenToDraftReaders() }
             launch { consumeRelyMessage() }
         }
@@ -74,7 +93,6 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             )
         } else {
             draftId = oldDraftId
-
         }
     }
 
@@ -85,26 +103,6 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         }
     }
 
-    private suspend fun listenToDraftChanges() {
-        db.draftDao().getByIdFlow(draftId).collect { draft ->
-            draft?.let {
-                draft.draft.attachmentUriList?.split(",")?.map { Uri.parse(it) }
-                    ?.let { draftAttachments ->
-                        currentState.attachments.clear()
-                        currentState.attachments.addAll(draftAttachments)
-                    }
-                delay(100)
-                updateState(
-                    currentState.copy(
-                        subject = draft.draft.subject,
-                        body = draft.draft.textBody,
-                        broadcast = draft.draft.isBroadcast,
-                    )
-                )
-            }
-        }
-    }
-
     private suspend fun consumeRelyMessage() {
         val sp: SharedPreferences by inject()
         val db: AppDatabase by inject()
@@ -112,7 +110,6 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
         val replyMessage: MessageWithAuthor? = db.messagesDao()
             .getById(savedStateHandle.get<String>("replyMessageId") ?: "")?.message
-
 
         updateState(
             currentState.copy(
@@ -131,7 +128,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         viewModelScope.launch(Dispatchers.IO) {
             draftDB.update(draftDB.getById(draftId)!!.draft.copy(subject = str))
         }
-        updateState(currentState.copy(subjectErrorResId = null))
+        updateState(currentState.copy(subject = str, subjectErrorResId = null))
     }
 
     fun toggleBroadcast() {
@@ -139,14 +136,19 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             val draft = draftDB.getById(draftId)!!
             draftDB.update(draft.draft.copy(isBroadcast = !draft.draft.isBroadcast))
         }
-        updateState(currentState.copy(addressErrorResId = null))
+        updateState(
+            currentState.copy(
+                broadcast = !currentState.broadcast,
+                addressErrorResId = null
+            )
+        )
     }
 
     fun updateBody(str: String) {
         viewModelScope.launch(Dispatchers.IO) {
             draftDB.update(draftDB.getById(draftId)!!.draft.copy(textBody = str))
         }
-        updateState(currentState.copy(bodyErrorResId = null))
+        updateState(currentState.copy(body = str, bodyErrorResId = null))
     }
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -201,8 +203,13 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                 )
             }
             uris.remove(attachment.toString())
-            draftDB.update(draft.draft.copy(attachmentUriList = uris.joinToString(",").takeIf { it.isNotEmpty() }))
+            draftDB.update(
+                draft.draft.copy(
+                    attachmentUriList = uris.joinToString(",").takeIf { it.isNotEmpty() })
+            )
         }
+
+        currentState.attachments.remove(attachment)
     }
 
     fun attemptToAddAddress() {
@@ -261,7 +268,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
     fun removeRecipient(user: PublicUserData) {
         viewModelScope.launch(Dispatchers.IO) {
-           db.draftReaderDao().delete(user.address)
+            db.draftReaderDao().delete(user.address)
         }
     }
 
@@ -276,6 +283,21 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     fun consumeReplyData() {
         updateState(currentState.copy(replyMessage = null))
     }
+
+    fun confirmExit() {
+        updateState(currentState.copy(confirmExitDialogShown = true))
+    }
+
+    fun closeExitConfirmation() {
+        updateState(currentState.copy(confirmExitDialogShown = false))
+    }
+
+    suspend fun deleteDraft() {
+        withContext(Dispatchers.IO) {
+            db.draftDao().delete(draftId)
+            closeExitConfirmation()
+        }
+    }
 }
 
 data class ComposingState(
@@ -288,6 +310,7 @@ data class ComposingState(
     val recipients: SnapshotStateList<PublicUserData> = mutableStateListOf(),
     val addressLoading: Boolean = false,
     val loading: Boolean = false,
+    val confirmExitDialogShown: Boolean = false,
     val addressErrorResId: Int? = null,
     val subjectErrorResId: Int? = null,
     val bodyErrorResId: Int? = null,
