@@ -20,6 +20,7 @@ import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
+import com.mercata.pingworks.utils.SoundPlayer
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
 import com.mercata.pingworks.utils.syncAllMessages
@@ -66,15 +67,18 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                 }
             }
             launch { listenToDraftReaders() }
-            launch { consumeRelyMessage() }
+            launch { listenToDraftChanges() }
+            launch { consumeReplyMessage() }
         }
     }
 
     private lateinit var draftId: String
     private val fileUtils: FileUtils by inject()
     private val dl: Downloader by inject()
+    private val soundPlayer: SoundPlayer by inject()
     private val attachmentCopier: CopyAttachmentService by inject()
     private val draftDB = db.draftDao()
+    private var instantPhotoUri: Uri? = null
 
     private suspend fun initDraftId() {
         val oldDraftId = savedStateHandle.get<String>("draftId")
@@ -103,7 +107,16 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         }
     }
 
-    private suspend fun consumeRelyMessage() {
+    private suspend fun listenToDraftChanges() {
+        db.draftDao().getByIdFlow(draftId = draftId).collect { draft ->
+            currentState.attachments.clear()
+            currentState.attachments.addAll(
+                draft?.draft?.attachmentUriList?.split(",")?.map { Uri.parse(it) } ?: listOf())
+        }
+    }
+
+
+    private suspend fun consumeReplyMessage() {
         val sp: SharedPreferences by inject()
         val db: AppDatabase by inject()
         updateState(currentState.copy(loading = true))
@@ -175,6 +188,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
         if (!valid) return
 
+        soundPlayer.playSwoosh()
         GlobalScope.launch(Dispatchers.IO) {
             val draftWithRecipients = db.draftDao().getById(draftId)!!
             uploadMessage(
@@ -296,6 +310,17 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         withContext(Dispatchers.IO) {
             db.draftDao().delete(draftId)
             closeExitConfirmation()
+        }
+    }
+
+    fun getNewFileUri(): Uri {
+        instantPhotoUri = fileUtils.getUriForFile(fileUtils.createImageFile())
+        return instantPhotoUri!!
+    }
+
+    fun addInstantPhotoAsAttachment() {
+        instantPhotoUri?.let {
+            addAttachments(listOf(it))
         }
     }
 }

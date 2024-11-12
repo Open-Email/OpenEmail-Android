@@ -17,10 +17,27 @@ import java.nio.file.Files
 import java.security.DigestInputStream
 import java.security.MessageDigest
 import java.time.Instant
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 
 class FileUtils(val context: Context) {
 
+
+    companion object {
+        const val IMAGE_FOLDER_NAME = "images"
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    fun createImageFile(): File {
+        val folder = File(context.filesDir, IMAGE_FOLDER_NAME)
+        if (!folder.exists()) {
+            folder.mkdirs()
+        }
+        val file = File(folder, "${Uuid.random()}.jpg")
+        file.createNewFile()
+        return file
+    }
 
     fun getUriForFile(file: File): Uri {
         return FileProvider.getUriForFile(

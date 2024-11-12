@@ -1,7 +1,8 @@
-package com.mercata.pingworks
+package com.mercata.pingworks.utils
 
 import android.content.Context
 import android.media.MediaPlayer
+import com.mercata.pingworks.R
 
 class SoundPlayer(val context: Context) {
 

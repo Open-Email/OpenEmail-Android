@@ -1,9 +1,9 @@
 package com.mercata.pingworks.utils
 
 import android.content.Context
-import android.database.Cursor
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.webkit.MimeTypeMap
 import com.mercata.pingworks.CHECKSUM_ALGORITHM
 import com.mercata.pingworks.DEFAULT_SERVER_DATE_FORMAT
 import com.mercata.pingworks.HEADER_MESSAGE_ACCESS
@@ -31,14 +31,36 @@ fun String.parseSimpleDate(): ZonedDateTime =
 fun String.parseServerDate(): ZonedDateTime =
     ZonedDateTime.ofInstant(Instant.parse(this), ZoneId.systemDefault())
 
-fun Uri.getNameFromURI(context: Context): String {
-    val c: Cursor = context.contentResolver.query(this, null, null, null, null)!!
-    c.moveToFirst()
-    val result =
-        c.getColumnIndex(OpenableColumns.DISPLAY_NAME).takeIf { it >= 0 }?.let { c.getString(it) }
-            ?: ""
-    c.close()
-    return result
+fun Uri.getNameFromURI(context: Context): String? {
+    return when (scheme) {
+        "content" -> {
+            context.contentResolver.query(this, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    return if (nameIndex >= 0) cursor.getString(nameIndex) else null
+                }
+                null
+            }
+        }
+
+        "file" -> {
+            this.path?.substringAfterLast('/')
+        }
+
+        else -> {
+            null
+        }
+    }
+}
+
+fun Uri.getMimeType(context: Context): String? {
+    return when (scheme) {
+        "content" -> context.contentResolver.getType(this)
+        "file" -> MimeTypeMap.getSingleton().getMimeTypeFromExtension(
+            MimeTypeMap.getFileExtensionFromUrl(this.toString())
+        )
+        else -> null
+    }
 }
 
 fun List<DBPendingReaderPublicData>.generateAccessLinks(accessKey: ByteArray): String {

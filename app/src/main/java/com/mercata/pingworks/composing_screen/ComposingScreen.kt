@@ -88,6 +88,7 @@ import coil.compose.AsyncImage
 import com.mercata.pingworks.ATTACHMENT_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.CHIP_HEIGHT
 import com.mercata.pingworks.CHIP_ICON_SIZE
+import com.mercata.pingworks.CLEAR_ICON_SIZE
 import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
@@ -95,6 +96,7 @@ import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.theme.bodyFontFamily
+import com.mercata.pingworks.utils.getMimeType
 import com.mercata.pingworks.utils.getNameFromURI
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -115,9 +117,14 @@ fun SharedTransitionScope.ComposingScreen(
     val subjectFocusRequester = remember { FocusRequester() }
     val bodyFocusRequester = remember { FocusRequester() }
 
-    val launcher =
+    val documentChooserLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) {
             viewModel.addAttachments(it)
+        }
+
+    val photoSnapLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) {
+            viewModel.addInstantPhotoAsAttachment()
         }
 
     val state by viewModel.state.collectAsState()
@@ -196,6 +203,16 @@ fun SharedTransitionScope.ComposingScreen(
                         }
                     },
                     actions = {
+                        IconButton(
+                            onClick = {
+                                photoSnapLauncher.launch(viewModel.getNewFileUri())
+                            }) {
+                            Icon(
+                                painter = painterResource(R.drawable.camera),
+                                contentDescription = stringResource(id = R.string.add_instant_photo),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                         IconButton(enabled = (!state.loading && state.recipients.isNotEmpty()) || state.broadcast,
                             onClick = {
                                 focusManager.clearFocus()
@@ -223,7 +240,7 @@ fun SharedTransitionScope.ComposingScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     onClick = {
-                        launcher.launch(arrayOf("*/*"))
+                        documentChooserLauncher.launch(arrayOf("*/*"))
                     }) {
                     Icon(
                         painter = painterResource(id = R.drawable.attach),
@@ -471,7 +488,10 @@ fun SharedTransitionScope.ComposingScreen(
                 },
                 text = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = stringResource(id = R.string.exit_composing_confirmation),  textAlign = TextAlign.Center)
+                        Text(
+                            text = stringResource(id = R.string.exit_composing_confirmation),
+                            textAlign = TextAlign.Center
+                        )
                         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                         ElevatedButton(modifier = modifier.fillMaxWidth(), onClick = {
                             viewModel.closeExitConfirmation()
@@ -573,7 +593,7 @@ fun AttachmentViewHolder(
     viewModel: ComposingViewModel
 ) {
     val context = LocalContext.current
-    val type = context.contentResolver.getType(attachment)?.lowercase() ?: ""
+    val type = attachment.getMimeType(context) ?: ""
     val imageResource = if (type.contains("pdf")) {
         R.drawable.pdf
     } else if (type.contains("image")) {
@@ -607,17 +627,18 @@ fun AttachmentViewHolder(
                 tint = MaterialTheme.colorScheme.onPrimary
             )
         }
-
-        Spacer(modifier = modifier.width(MARGIN_DEFAULT))
         Text(
-            text = attachment.getNameFromURI(context),
+            modifier = modifier
+                .weight(1f)
+                .padding(horizontal = MARGIN_DEFAULT),
+            text = attachment.getNameFromURI(context) ?: "",
             style = MaterialTheme.typography.bodyMedium,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis
         )
-        Spacer(modifier = modifier.weight(1f))
         IconButton(onClick = { viewModel.removeAttachment(attachment) }) {
             Icon(
+                modifier = Modifier.size(CLEAR_ICON_SIZE),
                 imageVector = Icons.Default.Clear,
                 contentDescription = stringResource(id = R.string.clear_button)
             )

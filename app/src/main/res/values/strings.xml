@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">OpenMail</string>
+    <string name="app_name">OpenEMail</string>
     <string name="onboarding_title">Email of the future, today.</string>
     <string name="onboarding_text">Spam-free, phishing-free, private &amp; secure by design.</string>
     <string name="address_input_hint">%s address</string>
@@ -75,4 +75,5 @@
     <string name="save_as_draft">Save as draft</string>
     <string name="close_without_saving">Exit without saving</string>
     <string name="downloaded_attachments">Downloaded attachments</string>
+    <string name="add_instant_photo">Add instant photo</string>
 </resources>

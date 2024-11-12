@@ -8,6 +8,7 @@ import com.mercata.pingworks.utils.CopyAttachmentService
 import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.SharedPreferences
+import com.mercata.pingworks.utils.SoundPlayer
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.GlobalContext.startKoin
@@ -20,6 +21,7 @@ class MainApplication : Application() {
         factory { BioManager(get()) }
         factory { Downloader(get(), get()) }
         factory { FileUtils(get()) }
+        factory { SoundPlayer(get()) }
         factory { CopyAttachmentService(get()) }
         single {
             Room.databaseBuilder(
