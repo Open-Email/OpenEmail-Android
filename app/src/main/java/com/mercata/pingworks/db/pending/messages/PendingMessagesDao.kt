@@ -25,6 +25,9 @@ interface PendingMessagesDao {
     @Query("DELETE FROM dbpendingrootmessage WHERE message_id = :messageId")
     suspend fun delete(messageId: String)
 
+    @Query("DELETE FROM dbpendingrootmessage")
+    suspend fun deleteAll()
+
     @Delete
     suspend fun deleteList(messages: List<DBPendingRootMessage>)
 }

@@ -27,4 +27,7 @@ interface DraftDao {
 
     @Query("DELETE FROM dbdraft WHERE draft_id = :draftId")
     suspend fun delete(draftId: String)
+
+    @Query("DELETE FROM dbdraft")
+    suspend fun deleteAll()
 }

@@ -26,6 +26,7 @@ const val BUFFER_SIZE: Int = 1024 * 1024
 
 val emailRegex = Regex("^[a-z0-9][a-z0-9\\.\\-_\\+]{2,}@[a-z0-9.-]+\\.[a-z]{2,}|xn--[a-z0-9]{2,}$")
 const val WELL_KNOWN_URI = ".well-known/mail.txt"
+const val SUPPORT_ADDRESS = "support@open.email"
 const val DEFAULT_MAIL_SUBDOMAIN = "mail"
 const val CHECKSUM_ALGORITHM = "sha256"
 const val SIGNING_ALGORITHM = "ed25519"

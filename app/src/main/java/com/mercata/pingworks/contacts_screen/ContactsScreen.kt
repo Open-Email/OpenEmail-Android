@@ -271,12 +271,12 @@ fun AddContactDialog(
     var focusRequested = remember { false }
     val focusManager = LocalFocusManager.current
     val addressPresented =
-        state.contacts.any { it.address == state.newContactFound?.address }
+        state.contacts.any { it.address == state.existingContactFound?.address }
     val samePerson = state.loggedInPersonAddress == state.newContactAddressInput.lowercase().trim()
     val titleResId = if (samePerson) {
         R.string.cannot_add_yourself
     } else {
-        if (state.newContactFound == null) {
+        if (state.existingContactFound == null) {
             R.string.add_new_contact
         } else {
             if (addressPresented) {
@@ -306,7 +306,7 @@ fun AddContactDialog(
             Text(text = stringResource(id = titleResId), textAlign = TextAlign.Center)
         },
         text = {
-            if (state.newContactFound == null) {
+            if (state.existingContactFound == null) {
                 OutlinedTextField(
                     value = state.newContactAddressInput,
                     onValueChange = { str -> viewModel.onNewContactAddressInput(str) },
@@ -339,8 +339,8 @@ fun AddContactDialog(
                     modifier = modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(state.newContactFound.fullName)
-                    Text(state.newContactFound.address)
+                    Text(state.existingContactFound.fullName)
+                    Text(state.existingContactFound.address)
                 }
             }
         },
@@ -351,21 +351,21 @@ fun AddContactDialog(
             if (!addressPresented && !samePerson) {
                 TextButton(enabled = !state.loading && state.searchButtonActive,
                     onClick = {
-                        if (state.newContactFound == null) {
+                        if (state.existingContactFound == null) {
                             viewModel.searchNewContact()
                         } else {
                             viewModel.addContact()
                         }
                     }
                 ) {
-                    Text(stringResource(id = if (state.newContactFound == null) R.string.search_address else R.string.add_button))
+                    Text(stringResource(id = if (state.existingContactFound == null) R.string.search_address else R.string.add_button))
                 }
             }
         },
         dismissButton = {
             TextButton(
                 onClick = {
-                    if (state.newContactFound == null) {
+                    if (state.existingContactFound == null) {
                         viewModel.updateContactSearchDialog(false)
                     } else {
                         viewModel.clearFoundContact()

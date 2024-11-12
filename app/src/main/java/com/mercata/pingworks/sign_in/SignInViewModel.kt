@@ -8,13 +8,12 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.EncryptionKeys
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.SigningKeys
 import com.mercata.pingworks.utils.encodeToBase64
-import com.mercata.pingworks.utils.getHost
-import com.mercata.pingworks.utils.getLocal
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.loginCall
 import com.mercata.pingworks.utils.safeApiCall
@@ -23,6 +22,7 @@ import org.koin.core.component.inject
 
 class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
+    private val dl: Downloader by inject();
     init {
         val sharedPreferences: SharedPreferences by inject()
         val address = sharedPreferences.getUserAddress()
@@ -156,8 +156,11 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
         viewModelScope.launch {
             if (sp.getUserAddress() != currentState.emailInput) {
-                db.userDao().deleteAll()
-                db.messagesDao().deleteAll()
+                launch { db.userDao().deleteAll() }
+                launch { db.messagesDao().deleteAll() }
+                launch { db.draftDao().deleteAll() }
+                launch { db.pendingMessagesDao().deleteAll() }
+                dl.clearAllCachedAttachments()
             }
             var publicData: PublicUserData? = null
             updateState(currentState.copy(loading = true))

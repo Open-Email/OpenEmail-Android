@@ -2,19 +2,33 @@ package com.mercata.pingworks.registration
 
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
+import com.mercata.pingworks.SUPPORT_ADDRESS
 import com.mercata.pingworks.availableHosts
+import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.models.PublicUserData
+import com.mercata.pingworks.models.toDBContact
+import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.EncryptionKeys
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SigningKeys
 import com.mercata.pingworks.utils.generateEncryptionKeys
 import com.mercata.pingworks.utils.generateSigningKeys
+import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.isAddressAvailable
 import com.mercata.pingworks.utils.registerCall
 import com.mercata.pingworks.utils.safeApiCall
+import com.mercata.pingworks.utils.syncMessagesForContact
+import com.mercata.pingworks.utils.uploadContact
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import org.koin.core.component.inject
 
 
 class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationState()) {
+
+   private val dl: Downloader by inject()
 
     fun onUsernameChange(str: String) {
         updateState(currentState.copy(usernameInput = str))
@@ -49,12 +63,47 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
 
                     is HttpResult.Success -> {
                         sp.saveUserKeys(user)
+                        addSupportContactForNewUser()
                         updateState(currentState.copy(isRegistered = true))
+
                     }
                 }
                 updateState(currentState.copy(isLoading = false))
             } else {
                 updateState(currentState.copy(isLoading = false, userNameError = true))
+            }
+        }
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    private fun addSupportContactForNewUser() {
+        GlobalScope.launch(Dispatchers.IO) {
+            val publicData: PublicUserData =
+            when (val call = safeApiCall { getProfilePublicData(SUPPORT_ADDRESS) }) {
+                is HttpResult.Success -> {
+                    call.data
+                }
+
+                is HttpResult.Error -> {
+                    null
+                }
+            } ?: return@launch
+
+            val dbContact = publicData.toDBContact()
+            db.userDao().insert(dbContact)
+            when (safeApiCall {
+                uploadContact(
+                    contact = publicData,
+                    sharedPreferences = sp
+                )
+            }) {
+                is HttpResult.Error -> {
+                    db.userDao().delete(dbContact)
+                }
+
+                is HttpResult.Success -> {
+                    syncMessagesForContact(dbContact, db, sp, dl)
+                }
             }
         }
     }

@@ -8,6 +8,7 @@ import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.models.PublicUserData
+import com.mercata.pingworks.models.toDBContact
 import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
@@ -71,7 +72,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
                     }
                 }
             publicData?.let {
-                updateState(currentState.copy(newContactFound = it))
+                updateState(currentState.copy(existingContactFound = it))
             }
             updateState(currentState.copy(loading = false))
         }
@@ -88,23 +89,9 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     @OptIn(DelicateCoroutinesApi::class)
     fun addContact() {
         GlobalScope.launch(Dispatchers.IO) {
-            val publicData = currentState.newContactFound!!
+            val publicData = currentState.existingContactFound!!
             updateState(currentState.copy(loadingContactAddress = publicData.address))
-            val dbContact = DBContact(
-                address = publicData.address,
-                name = publicData.fullName.takeUnless { it.isBlank() },
-                //TODO update when public profile will contain image
-                imageUrl = null,
-                receiveBroadcasts = true,
-                signingKeyAlgorithm = publicData.signingKeyAlgorithm,
-                encryptionKeyAlgorithm = publicData.encryptionKeyAlgorithm,
-                publicSigningKey = publicData.publicSigningKey,
-                publicEncryptionKey = publicData.publicEncryptionKey,
-                publicEncryptionKeyId = publicData.encryptionKeyId,
-                lastSeenPublic = publicData.lastSeenPublic,
-                lastSeen = publicData.lastSeen?.toString(),
-                updated = publicData.updated?.toString()
-            )
+            val dbContact = publicData.toDBContact()
             db.userDao().insert(dbContact)
             updateContactSearchDialog(false)
             when (safeApiCall {
@@ -135,7 +122,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     }
 
     fun clearFoundContact() {
-        updateState(currentState.copy(newContactFound = null))
+        updateState(currentState.copy(existingContactFound = null))
     }
 
     fun onUndoDeletePressed() {
@@ -211,7 +198,7 @@ data class ContactsState(
     val loadingContactAddress: String? = null,
     val showUploadExceptionSnackBar: Boolean = false,
     val showUndoDeleteSnackBar: Boolean = false,
-    val newContactFound: PublicUserData? = null,
+    val existingContactFound: PublicUserData? = null,
     val searchButtonActive: Boolean = false,
     val loading: Boolean = false,
     val newContactSearchDialogShown: Boolean = false,

@@ -48,6 +48,13 @@ class Downloader(val context: Context, private val fileUtils: FileUtils) {
         } ?: listOf()
     }
 
+    fun clearAllCachedAttachments() {
+        val folder = File(context.filesDir, FOLDER_NAME)
+        if (folder.exists()) {
+            folder.listFiles()?.forEach { it.delete() }
+        }
+    }
+
     fun deleteFile(uri: Uri) {
         context.contentResolver.delete(uri, null, null)
     }
