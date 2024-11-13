@@ -52,6 +52,19 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             db.messagesDao().getAllAsFlowWithAttachments().collect { dbEntities ->
                 allMessages.clear()
                 allMessages.addAll(dbEntities)
+                var unreadBroadcasts = 0
+                var unreadMessages = 0
+                dbEntities.forEach {
+                    if (it.isUnread()) {
+                        if (it.message.message.isBroadcast) {
+                            unreadBroadcasts++
+                        } else {
+                            unreadMessages++
+                        }
+                    }
+                }
+                currentState.unread[HomeScreen.Inbox] = unreadMessages
+                currentState.unread[HomeScreen.Broadcast] = unreadBroadcasts
                 updateList()
             }
         }
