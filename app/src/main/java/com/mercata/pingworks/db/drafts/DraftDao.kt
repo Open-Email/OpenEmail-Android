@@ -20,7 +20,10 @@ interface DraftDao {
     suspend fun getById(draftId: String): DBDraftWithReaders?
 
     @Query("SELECT * FROM dbdraft ORDER BY timestamp DESC")
-    fun getAll(): Flow<List<DBDraftWithReaders>>
+    fun getAllFlow(): Flow<List<DBDraftWithReaders>>
+
+    @Query("SELECT * FROM dbdraft ORDER BY timestamp DESC")
+    fun getAll(): List<DBDraftWithReaders>
 
     @Query("SELECT * FROM dbdraft WHERE draft_id = :draftId")
     fun getByIdFlow(draftId: String): Flow<DBDraftWithReaders?>

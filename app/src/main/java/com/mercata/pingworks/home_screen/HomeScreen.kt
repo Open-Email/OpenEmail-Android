@@ -322,17 +322,12 @@ fun SharedTransitionScope.HomeScreen(
                             modifier = modifier.animateItem(),
                             item = item,
                             onDelete = when (item) {
-                                is CachedAttachment -> {
-                                    {
-                                        viewModel.deleteAttachment(item)
-                                    }
-                                }
+                                is CachedAttachment,
                                 is DBDraftWithReaders -> {
-                                    { draft ->
-                                        viewModel.deleteDraft(draft as DBDraftWithReaders)
+                                    {
+                                        viewModel.deleteItem(item)
                                     }
                                 }
-
                                 else -> null
                             },
                             onUpdateReadState = { i ->

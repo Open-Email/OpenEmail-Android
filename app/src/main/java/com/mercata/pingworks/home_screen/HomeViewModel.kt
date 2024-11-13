@@ -64,7 +64,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             }
         }
         viewModelScope.launch(Dispatchers.IO) {
-            db.draftDao().getAll().collect { drafts ->
+            db.draftDao().getAllFlow().collect { drafts ->
                 draftMessages.clear()
                 draftMessages.addAll(drafts)
                 currentState.unread[HomeScreen.Drafts] = draftMessages.size
@@ -94,10 +94,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         updateState(currentState.copy(screen = screen))
         updateList()
         sp.saveSelectedNavigationScreen(screen)
-    }
-
-    fun removeItem(item: DBMessageWithDBAttachments) {
-        //TODO remove from DB (outbox only)
     }
 
     fun toggleSearch() {
@@ -158,13 +154,8 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         this.getSubject().lowercase().contains(currentState.query.lowercase()) ||
                 this.getTextBody().lowercase().contains(currentState.query.lowercase())
 
-    fun deleteDraft(draft: DBDraftWithReaders) {
-        viewModelScope.launch(Dispatchers.IO) {
-            db.draftDao().delete(draft.draft.draftId)
-        }
-    }
 
-    fun deleteAttachment(item: CachedAttachment) {
+    fun deleteItem(item: HomeItem) {
         currentState.itemToDelete?.run {
             onDeleteWaitComplete()
         }
@@ -173,38 +164,68 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 itemToDelete = item,
             )
         )
-        cachedAttachments.remove(item)
-        updateList()
         updateState(currentState.copy(undoDelete = null))
-        updateState(currentState.copy(undoDelete = R.string.attachment_deleted))
+        var undoSnackbarResId: Int? = null
+        when (item) {
+            is CachedAttachment -> {
+                cachedAttachments.remove(item)
+                undoSnackbarResId = R.string.attachment_deleted
+            }
+
+            is DBDraftWithReaders -> {
+                draftMessages.remove(item)
+                undoSnackbarResId = R.string.draft_deleted
+                updateList()
+            }
+        }
+        updateState(currentState.copy(undoDelete = undoSnackbarResId!!))
     }
 
     fun onDeleteWaitComplete() {
-        updateState(currentState.copy(undoDelete = null))
-        when (currentState.itemToDelete) {
-            is CachedAttachment -> {
-                dl.deleteFile((currentState.itemToDelete as CachedAttachment).uri)
-                cachedAttachments.clear()
-                cachedAttachments.addAll(dl.getCachedAttachments())
-                updateList()
+        viewModelScope.launch(Dispatchers.IO) {
+            updateState(currentState.copy(undoDelete = null))
+            when (currentState.itemToDelete) {
+                is CachedAttachment -> {
+                    dl.deleteFile((currentState.itemToDelete as CachedAttachment).uri)
+                    cachedAttachments.clear()
+                    cachedAttachments.addAll(dl.getCachedAttachments())
+                    updateList()
+                }
+
+                is DBDraftWithReaders -> {
+                    db.draftDao()
+                        .delete((currentState.itemToDelete as DBDraftWithReaders).draft.draftId)
+                }
             }
+            updateState(currentState.copy(itemToDelete = null))
         }
     }
 
     fun onUndoDeletePressed() {
-        when (currentState.itemToDelete) {
-            is CachedAttachment -> {
-                cachedAttachments.clear()
-                cachedAttachments.addAll(dl.getCachedAttachments())
-                updateList()
+        viewModelScope.launch(Dispatchers.IO) {
+            when (currentState.itemToDelete) {
+                is CachedAttachment -> {
+                    cachedAttachments.clear()
+                    cachedAttachments.addAll(dl.getCachedAttachments())
+                    updateList()
+                }
+
+                is DBDraftWithReaders -> {
+                    db.draftDao().getAll().let { drafts ->
+                        draftMessages.clear()
+                        draftMessages.addAll(drafts)
+                        currentState.unread[HomeScreen.Drafts] = draftMessages.size
+                        updateList()
+                    }
+                }
             }
-        }
-        updateState(
-            currentState.copy(
-                itemToDelete = null,
-                undoDelete = null
+            updateState(
+                currentState.copy(
+                    itemToDelete = null,
+                    undoDelete = null
+                )
             )
-        )
+        }
     }
 
 }
