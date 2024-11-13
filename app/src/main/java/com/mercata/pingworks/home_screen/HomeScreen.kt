@@ -328,10 +328,18 @@ fun SharedTransitionScope.HomeScreen(
                                         viewModel.deleteItem(item)
                                     }
                                 }
+
                                 else -> null
                             },
-                            onUpdateReadState = { i ->
-                                //TODO change read state
+                            onUpdateReadState = when (state.screen) {
+                                HomeScreen.Inbox,
+                                HomeScreen.Broadcast -> {
+                                    { item ->
+                                        //TODO update read state
+                                    }
+                                }
+
+                                else -> null
                             }) {
                             MessageViewHolder(
                                 item = item,
