@@ -25,4 +25,6 @@ data class DBDraftWithReaders(
 
     override fun hasAttachments(): Boolean =
         draft.attachmentUriList?.split(",").isNullOrEmpty().not()
+
+    override fun isUnread(): Boolean = false
 }

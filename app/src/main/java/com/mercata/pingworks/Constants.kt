@@ -79,8 +79,9 @@ const val SP_SIGNING_KEYS = "sp_signing_keys"
 const val SP_ENCRYPTION_KEYS = "sp_encryption_keys"
 const val SP_AUTOLOGIN = "sp_autologin"
 const val SP_BIOMETRY = "sp_biometry"
+const val SP_FIRST_TIME = "sp_first_time"
 const val SP_SELECTED_NAV_SCREEN = "sp_selected_nav_screen"
-val availableHosts = listOf("ping.works")
+val availableHosts = listOf("open.email")
 
 
 val DEFAULT_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")

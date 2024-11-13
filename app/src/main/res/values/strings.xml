@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">OpenEMail</string>
+    <string name="app_name">OpenEmail</string>
     <string name="onboarding_title">Email of the future, today.</string>
     <string name="onboarding_text">Spam-free, phishing-free, private &amp; secure by design.</string>
     <string name="address_input_hint">%s address</string>

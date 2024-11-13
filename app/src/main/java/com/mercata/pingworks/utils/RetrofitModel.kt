@@ -364,7 +364,8 @@ suspend fun syncMessagesForContact(
     contact: DBContact,
     db: AppDatabase,
     sp: SharedPreferences,
-    dl: Downloader
+    dl: Downloader,
+    isFirstTime: Boolean
 ) {
     withContext(Dispatchers.IO) {
         val privateEnvelopes: Deferred<List<Envelope>> = async {
@@ -385,11 +386,13 @@ suspend fun syncMessagesForContact(
                 initial = arrayListOf(),
                 operation = { initial, new -> initial.apply { addAll(new) } })
 
-        saveMessagesToDb(dl, results, db.messagesDao(), db.attachmentsDao())
+        saveMessagesToDb(dl, results, db.messagesDao(), db.attachmentsDao(), isFirstTime)
     }
 }
 
 suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: Downloader) {
+
+    val isFirsTime = sp.isFirstTime()
 
     withContext(Dispatchers.IO) {
         val privateEnvelopes: Deferred<List<Envelope>> = async {
@@ -411,7 +414,8 @@ suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: Download
                 initial = arrayListOf(),
                 operation = { initial, new -> initial.apply { addAll(new) } })
 
-        saveMessagesToDb(dl, results, db.messagesDao(), db.attachmentsDao())
+        saveMessagesToDb(dl, results, db.messagesDao(), db.attachmentsDao(), isFirsTime)
+        sp.setFirstTime(false)
     }
 }
 
@@ -726,7 +730,8 @@ suspend fun saveMessagesToDb(
     dl: Downloader,
     results: List<Envelope>,
     messagesDao: MessagesDao,
-    attachmentsDao: AttachmentsDao
+    attachmentsDao: AttachmentsDao,
+    isFirstTime: Boolean
 ) {
     withContext(Dispatchers.IO) {
         launch {
@@ -782,7 +787,8 @@ suspend fun saveMessagesToDb(
                         textBody = it.second ?: "",
                         isBroadcast = it.first.isBroadcast(),
                         timestamp = it.first.contentHeaders.date.toEpochMilli(),
-                        readerAddresses = it.first.contentHeaders.readersAddresses?.joinToString(",")
+                        readerAddresses = it.first.contentHeaders.readersAddresses?.joinToString(","),
+                        isUnread = !isFirstTime
                     )
                 })
             attachmentsDao.insertAll(attachments)

@@ -22,6 +22,7 @@ data class DBMessage(
     @ColumnInfo("subject") val subject: String,
     @ColumnInfo("text_body") val textBody: String,
     @ColumnInfo("is_broadcast") val isBroadcast: Boolean,
+    @ColumnInfo("is_unread") val isUnread: Boolean,
     @ColumnInfo("timestamp") val timestamp: Long,
     @ColumnInfo("reader") val readerAddresses: String? // joined to string with "," separator
 )

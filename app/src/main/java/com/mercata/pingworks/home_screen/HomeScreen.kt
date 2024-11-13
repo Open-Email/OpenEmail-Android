@@ -1,5 +1,6 @@
 @file:OptIn(
-    ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
+    ExperimentalMaterial3Api::class,
+    ExperimentalSharedTransitionApi::class,
     ExperimentalMaterialApi::class
 )
 
@@ -12,6 +13,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -102,6 +104,7 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.common.NavigationDrawerBody
 import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.db.drafts.DBDraftWithReaders
+import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.registration.UserData
 import kotlinx.coroutines.launch
@@ -116,8 +119,7 @@ fun SharedTransitionScope.HomeScreen(
 
     val coroutineScope = rememberCoroutineScope()
     val topAppBarState = rememberTopAppBarState()
-    val scrollBehavior =
-        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val focusManager = LocalFocusManager.current
     val searchFocusRequester = remember { FocusRequester() }
@@ -164,8 +166,7 @@ fun SharedTransitionScope.HomeScreen(
         }
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
+    ModalNavigationDrawer(drawerState = drawerState,
         gesturesEnabled = drawerState.isOpen,
         drawerContent = {
             ModalDrawerSheet {
@@ -183,8 +184,7 @@ fun SharedTransitionScope.HomeScreen(
                 )
             }
         }) {
-        Scaffold(
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        Scaffold(modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             snackbarHost = {
                 SnackbarHost(hostState = snackbarHostState)
             },
@@ -197,15 +197,13 @@ fun SharedTransitionScope.HomeScreen(
                         actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
                         navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
                         scrolledContainerColor = MaterialTheme.colorScheme.primary
-                    ),
-                    title = {
+                    ), title = {
                         Text(
                             stringResource(id = state.screen.titleResId),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                    },
-                    navigationIcon = {
+                    }, navigationIcon = {
                         IconButton(onClick = {
                             coroutineScope.launch {
                                 if (drawerState.isOpen) {
@@ -220,12 +218,10 @@ fun SharedTransitionScope.HomeScreen(
                                 contentDescription = stringResource(id = R.string.navigation_menu_title)
                             )
                         }
-                    },
-                    actions = {
+                    }, actions = {
                         Row {
                             AnimatedVisibility(
-                                visible = state.searchOpened,
-                                modifier = modifier.weight(1f)
+                                visible = state.searchOpened, modifier = modifier.weight(1f)
                             ) {
                                 Row(modifier = modifier.fillMaxWidth()) {
                                     Spacer(modifier = modifier.width(MARGIN_DEFAULT + 42.dp))
@@ -233,11 +229,10 @@ fun SharedTransitionScope.HomeScreen(
                                         modifier = modifier.fillMaxWidth(),
                                         contentAlignment = Alignment.CenterEnd
                                     ) {
-                                        BasicTextField(
-                                            keyboardOptions = KeyboardOptions(
-                                                imeAction = ImeAction.Search,
-                                                showKeyboardOnFocus = true,
-                                            ),
+                                        BasicTextField(keyboardOptions = KeyboardOptions(
+                                            imeAction = ImeAction.Search,
+                                            showKeyboardOnFocus = true,
+                                        ),
                                             singleLine = true,
                                             modifier = modifier
                                                 .fillMaxWidth()
@@ -280,18 +275,15 @@ fun SharedTransitionScope.HomeScreen(
                             }
                         }
 
-                    },
-                    scrollBehavior = scrollBehavior
+                    }, scrollBehavior = scrollBehavior
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(
-                    modifier = modifier.sharedBounds(
-                        rememberSharedContentState(
-                            key = "composing_bounds"
-                        ),
-                        animatedVisibilityScope
-                    ),
+                FloatingActionButton(modifier = modifier.sharedBounds(
+                    rememberSharedContentState(
+                        key = "composing_bounds"
+                    ), animatedVisibilityScope
+                ),
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     onClick = {
@@ -299,12 +291,10 @@ fun SharedTransitionScope.HomeScreen(
                     }) {
                     Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
                 }
-            }
-        ) { padding ->
+            }) { padding ->
             Box(
                 modifier = modifier.pullRefresh(
-                    state = refreshState,
-                    enabled = topAppBarState.collapsedFraction == 0F
+                    state = refreshState, enabled = topAppBarState.collapsedFraction == 0F
                 )
             ) {
                 LazyColumn(
@@ -313,17 +303,13 @@ fun SharedTransitionScope.HomeScreen(
                         start = padding.calculateLeftPadding(LayoutDirection.Ltr),
                         end = padding.calculateRightPadding(LayoutDirection.Ltr),
                         bottom = padding.calculateBottomPadding() + (MARGIN_DEFAULT.value * 1.5).dp + 52.dp
-                    ),
-                    modifier = Modifier.fillMaxSize()
+                    ), modifier = Modifier.fillMaxSize()
                 ) {
-                    items(items = state.messages,
-                        key = { it.getMessageId() }) { item ->
-                        SwipeContainer(
-                            modifier = modifier.animateItem(),
+                    items(items = state.messages, key = { it.getMessageId() }) { item ->
+                        SwipeContainer(modifier = modifier.animateItem(),
                             item = item,
                             onDelete = when (item) {
-                                is CachedAttachment,
-                                is DBDraftWithReaders -> {
+                                is CachedAttachment, is DBDraftWithReaders -> {
                                     {
                                         viewModel.deleteItem(item)
                                     }
@@ -332,17 +318,15 @@ fun SharedTransitionScope.HomeScreen(
                                 else -> null
                             },
                             onUpdateReadState = when (state.screen) {
-                                HomeScreen.Inbox,
-                                HomeScreen.Broadcast -> {
-                                    { item ->
-                                        //TODO update read state
+                                HomeScreen.Inbox, HomeScreen.Broadcast -> {
+                                    { message ->
+                                        viewModel.updateRead(message as DBMessageWithDBAttachments)
                                     }
                                 }
 
                                 else -> null
                             }) {
-                            MessageViewHolder(
-                                item = item,
+                            MessageViewHolder(item = item,
                                 currentUser = state.currentUser!!,
                                 animatedVisibilityScope = animatedVisibilityScope,
                                 onMessageClicked = { message ->
@@ -392,10 +376,11 @@ fun SharedTransitionScope.MessageViewHolder(
     animatedVisibilityScope: AnimatedVisibilityScope,
     onMessageClicked: (message: HomeItem) -> Unit
 ) {
+    val primaryColor = MaterialTheme.colorScheme.primary
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
+    Box {
+
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier
             .sharedBounds(
                 sharedContentState = rememberSharedContentState(
                     key = "message_bounds/${item.getMessageId()}"
@@ -410,127 +395,130 @@ fun SharedTransitionScope.MessageViewHolder(
             }
             .padding(horizontal = MARGIN_DEFAULT)
 
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = modifier
-                .sharedBounds(
-                    sharedContentState = rememberSharedContentState(
-                        key = "message_image/${item.getMessageId()}"
-                    ),
-                    animatedVisibilityScope = animatedVisibilityScope,
-                )
-                .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
-                .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                .background(MaterialTheme.colorScheme.primary)
         ) {
-            when (item) {
-                is CachedAttachment -> {
-                    val resId = if (item.type?.contains("image") == true) {
-                        R.drawable.image
-                    } else if (item.type?.contains("video") == true) {
-                        R.drawable.video
-                    } else if (item.type?.contains("audio") == true) {
-                        R.drawable.sound
-                    } else {
-                        R.drawable.file
-                    }
-
-                    Icon(
-                        painter = painterResource(resId), contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-
-                else -> {
-                    //TODO public image
-                    val imageUrl =
-                        null //item.getContacts().firstOrNull().imageUrl ?: currentUser.avatarLink
-                    if (imageUrl == null) {
-                        Text(
-                            text = "${
-                                if (item.getContacts().isEmpty()) {
-                                    currentUser.name.first()
-                                } else {
-                                    item.getContacts()
-                                        .firstOrNull()?.fullName?.firstOrNull() ?: item.getContacts()
-                                        .firstOrNull()?.address?.first() ?: ""
-                                }
-                            }",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        AsyncImage(
-                            contentScale = ContentScale.Crop,
-                            modifier = modifier
-                                .sharedBounds(
-                                    sharedContentState = rememberSharedContentState(
-                                        key = "message_image/${item.getMessageId()}"
-                                    ),
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                )
-                                .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                                .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
-                            model = imageUrl,
-                            contentDescription = stringResource(id = R.string.profile_image)
-                        )
-                    }
-                }
-            }
-
-        }
-        Spacer(modifier = modifier.width(MARGIN_DEFAULT))
-        Column {
-            Text(
-                modifier = modifier
+            Box(
+                contentAlignment = Alignment.Center, modifier = modifier
                     .sharedBounds(
+                        sharedContentState = rememberSharedContentState(
+                            key = "message_image/${item.getMessageId()}"
+                        ),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    )
+                    .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                    .background(MaterialTheme.colorScheme.primary)
+            ) {
+                when (item) {
+                    is CachedAttachment -> {
+                        val resId = if (item.type?.contains("image") == true) {
+                            R.drawable.image
+                        } else if (item.type?.contains("video") == true) {
+                            R.drawable.video
+                        } else if (item.type?.contains("audio") == true) {
+                            R.drawable.sound
+                        } else {
+                            R.drawable.file
+                        }
+
+                        Icon(
+                            painter = painterResource(resId),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+
+                    else -> {
+                        //TODO public image
+                        val imageUrl =
+                            null //item.getContacts().firstOrNull().imageUrl ?: currentUser.avatarLink
+                        if (imageUrl == null) {
+                            Text(
+                                text = "${
+                                    if (item.getContacts().isEmpty()) {
+                                        currentUser.name.first()
+                                    } else {
+                                        item.getContacts()
+                                            .firstOrNull()?.fullName?.firstOrNull() ?: item.getContacts()
+                                            .firstOrNull()?.address?.first() ?: ""
+                                    }
+                                }",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            AsyncImage(
+                                contentScale = ContentScale.Crop,
+                                modifier = modifier
+                                    .sharedBounds(
+                                        sharedContentState = rememberSharedContentState(
+                                            key = "message_image/${item.getMessageId()}"
+                                        ),
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                    )
+                                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                    .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
+                                model = imageUrl,
+                                contentDescription = stringResource(id = R.string.profile_image)
+                            )
+                        }
+                    }
+                }
+
+            }
+            Spacer(modifier = modifier.width(MARGIN_DEFAULT))
+            Column {
+                Text(
+                    modifier = modifier.sharedBounds(
                         sharedContentState = rememberSharedContentState(
                             key = "message_subject/${item.getMessageId()}"
                         ),
                         animatedVisibilityScope = animatedVisibilityScope,
                     ),
-                text = item.getSubject(),
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 1,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                modifier = modifier.sharedBounds(
-                    sharedContentState = rememberSharedContentState(
-                        key = "message_body/${item.getMessageId()}"
+                    text = item.getSubject(),
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    modifier = modifier.sharedBounds(
+                        sharedContentState = rememberSharedContentState(
+                            key = "message_body/${item.getMessageId()}"
+                        ),
+                        animatedVisibilityScope = animatedVisibilityScope,
                     ),
-                    animatedVisibilityScope = animatedVisibilityScope,
-                ),
-                text = item.getTextBody(),
-                maxLines = 2,
-                style = MaterialTheme.typography.bodyMedium,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (item.hasAttachments()) {
+                    text = item.getTextBody(),
+                    maxLines = 2,
+                    style = MaterialTheme.typography.bodyMedium,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Spacer(
                 modifier
                     .widthIn(min = MARGIN_DEFAULT)
                     .fillMaxWidth()
             )
             Column {
-                Icon(
-                    modifier = modifier.requiredSize(DEFAULT_LIST_ITEM_STATUS_ICON_SIZE),
-                    painter = painterResource(R.drawable.attach),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    contentDescription = null
-                )
+                if (item.isUnread()) {
+                    Canvas(modifier = modifier.requiredSize(DEFAULT_LIST_ITEM_STATUS_ICON_SIZE)) {
+                        drawCircle(primaryColor, radius = 4.dp.toPx())
+                    }
+                }
+                if (item.hasAttachments()) {
+                    Icon(
+                        modifier = modifier.requiredSize(DEFAULT_LIST_ITEM_STATUS_ICON_SIZE),
+                        painter = painterResource(R.drawable.attach),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        contentDescription = null
+                    )
+                }
             }
         }
     }
 }
 
 enum class SwipeAction {
-    Deleted,
-    UpdatedRead,
-    Idle
+    Deleted, UpdatedRead, Idle
 }
 
 @Composable
@@ -543,8 +531,7 @@ fun <T> SwipeContainer(
 ) {
     var actionState by remember { mutableStateOf(SwipeAction.Idle) }
 
-    val state = rememberSwipeToDismissBoxState(
-        positionalThreshold = { _ -> 0f },
+    val state = rememberSwipeToDismissBoxState(positionalThreshold = { _ -> 0f },
         confirmValueChange = { value ->
             when (value) {
                 SwipeToDismissBoxValue.StartToEnd -> {
@@ -563,8 +550,7 @@ fun <T> SwipeContainer(
                 }
 
             }
-        }
-    )
+        })
 
     LaunchedEffect(key1 = actionState) {
         when (actionState) {

@@ -4,7 +4,6 @@ import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.SUPPORT_ADDRESS
 import com.mercata.pingworks.availableHosts
-import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.models.toDBContact
 import com.mercata.pingworks.utils.Downloader
@@ -102,7 +101,7 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
                 }
 
                 is HttpResult.Success -> {
-                    syncMessagesForContact(dbContact, db, sp, dl)
+                    syncMessagesForContact(dbContact, db, sp, dl, true)
                 }
             }
         }

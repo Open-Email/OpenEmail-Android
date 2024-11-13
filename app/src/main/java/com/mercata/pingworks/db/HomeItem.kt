@@ -8,4 +8,5 @@ interface HomeItem {
     fun getTextBody(): String
     fun getMessageId(): String
     fun hasAttachments(): Boolean
+    fun isUnread(): Boolean
 }

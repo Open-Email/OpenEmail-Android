@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ping.works"
+rootProject.name = "open.email"
 include(":app")

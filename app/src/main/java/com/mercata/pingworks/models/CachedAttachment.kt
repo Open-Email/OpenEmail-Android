@@ -13,4 +13,6 @@ data class CachedAttachment(val uri: Uri, val name: String, val type: String?) :
     override fun getMessageId(): String = uri.toString()
 
     override fun hasAttachments(): Boolean = false
+
+    override fun isUnread(): Boolean = false
 }

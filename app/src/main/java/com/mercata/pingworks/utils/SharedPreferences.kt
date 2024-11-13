@@ -13,6 +13,7 @@ import com.mercata.pingworks.SP_AVATAR_LINK
 import com.mercata.pingworks.SP_BIOMETRY
 import com.mercata.pingworks.SP_ENCRYPTION_KEYS
 import com.mercata.pingworks.SP_ENCRYPTION_KEY_ID
+import com.mercata.pingworks.SP_FIRST_TIME
 import com.mercata.pingworks.SP_FULL_NAME
 import com.mercata.pingworks.SP_SELECTED_NAV_SCREEN
 import com.mercata.pingworks.SP_SIGNING_KEYS
@@ -87,6 +88,9 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
     fun setBiometry(biometry: Boolean) {
         sharedPreferences.edit().putBoolean(SP_BIOMETRY, biometry).apply()
     }
+
+    fun isFirstTime() = sharedPreferences.getBoolean(SP_FIRST_TIME, true)
+    fun setFirstTime(isFirstTime: Boolean) = sharedPreferences.edit().putBoolean(SP_FIRST_TIME, isFirstTime).apply()
 
     fun isBiometry() = sharedPreferences.getBoolean(SP_BIOMETRY, false)
 

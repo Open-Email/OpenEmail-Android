@@ -106,7 +106,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
                 }
 
                 is HttpResult.Success -> {
-                    syncMessagesForContact(dbContact, db, sp, downloader)
+                    syncMessagesForContact(dbContact, db, sp, downloader, false)
                 }
             }
             updateState(currentState.copy(loadingContactAddress = null))

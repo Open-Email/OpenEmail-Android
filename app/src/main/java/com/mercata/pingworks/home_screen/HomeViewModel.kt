@@ -228,6 +228,13 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
+    fun updateRead(item: DBMessageWithDBAttachments) {
+        viewModelScope.launch(Dispatchers.IO) {
+            db.messagesDao()
+                .update(item.message.message.copy(isUnread = item.message.message.isUnread.not()))
+        }
+    }
+
 }
 
 data class HomeState(
