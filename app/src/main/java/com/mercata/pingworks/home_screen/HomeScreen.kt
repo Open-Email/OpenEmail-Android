@@ -53,6 +53,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -76,6 +80,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -84,6 +89,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -115,6 +121,8 @@ fun SharedTransitionScope.HomeScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val focusManager = LocalFocusManager.current
     val searchFocusRequester = remember { FocusRequester() }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current as FragmentActivity
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
@@ -134,6 +142,28 @@ fun SharedTransitionScope.HomeScreen(
             focusManager.clearFocus()
         }
     }
+
+    LaunchedEffect(state.undoDelete) {
+        state.undoDelete?.let { undoDeleteLabel ->
+            coroutineScope.launch {
+                val snackbarResult = snackbarHostState.showSnackbar(
+                    message = context.getString(undoDeleteLabel),
+                    actionLabel = context.getString(R.string.undo_button),
+                    duration = SnackbarDuration.Short
+                )
+                when (snackbarResult) {
+                    SnackbarResult.Dismissed -> {
+                        viewModel.onDeleteWaitComplete()
+                    }
+
+                    SnackbarResult.ActionPerformed -> {
+                        viewModel.onUndoDeletePressed()
+                    }
+                }
+            }
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = drawerState.isOpen,
@@ -155,6 +185,9 @@ fun SharedTransitionScope.HomeScreen(
         }) {
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+            snackbarHost = {
+                SnackbarHost(hostState = snackbarHostState)
+            },
             topBar = {
                 LargeTopAppBar(
 

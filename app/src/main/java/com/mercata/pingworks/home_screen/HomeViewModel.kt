@@ -165,19 +165,57 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     }
 
     fun deleteAttachment(item: CachedAttachment) {
-        dl.deleteFile(item.uri)
-        cachedAttachments.clear()
-        cachedAttachments.addAll(dl.getCachedAttachments())
+        currentState.itemToDelete?.run {
+            onDeleteWaitComplete()
+        }
+        updateState(
+            currentState.copy(
+                itemToDelete = item,
+            )
+        )
+        cachedAttachments.remove(item)
         updateList()
+        updateState(currentState.copy(undoDelete = null))
+        updateState(currentState.copy(undoDelete = R.string.attachment_deleted))
+    }
+
+    fun onDeleteWaitComplete() {
+        updateState(currentState.copy(undoDelete = null))
+        when (currentState.itemToDelete) {
+            is CachedAttachment -> {
+                dl.deleteFile((currentState.itemToDelete as CachedAttachment).uri)
+                cachedAttachments.clear()
+                cachedAttachments.addAll(dl.getCachedAttachments())
+                updateList()
+            }
+        }
+    }
+
+    fun onUndoDeletePressed() {
+        when (currentState.itemToDelete) {
+            is CachedAttachment -> {
+                cachedAttachments.clear()
+                cachedAttachments.addAll(dl.getCachedAttachments())
+                updateList()
+            }
+        }
+        updateState(
+            currentState.copy(
+                itemToDelete = null,
+                undoDelete = null
+            )
+        )
     }
 
 }
 
 data class HomeState(
+    val itemToDelete: HomeItem? = null,
     val currentUser: UserData? = null,
     val searchOpened: Boolean = false,
     val query: String = "",
     val refreshing: Boolean = false,
+    val undoDelete: Int? = null,
     val screen: HomeScreen = HomeScreen.Broadcast,
     val messages: SnapshotStateList<HomeItem> = mutableStateListOf(),
     //TODO get unread statuses from DB

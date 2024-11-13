@@ -76,4 +76,5 @@
     <string name="close_without_saving">Exit without saving</string>
     <string name="downloaded_attachments">Downloaded attachments</string>
     <string name="add_instant_photo">Add instant photo</string>
+    <string name="attachment_deleted">Attachment deleted</string>
 </resources>

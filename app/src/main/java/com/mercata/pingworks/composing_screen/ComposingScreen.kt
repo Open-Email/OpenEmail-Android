@@ -78,6 +78,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
@@ -335,6 +336,7 @@ fun SharedTransitionScope.ComposingScreen(
                             },
                             onValueChange = { str -> viewModel.updateTo(str) },
                             keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
                                 imeAction = ImeAction.Next,
                                 showKeyboardOnFocus = true,
                             ),

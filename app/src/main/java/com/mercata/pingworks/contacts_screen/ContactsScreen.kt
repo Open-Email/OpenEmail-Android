@@ -322,7 +322,7 @@ fun AddContactDialog(
                         )
                     },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Unspecified,
+                        keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Search,
                         showKeyboardOnFocus = true,
                         capitalization = KeyboardCapitalization.None
