@@ -40,6 +40,12 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
             val message = db.messagesDao().getById(currentState.messageId)
 
             launch {
+                message?.message?.message?.copy(isUnread = false)?.let {
+                    db.messagesDao().update(it)
+                }
+            }
+
+            launch {
                 when (val call =
                     safeApiCall { getProfilePublicData(message?.message?.author?.address ?: "") }) {
                     is HttpResult.Error -> updateState(currentState.copy(noReply = true))
@@ -74,7 +80,11 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
                             }
                         }?.awaitAll()
 
-                    updateState(currentState.copy(outboxAddresses = readersPublicData?.filterNotNull() ?: listOf()))
+                    updateState(
+                        currentState.copy(
+                            outboxAddresses = readersPublicData?.filterNotNull() ?: listOf()
+                        )
+                    )
                 }
             }
         }

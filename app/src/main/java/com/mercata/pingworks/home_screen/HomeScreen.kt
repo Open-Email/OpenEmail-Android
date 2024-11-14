@@ -137,11 +137,22 @@ fun SharedTransitionScope.HomeScreen(
         viewModel.refresh()
     })
 
-    LaunchedEffect(key1 = state.searchOpened) {
+    LaunchedEffect(state.searchOpened) {
         if (state.searchOpened) {
             searchFocusRequester.requestFocus()
         } else {
             focusManager.clearFocus()
+        }
+    }
+
+    LaunchedEffect(state.sendingSnackBar) {
+        if (state.sendingSnackBar) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.message_sending),
+                    duration = SnackbarDuration.Short
+                )
+            }
         }
     }
 
@@ -305,7 +316,9 @@ fun SharedTransitionScope.HomeScreen(
                         bottom = padding.calculateBottomPadding() + (MARGIN_DEFAULT.value * 1.5).dp + 52.dp
                     ), modifier = Modifier.fillMaxSize()
                 ) {
-                    items(items = state.messages.filter { it != state.itemToDelete }, key = { it.getMessageId() }) { item ->
+                    items(
+                        items = state.messages.filter { it != state.itemToDelete },
+                        key = { it.getMessageId() }) { item ->
                         SwipeContainer(modifier = modifier.animateItem(),
                             item = item,
                             onDelete = when (item) {

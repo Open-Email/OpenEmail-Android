@@ -3,6 +3,7 @@ package com.mercata.pingworks
 import android.app.Application
 import androidx.room.Room
 import com.mercata.pingworks.db.AppDatabase
+import com.mercata.pingworks.repository.SendMessageRepository
 import com.mercata.pingworks.utils.BioManager
 import com.mercata.pingworks.utils.CopyAttachmentService
 import com.mercata.pingworks.utils.Downloader
@@ -23,6 +24,7 @@ class MainApplication : Application() {
         factory { FileUtils(get()) }
         factory { SoundPlayer(get()) }
         factory { CopyAttachmentService(get()) }
+        single { SendMessageRepository(get(), get(), get(), get(), get()) }
         single {
             Room.databaseBuilder(
                 get(),

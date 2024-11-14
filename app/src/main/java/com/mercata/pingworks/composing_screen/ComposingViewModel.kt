@@ -14,20 +14,15 @@ import com.mercata.pingworks.db.messages.MessageWithAuthor
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.models.toDBDraftReader
 import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.repository.SendMessageRepository
 import com.mercata.pingworks.utils.Address
 import com.mercata.pingworks.utils.CopyAttachmentService
-import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
-import com.mercata.pingworks.utils.SoundPlayer
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
-import com.mercata.pingworks.utils.syncAllMessages
-import com.mercata.pingworks.utils.uploadMessage
-import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
@@ -68,7 +63,8 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                 updateState(currentState.copy(addressLoading = true))
                 val selectedContactAddresses: String =
                     savedStateHandle.get<String>("contactAddress") ?: ""
-                selectedContactAddresses.split(",").filterNot { it.isBlank() }.takeIf { it.isNotEmpty() }?.map { address ->
+                selectedContactAddresses.split(",").filterNot { it.isBlank() }
+                    .takeIf { it.isNotEmpty() }?.map { address ->
                     launch(Dispatchers.IO) {
                         addAddress(address)
                     }
@@ -83,9 +79,8 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
     private lateinit var draftId: String
     private val fileUtils: FileUtils by inject()
-    private val dl: Downloader by inject()
-    private val soundPlayer: SoundPlayer by inject()
     private val attachmentCopier: CopyAttachmentService by inject()
+    private val sendMessageRepository: SendMessageRepository by inject()
     private val draftDB = db.draftDao()
     private var instantPhotoUri: Uri? = null
 
@@ -173,7 +168,6 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         updateState(currentState.copy(body = str, bodyErrorResId = null))
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     fun send() {
         var valid = true
         if (currentState.addressErrorResId != null) {
@@ -196,23 +190,11 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         }
 
         if (!valid) return
-
-        soundPlayer.playSwoosh()
-        GlobalScope.launch(Dispatchers.IO) {
-            val draftWithRecipients = db.draftDao().getById(draftId)!!
-            uploadMessage(
-                draft = draftWithRecipients.draft,
-                recipients = draftWithRecipients.readers.map { it.toPublicUserData() },
-                fileUtils = fileUtils,
-                currentUser = sp.getUserData()!!,
-                currentUserPublicData = sp.getPublicUserData()!!,
-                db = db,
-                isBroadcast = currentState.broadcast,
-                replyToSubjectId = savedStateHandle.get<String>("replyMessageId"),
-                sp = sp
-            )
-            syncAllMessages(db, sp, dl)
-        }
+        sendMessageRepository.send(
+            draftId,
+            currentState.broadcast,
+            savedStateHandle.get<String>("replyMessageId")
+        )
         updateState(currentState.copy(sent = true))
     }
 

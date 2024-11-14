@@ -18,6 +18,7 @@ import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.db.pending.DBPendingMessage
 import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.repository.SendMessageRepository
 import com.mercata.pingworks.utils.Downloader
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.SharedPreferences
@@ -42,6 +43,12 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         val db: AppDatabase by inject()
         val dl: Downloader by inject()
         val fu: FileUtils by inject()
+        val sendMessageRepository: SendMessageRepository by inject()
+        viewModelScope.launch {
+            sendMessageRepository.sendingState.collect { isSending ->
+                updateState(currentState.copy(sendingSnackBar = isSending))
+            }
+        }
         updateState(
             currentState.copy(
                 currentUser = sp.getUserData(),
@@ -257,6 +264,7 @@ data class HomeState(
     val itemToDelete: HomeItem? = null,
     val currentUser: UserData? = null,
     val searchOpened: Boolean = false,
+    val sendingSnackBar: Boolean = false,
     val query: String = "",
     val refreshing: Boolean = false,
     val undoDelete: Int? = null,
