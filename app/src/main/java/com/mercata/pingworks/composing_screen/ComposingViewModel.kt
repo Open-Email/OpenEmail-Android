@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
 import com.mercata.pingworks.db.AppDatabase
+import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.db.contacts.toPublicUserData
 import com.mercata.pingworks.db.drafts.DBDraft
 import com.mercata.pingworks.db.drafts.draft_reader.toPublicUserData
 import com.mercata.pingworks.db.messages.MessageWithAuthor
@@ -54,9 +56,8 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                     currentState.recipients.clear()
                     currentState.recipients.addAll(draft.readers.map { it.toPublicUserData() })
                     currentState.attachments.clear()
-                    currentState.attachments.addAll(
-                        draft.draft.attachmentUriList?.split(",")?.map { Uri.parse(it) }
-                            ?: listOf())
+                    currentState.attachments.addAll(draft.draft.attachmentUriList?.split(",")
+                        ?.map { Uri.parse(it) } ?: listOf())
                 }
             }
             launch {
@@ -65,15 +66,19 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                     savedStateHandle.get<String>("contactAddress") ?: ""
                 selectedContactAddresses.split(",").filterNot { it.isBlank() }
                     .takeIf { it.isNotEmpty() }?.map { address ->
-                    launch(Dispatchers.IO) {
-                        addAddress(address)
+                        launch(Dispatchers.IO) {
+                            addAddress(address)
+                        }
                     }
-                }
                 updateState(currentState.copy(addressLoading = false))
             }
             launch { listenToDraftReaders() }
             launch { listenToDraftChanges() }
             launch { consumeReplyMessage() }
+            launch {
+                currentState.contacts.clear()
+                currentState.contacts.addAll(db.userDao().getAll())
+            }
         }
     }
 
@@ -114,8 +119,8 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     private suspend fun listenToDraftChanges() {
         db.draftDao().getByIdFlow(draftId = draftId).collect { draft ->
             currentState.attachments.clear()
-            currentState.attachments.addAll(
-                draft?.draft?.attachmentUriList?.split(",")?.map { Uri.parse(it) } ?: listOf())
+            currentState.attachments.addAll(draft?.draft?.attachmentUriList?.split(",")
+                ?.map { Uri.parse(it) } ?: listOf())
         }
     }
 
@@ -125,14 +130,12 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         val db: AppDatabase by inject()
         updateState(currentState.copy(loading = true))
 
-        val replyMessage: MessageWithAuthor? = db.messagesDao()
-            .getById(savedStateHandle.get<String>("replyMessageId") ?: "")?.message
+        val replyMessage: MessageWithAuthor? =
+            db.messagesDao().getById(savedStateHandle.get<String>("replyMessageId") ?: "")?.message
 
         updateState(
             currentState.copy(
-                loading = false,
-                replyMessage = replyMessage,
-                currentUser = sp.getUserData()
+                loading = false, replyMessage = replyMessage, currentUser = sp.getUserData()
             )
         )
     }
@@ -155,8 +158,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         }
         updateState(
             currentState.copy(
-                broadcast = !currentState.broadcast,
-                addressErrorResId = null
+                broadcast = !currentState.broadcast, addressErrorResId = null
             )
         )
     }
@@ -191,11 +193,12 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
         if (!valid) return
         sendMessageRepository.send(
-            draftId,
-            currentState.broadcast,
-            savedStateHandle.get<String>("replyMessageId")
+            draftId, currentState.broadcast, savedStateHandle.get<String>("replyMessageId")
         )
-        updateState(currentState.copy(sent = true))
+        viewModelScope.launch {
+            draftDB.delete(draftId)
+            updateState(currentState.copy(sent = true))
+        }
     }
 
 
@@ -209,8 +212,8 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             }
             uris.remove(attachment.toString())
             draftDB.update(
-                draft.draft.copy(
-                    attachmentUriList = uris.joinToString(",").takeIf { it.isNotEmpty() })
+                draft.draft.copy(attachmentUriList = uris.joinToString(",")
+                    .takeIf { it.isNotEmpty() })
             )
         }
 
@@ -230,8 +233,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     }
 
     private suspend fun addAddress(address: String) {
-        when (val call =
-            safeApiCall { getProfilePublicData(address) }) {
+        when (val call = safeApiCall { getProfilePublicData(address) }) {
             is HttpResult.Error -> {
                 updateState(currentState.copy(addressErrorResId = R.string.invalid_email))
             }
@@ -242,8 +244,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                 } else {
                     updateState(
                         currentState.copy(
-                            addressErrorResId = null,
-                            addressFieldText = ""
+                            addressErrorResId = null, addressFieldText = ""
                         )
                     )
                     db.draftReaderDao().insert(call.data.toDBDraftReader(draftId))
@@ -318,16 +319,33 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             addAttachments(listOf(it))
         }
     }
+
+    fun toggleMode(addressFieldFocused: Boolean) {
+        updateState(currentState.copy(mode = if (addressFieldFocused) ComposingScreenMode.ContactSuggestion else ComposingScreenMode.Default))
+    }
+
+    fun addContact(person: DBContact) {
+        val publicData = person.toPublicUserData()
+        if (!currentState.recipients.contains(publicData)) {
+            currentState.recipients.add(publicData)
+        }
+    }
+
+    fun clearAddressField() {
+        updateState(currentState.copy(addressFieldText = ""))
+    }
 }
 
 data class ComposingState(
     val sent: Boolean = false,
+    val mode: ComposingScreenMode = ComposingScreenMode.Default,
     val subject: String = "",
     val openedAddressDetails: PublicUserData? = null,
     val replyMessage: MessageWithAuthor? = null,
     val body: String = "",
     val addressFieldText: Address = "",
     val recipients: SnapshotStateList<PublicUserData> = mutableStateListOf(),
+    val contacts: SnapshotStateList<DBContact> = mutableStateListOf(),
     val addressLoading: Boolean = false,
     val loading: Boolean = false,
     val confirmExitDialogShown: Boolean = false,
@@ -338,3 +356,7 @@ data class ComposingState(
     val currentUser: UserData? = null,
     val attachments: SnapshotStateList<Uri> = mutableStateListOf()
 )
+
+enum class ComposingScreenMode {
+    Default, ContactSuggestion
+}

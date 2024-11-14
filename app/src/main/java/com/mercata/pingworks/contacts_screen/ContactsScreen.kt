@@ -241,7 +241,7 @@ fun SharedTransitionScope.ContactViewHolder(
     person: DBContact,
     uploading: Boolean,
     isSelected: Boolean,
-    onSelect: (person: DBContact) -> Unit,
+    onSelect: ((person: DBContact) -> Unit)?,
     onClick: (person: DBContact) -> Unit
 ) {
     Row(
@@ -261,7 +261,7 @@ fun SharedTransitionScope.ContactViewHolder(
                     onClick(person)
                 },
                 onLongClick = {
-                    onSelect(person)
+                    onSelect?.invoke(person)
                 },
             )
             .padding(horizontal = MARGIN_DEFAULT)
@@ -280,7 +280,7 @@ fun SharedTransitionScope.ContactViewHolder(
                     )
                     .clip(CircleShape)
                     .clickable {
-                        onSelect(person)
+                        onSelect?.invoke(person)
                     }
                     .size(CONTACT_LIST_ITEM_IMAGE_SIZE)
                     .background(if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary)

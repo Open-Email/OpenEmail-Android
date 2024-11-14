@@ -95,6 +95,7 @@ import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
+import com.mercata.pingworks.contacts_screen.ContactViewHolder
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.theme.bodyFontFamily
 import com.mercata.pingworks.utils.getMimeType
@@ -236,17 +237,19 @@ fun SharedTransitionScope.ComposingScreen(
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(
-                    modifier = modifier.imePadding(),
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    onClick = {
-                        documentChooserLauncher.launch(arrayOf("*/*"))
-                    }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.attach),
-                        stringResource(id = R.string.add_new_contact)
-                    )
+                if (state.mode == ComposingScreenMode.Default) {
+                    FloatingActionButton(
+                        modifier = modifier.imePadding(),
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        onClick = {
+                            documentChooserLauncher.launch(arrayOf("*/*"))
+                        }) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.attach),
+                            stringResource(id = R.string.add_new_contact)
+                        )
+                    }
                 }
             }
         ) { padding ->
@@ -260,35 +263,37 @@ fun SharedTransitionScope.ComposingScreen(
                     .imePadding()
                     .verticalScroll(rememberScrollState())
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.toggleBroadcast() }
-                        .padding(
-                            top = MARGIN_DEFAULT,
-                            start = MARGIN_DEFAULT,
-                            end = MARGIN_DEFAULT,
-                            bottom = MARGIN_DEFAULT / 2
+                AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.toggleBroadcast() }
+                            .padding(
+                                top = MARGIN_DEFAULT,
+                                start = MARGIN_DEFAULT,
+                                end = MARGIN_DEFAULT,
+                                bottom = MARGIN_DEFAULT / 2
+                            )
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.cast),
+                            contentDescription = stringResource(
+                                id = R.string.broadcast_title
+                            ),
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.cast),
-                        contentDescription = stringResource(
-                            id = R.string.broadcast_title
-                        ),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = modifier.width(MARGIN_DEFAULT))
-                    Text(
-                        stringResource(id = R.string.broadcast_title),
-                        fontFamily = bodyFontFamily,
-                        softWrap = true
-                    )
-                    Spacer(modifier = modifier.weight(1f))
-                    Switch(
-                        checked = state.broadcast,
-                        onCheckedChange = { viewModel.toggleBroadcast() })
+                        Spacer(modifier = modifier.width(MARGIN_DEFAULT))
+                        Text(
+                            stringResource(id = R.string.broadcast_title),
+                            fontFamily = bodyFontFamily,
+                            softWrap = true
+                        )
+                        Spacer(modifier = modifier.weight(1f))
+                        Switch(
+                            checked = state.broadcast,
+                            onCheckedChange = { viewModel.toggleBroadcast() })
+                    }
                 }
                 AnimatedVisibility(visible = !state.broadcast) {
                     Column {
@@ -312,6 +317,23 @@ fun SharedTransitionScope.ComposingScreen(
                         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                         OutlinedTextField(
                             value = state.addressFieldText,
+                            prefix = if (state.mode == ComposingScreenMode.Default) {
+                                null
+                            } else {
+                                {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        modifier = modifier.clickable {
+                                            viewModel.clearAddressField()
+                                            focusManager.clearFocus()
+                                        },
+                                        contentDescription = stringResource(
+                                            id = R.string.add_recipient
+                                        ),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
                             suffix = {
                                 if (state.addressFieldText.isNotBlank()) {
                                     if (state.addressLoading) {
@@ -337,13 +359,13 @@ fun SharedTransitionScope.ComposingScreen(
                             onValueChange = { str -> viewModel.updateTo(str) },
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Email,
-                                imeAction = ImeAction.Next,
+                                imeAction = ImeAction.Done,
                                 showKeyboardOnFocus = true,
                             ),
                             isError = state.addressErrorResId != null,
                             keyboardActions = KeyboardActions(
-                                onNext = {
-                                    focusManager.moveFocus(FocusDirection.Down)
+                                onDone  = {
+                                    focusManager.clearFocus()
                                 }
                             ),
                             label = {
@@ -365,75 +387,113 @@ fun SharedTransitionScope.ComposingScreen(
                                     if (!focusState.isFocused) {
                                         viewModel.attemptToAddAddress()
                                     }
+                                    viewModel.toggleMode(focusState.isFocused)
                                 })
                     }
                 }
                 AnimatedVisibility(visible = !state.broadcast) {
                     Spacer(modifier = modifier.height(MARGIN_DEFAULT / 2))
                 }
-                OutlinedTextField(
-                    value = state.subject,
-                    onValueChange = { str -> viewModel.updateSubject(str) },
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Next,
-                        showKeyboardOnFocus = true,
-                    ),
-                    isError = state.subjectErrorResId != null,
-                    keyboardActions = KeyboardActions(
-                        onNext = {
-                            focusManager.moveFocus(FocusDirection.Down)
-                        }
-                    ),
-                    label = {
-                        Text(stringResource(id = R.string.subject_placeholder))
-                    },
-                    supportingText = {
-                        state.subjectErrorResId?.let {
-                            Text(
-                                text = stringResource(id = it),
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    },
-                    modifier = modifier
-                        .padding(horizontal = MARGIN_DEFAULT)
-                        .focusRequester(subjectFocusRequester)
-                        .fillMaxWidth()
-                )
-                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                OutlinedTextField(
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.None,
-                        showKeyboardOnFocus = true,
-                    ),
-                    placeholder = {
-                        Text(text = stringResource(id = R.string.body_placeholder))
-                    },
-                    isError = state.bodyErrorResId != null,
-                    supportingText = {
-                        state.bodyErrorResId?.let {
-                            Text(
-                                text = stringResource(id = it),
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    },
-                    modifier = modifier
-                        .padding(horizontal = MARGIN_DEFAULT)
-                        .defaultMinSize(minHeight = 200.dp)
-                        .fillMaxWidth()
-                        .focusRequester(bodyFocusRequester),
-                    value = state.body,
-                    onValueChange = { str ->
-                        viewModel.updateBody(str)
-                    })
-                state.attachments.map { attachmentUri ->
-                    AttachmentViewHolder(
-                        modifier = modifier,
-                        attachment = attachmentUri,
-                        viewModel = viewModel
+                AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
+                    OutlinedTextField(
+                        value = state.subject,
+                        onValueChange = { str -> viewModel.updateSubject(str) },
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Next,
+                            showKeyboardOnFocus = true,
+                        ),
+                        isError = state.subjectErrorResId != null,
+                        keyboardActions = KeyboardActions(
+                            onNext = {
+                                focusManager.moveFocus(FocusDirection.Down)
+                            }
+                        ),
+                        label = {
+                            Text(stringResource(id = R.string.subject_placeholder))
+                        },
+                        supportingText = {
+                            state.subjectErrorResId?.let {
+                                Text(
+                                    text = stringResource(id = it),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        },
+                        modifier = modifier
+                            .padding(horizontal = MARGIN_DEFAULT)
+                            .focusRequester(subjectFocusRequester)
+                            .fillMaxWidth()
                     )
                 }
+                AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
+                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                }
+                AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
+                    OutlinedTextField(
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.None,
+                            showKeyboardOnFocus = true,
+                        ),
+                        placeholder = {
+                            Text(text = stringResource(id = R.string.body_placeholder))
+                        },
+                        isError = state.bodyErrorResId != null,
+                        supportingText = {
+                            state.bodyErrorResId?.let {
+                                Text(
+                                    text = stringResource(id = it),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        },
+                        modifier = modifier
+                            .padding(horizontal = MARGIN_DEFAULT)
+                            .defaultMinSize(minHeight = 200.dp)
+                            .fillMaxWidth()
+                            .focusRequester(bodyFocusRequester),
+                        value = state.body,
+                        onValueChange = { str ->
+                            viewModel.updateBody(str)
+                        })
+                }
+                AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
+                    Column {
+                        state.attachments.map { attachmentUri ->
+                            AttachmentViewHolder(
+                                modifier = modifier,
+                                attachment = attachmentUri,
+                                viewModel = viewModel
+                            )
+                        }
+                    }
+                }
+
+                AnimatedVisibility(visible = state.mode == ComposingScreenMode.ContactSuggestion) {
+                    Column {
+                        state.contacts.filter {
+                            it.name?.contains(
+                                state.addressFieldText,
+                                true
+                            ) == true || it.address.contains(state.addressFieldText, true)
+                        }.forEach { contact ->
+                            ContactViewHolder(
+                                modifier = modifier,
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                person = contact,
+                                uploading = false,
+                                isSelected = false,
+                                onSelect = null,
+                                onClick = { person ->
+                                    viewModel.addContact(person)
+                                    viewModel.clearAddressField()
+                                    focusManager.clearFocus()
+                                }
+                            )
+                        }
+                    }
+                }
+
+
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT + 56.dp + padding.calculateBottomPadding()))
             }
         }

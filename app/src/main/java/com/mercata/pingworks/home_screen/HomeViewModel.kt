@@ -23,7 +23,6 @@ import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.syncAllMessages
-import com.mercata.pingworks.utils.syncContacts
 import com.mercata.pingworks.utils.uploadPendingMessages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,7 +41,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         val sp: SharedPreferences by inject()
         val db: AppDatabase by inject()
         val dl: DownloadRepository by inject()
-        val fu: FileUtils by inject()
         val sendMessageRepository: SendMessageRepository by inject()
         viewModelScope.launch {
             sendMessageRepository.sendingState.collect { isSending ->
@@ -123,9 +121,13 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     fun refresh() {
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(refreshing = true))
-            uploadPendingMessages(sp.getUserData()!!, db, fu, sp)
-            syncAllMessages(db, sp, dl)
+            launch {
+                uploadPendingMessages(sp.getUserData()!!, db, fu, sp)
+                syncAllMessages(db, sp, dl)
+            }
+
             dl.getCachedAttachments()
+
             updateState(currentState.copy(refreshing = false))
         }
     }
