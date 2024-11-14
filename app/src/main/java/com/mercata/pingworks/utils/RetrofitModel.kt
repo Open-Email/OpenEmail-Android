@@ -19,7 +19,6 @@ import com.mercata.pingworks.db.messages.MessagesDao
 import com.mercata.pingworks.db.pending.attachments.DBPendingAttachment
 import com.mercata.pingworks.db.pending.messages.DBPendingRootMessage
 import com.mercata.pingworks.db.pending.readers.DBPendingReaderPublicData
-import com.mercata.pingworks.db.pending.readers.toPublicUserData
 import com.mercata.pingworks.exceptions.EnvelopeAuthenticity
 import com.mercata.pingworks.exceptions.SignatureMismatch
 import com.mercata.pingworks.models.ContentHeaders
@@ -139,14 +138,14 @@ suspend fun loginCall(user: UserData): Response<Void> {
 }
 
 suspend fun uploadContact(
-    contact: PublicUserData,
+    address: Address,
     sharedPreferences: SharedPreferences
 ): Response<Void> {
-    val link = contact.address.connectionLink()
+    val link = address.connectionLink()
 
     val currentUser = sharedPreferences.getUserData()!!
 
-    val encryptedRemoteAddress = encryptAnonymous(contact.address, currentUser)
+    val encryptedRemoteAddress = encryptAnonymous(address, currentUser)
 
     return getInstance("https://${currentUser.address.getMailHost()}").uploadContact(
         sotnHeader = currentUser.sign(),
@@ -167,7 +166,7 @@ private suspend fun getAllContacts(sharedPreferences: SharedPreferences): Respon
 }
 
 suspend fun deleteContact(
-    contact: DBContact,
+    address: Address,
     sharedPreferences: SharedPreferences
 ): Response<Void> {
     val currentUser = sharedPreferences.getUserData()!!
@@ -175,7 +174,7 @@ suspend fun deleteContact(
         sotnHeader = currentUser.sign(),
         hostPart = currentUser.address.getHost(),
         localPart = currentUser.address.getLocal(),
-        linkAddr = contact.address.connectionLink()
+        linkAddr = address.connectionLink()
     )
 }
 
@@ -563,7 +562,7 @@ suspend fun uploadPendingMessages(
                                 },
                                 contactResult = pendingMessage.readers.map { reader ->
                                     async {
-                                        safeApiCall { uploadContact(reader.toPublicUserData(), sp) }
+                                        safeApiCall { uploadContact(reader.address, sp) }
                                     }
                                 }.awaitAll()
                             )
@@ -798,6 +797,40 @@ suspend fun saveMessagesToDb(
 
 suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
     withContext(Dispatchers.IO) {
+        val localContacts = dao.getAll()
+
+        //Uploading local-only contacts
+        val uploaded: List<DBContact?> =
+            localContacts.filter { it.uploaded.not() }.map { contactToUpload ->
+                async {
+                    when (safeApiCall { uploadContact(contactToUpload.address, sp) }) {
+                        is HttpResult.Error -> null
+                        is HttpResult.Success -> contactToUpload
+                    }
+                }
+            }.awaitAll()
+
+        uploaded.filterNotNull().forEach { uploadedContact ->
+            dao.update(uploadedContact.copy(uploaded = true))
+        }
+
+        //Deleting marked-to-delete local contacts
+        val deleted: List<DBContact?> =
+            localContacts.filter { it.markedToDelete }.map { contactToDelete ->
+                async {
+                    when (safeApiCall { deleteContact(contactToDelete.address, sp) }) {
+                        is HttpResult.Error -> null
+                        is HttpResult.Success -> contactToDelete
+                    }
+                }
+            }.awaitAll()
+
+        println(localContacts)
+        deleted.filterNotNull().forEach { deletedContact ->
+            dao.delete(deletedContact)
+        }
+
+        //Downloading new remote contacts
         when (val remoteAddressesCall = safeApiCall { getAllContacts(sp) }) {
             is HttpResult.Error -> {
                 Log.e(
@@ -829,25 +862,13 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
 
                     //deleting local contacts, which isn't present on remote
                     dao.deleteList(dao.getAll().filterNot { local ->
-                        local.address == sp.getUserAddress() || result.any { remote -> remote.address == local.address }
+                        local.address == sp.getUserAddress() ||
+                                result.any { remote -> remote.address == local.address } ||
+                                local.uploaded.not()
                     })
 
                     dao.insertAll(result.map { publicData ->
-                        DBContact(
-                            lastSeen = publicData.lastSeen?.toString(),
-                            updated = publicData.updated?.toString(),
-                            address = publicData.address,
-                            name = publicData.fullName,
-                            receiveBroadcasts = true,
-                            signingKeyAlgorithm = publicData.signingKeyAlgorithm,
-                            encryptionKeyAlgorithm = publicData.encryptionKeyAlgorithm,
-                            publicEncryptionKey = publicData.publicEncryptionKey,
-                            publicSigningKey = publicData.publicSigningKey,
-                            publicEncryptionKeyId = publicData.encryptionKeyId,
-                            lastSeenPublic = publicData.lastSeenPublic,
-                            //TODO get image
-                            imageUrl = null
-                        )
+                        publicData.toDBContact()
                     })
                 }
             }

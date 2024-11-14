@@ -155,7 +155,7 @@ fun SharedTransitionScope.HomeScreen(
                 )
                 when (snackbarResult) {
                     SnackbarResult.Dismissed -> {
-                        viewModel.onDeleteWaitComplete()
+                        viewModel.onCountdownSnackBarFinished()
                     }
 
                     SnackbarResult.ActionPerformed -> {
@@ -305,7 +305,7 @@ fun SharedTransitionScope.HomeScreen(
                         bottom = padding.calculateBottomPadding() + (MARGIN_DEFAULT.value * 1.5).dp + 52.dp
                     ), modifier = Modifier.fillMaxSize()
                 ) {
-                    items(items = state.messages, key = { it.getMessageId() }) { item ->
+                    items(items = state.messages.filter { it != state.itemToDelete }, key = { it.getMessageId() }) { item ->
                         SwipeContainer(modifier = modifier.animateItem(),
                             item = item,
                             onDelete = when (item) {

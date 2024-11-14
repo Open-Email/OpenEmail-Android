@@ -92,7 +92,7 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
             db.userDao().insert(dbContact)
             when (safeApiCall {
                 uploadContact(
-                    contact = publicData,
+                    address = publicData.address,
                     sharedPreferences = sp
                 )
             }) {

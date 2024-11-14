@@ -68,7 +68,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                 updateState(currentState.copy(addressLoading = true))
                 val selectedContactAddresses: String =
                     savedStateHandle.get<String>("contactAddress") ?: ""
-                selectedContactAddresses.split(",").map { address ->
+                selectedContactAddresses.split(",").filterNot { it.isBlank() }.takeIf { it.isNotEmpty() }?.map { address ->
                     launch(Dispatchers.IO) {
                         addAddress(address)
                     }

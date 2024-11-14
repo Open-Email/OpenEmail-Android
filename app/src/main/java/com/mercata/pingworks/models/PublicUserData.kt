@@ -34,7 +34,9 @@ fun PublicUserData.toDBContact() = DBContact(
     name = this.fullName,
     receiveBroadcasts = true,
     imageUrl = null, //TODO
-    publicEncryptionKeyId = this.encryptionKeyId
+    publicEncryptionKeyId = this.encryptionKeyId,
+    uploaded = true,
+    markedToDelete = false
 )
 
 fun PublicUserData.toDBPendingReaderPublicData(messageId: String) = DBPendingReaderPublicData(

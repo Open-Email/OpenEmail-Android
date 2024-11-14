@@ -24,7 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -103,8 +103,8 @@ fun SharedTransitionScope.ContactsScreen(
         state.selectedContacts.clear()
     }
 
-    LaunchedEffect(state.showUndoDeleteSnackBar) {
-        if (state.showUndoDeleteSnackBar) {
+    LaunchedEffect(state.itemToDelete) {
+        state.itemToDelete?.let {
             coroutineScope.launch {
                 val snackbarResult = snackbarHostState.showSnackbar(
                     message = context.getString(R.string.contact_deleted),
@@ -113,7 +113,7 @@ fun SharedTransitionScope.ContactsScreen(
                 )
                 when (snackbarResult) {
                     SnackbarResult.Dismissed -> {
-                        viewModel.onDeleteWaitComplete(state.itemToDelete!!)
+                        viewModel.onSnackBarCountdownFinished()
                     }
 
                     SnackbarResult.ActionPerformed -> {
@@ -193,19 +193,19 @@ fun SharedTransitionScope.ContactsScreen(
                 modifier = Modifier
                     .fillMaxSize()
             ) {
-                itemsIndexed(items = state.contacts,
-                    key = { _, contact -> contact.address }) { index, item ->
+                items(items = state.contacts.filter { it != state.itemToDelete },
+                    key = { contact -> contact.address }) { item ->
                     SwipeContainer(
                         modifier = modifier.animateItem(),
                         item = item,
                         onDelete = {
-                            viewModel.removeItem(index)
+                            viewModel.removeItem(it)
                         }) {
                         ContactViewHolder(
                             modifier = modifier,
                             animatedVisibilityScope = animatedVisibilityScope,
                             person = item,
-                            uploading = item.address == state.loadingContactAddress,
+                            uploading = false,
                             isSelected = state.selectedContacts.contains(item),
                             onSelect = { person ->
                                 viewModel.toggleSelect(person)

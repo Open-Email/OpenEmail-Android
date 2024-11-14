@@ -9,6 +9,8 @@ import java.time.Instant
 @Entity
 data class DBContact(
     @ColumnInfo(name = "updated") val updated: String?,
+    @ColumnInfo(name = "uploaded") val uploaded: Boolean,
+    @ColumnInfo(name = "marked_to_delete") val markedToDelete: Boolean,
     @ColumnInfo(name = "last_seen") val lastSeen: String?,
     @PrimaryKey @ColumnInfo(name = "address") val address: String,
     @ColumnInfo(name = "name") val name: String?,

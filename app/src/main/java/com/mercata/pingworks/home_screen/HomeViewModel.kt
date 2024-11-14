@@ -169,49 +169,52 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
 
     fun deleteItem(item: HomeItem) {
-        currentState.itemToDelete?.run {
-            onDeleteWaitComplete()
-        }
-        updateState(
-            currentState.copy(
-                itemToDelete = item,
-            )
-        )
-        updateState(currentState.copy(undoDelete = null))
-        var undoSnackbarResId: Int? = null
-        when (item) {
-            is CachedAttachment -> {
-                cachedAttachments.remove(item)
-                undoSnackbarResId = R.string.attachment_deleted
-            }
-
-            is DBDraftWithReaders -> {
-                draftMessages.remove(item)
-                undoSnackbarResId = R.string.draft_deleted
-                updateList()
-            }
-        }
-        updateState(currentState.copy(undoDelete = undoSnackbarResId!!))
-    }
-
-    fun onDeleteWaitComplete() {
         viewModelScope.launch(Dispatchers.IO) {
+            currentState.itemToDelete?.run {
+                onDeleteWaitComplete()
+            }
+            updateState(
+                currentState.copy(
+                    itemToDelete = item,
+                )
+            )
             updateState(currentState.copy(undoDelete = null))
-            when (currentState.itemToDelete) {
+            var undoSnackbarResId: Int? = null
+            when (item) {
                 is CachedAttachment -> {
-                    dl.deleteFile((currentState.itemToDelete as CachedAttachment).uri)
-                    cachedAttachments.clear()
-                    cachedAttachments.addAll(dl.getCachedAttachments())
-                    updateList()
+                    undoSnackbarResId = R.string.attachment_deleted
                 }
 
                 is DBDraftWithReaders -> {
-                    db.draftDao()
-                        .delete((currentState.itemToDelete as DBDraftWithReaders).draft.draftId)
+                    undoSnackbarResId = R.string.draft_deleted
                 }
             }
-            updateState(currentState.copy(itemToDelete = null))
+            updateState(currentState.copy(undoDelete = undoSnackbarResId!!))
         }
+    }
+
+    fun onCountdownSnackBarFinished() {
+        viewModelScope.launch(Dispatchers.IO) {
+            onDeleteWaitComplete()
+        }
+    }
+
+    private suspend fun onDeleteWaitComplete() {
+        updateState(currentState.copy(undoDelete = null))
+        when (currentState.itemToDelete) {
+            is CachedAttachment -> {
+                dl.deleteFile((currentState.itemToDelete as CachedAttachment).uri)
+                cachedAttachments.clear()
+                cachedAttachments.addAll(dl.getCachedAttachments())
+                updateList()
+            }
+
+            is DBDraftWithReaders -> {
+                db.draftDao()
+                    .delete((currentState.itemToDelete as DBDraftWithReaders).draft.draftId)
+            }
+        }
+        updateState(currentState.copy(itemToDelete = null))
     }
 
     fun onUndoDeletePressed() {

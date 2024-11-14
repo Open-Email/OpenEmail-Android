@@ -67,7 +67,9 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
                 encryptionKeyAlgorithm = ANONYMOUS_ENCRYPTION_CIPHER,
                 publicEncryptionKey = user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64(),
                 publicEncryptionKeyId = user.encryptionKeys.id,
-                publicSigningKey = user.signingKeys.pair.publicKey.asBytes.encodeToBase64()
+                publicSigningKey = user.signingKeys.pair.publicKey.asBytes.encodeToBase64(),
+                markedToDelete = false,
+                uploaded = true
             )
         )
     }
