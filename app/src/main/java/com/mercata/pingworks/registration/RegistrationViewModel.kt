@@ -101,7 +101,7 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
                 }
 
                 is HttpResult.Success -> {
-                    syncMessagesForContact(dbContact, db, sp, dl, true)
+                    syncMessagesForContact(dbContact, db, sp, dl)
                 }
             }
         }

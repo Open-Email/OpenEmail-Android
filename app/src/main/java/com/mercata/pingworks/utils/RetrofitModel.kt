@@ -364,7 +364,6 @@ suspend fun syncMessagesForContact(
     db: AppDatabase,
     sp: SharedPreferences,
     dl: DownloadRepository,
-    isFirstTime: Boolean
 ) {
     withContext(Dispatchers.IO) {
         val privateEnvelopes: Deferred<List<Envelope>> = async {
@@ -385,13 +384,11 @@ suspend fun syncMessagesForContact(
                 initial = arrayListOf(),
                 operation = { initial, new -> initial.apply { addAll(new) } })
 
-        saveMessagesToDb(dl, results, db.messagesDao(), db.attachmentsDao(), isFirstTime)
+        saveMessagesToDb(dl, results, db.messagesDao(), db.attachmentsDao(), sp)
     }
 }
 
 suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: DownloadRepository) {
-
-    val isFirsTime = sp.isFirstTime()
 
     withContext(Dispatchers.IO) {
         val privateEnvelopes: Deferred<List<Envelope>> = async {
@@ -413,7 +410,7 @@ suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: Download
                 initial = arrayListOf(),
                 operation = { initial, new -> initial.apply { addAll(new) } })
 
-        saveMessagesToDb(dl, results, db.messagesDao(), db.attachmentsDao(), isFirsTime)
+        saveMessagesToDb(dl, results, db.messagesDao(), db.attachmentsDao(), sp)
         sp.setFirstTime(false)
     }
 }
@@ -730,7 +727,7 @@ suspend fun saveMessagesToDb(
     results: List<Envelope>,
     messagesDao: MessagesDao,
     attachmentsDao: AttachmentsDao,
-    isFirstTime: Boolean
+    sp: SharedPreferences,
 ) {
     withContext(Dispatchers.IO) {
         launch {
@@ -787,7 +784,7 @@ suspend fun saveMessagesToDb(
                         isBroadcast = it.first.isBroadcast(),
                         timestamp = it.first.contentHeaders.date.toEpochMilli(),
                         readerAddresses = it.first.contentHeaders.readersAddresses?.joinToString(","),
-                        isUnread = !isFirstTime
+                        isUnread = !sp.isFirstTime() && sp.getUserAddress() != it.first.contact.address
                     )
                 })
             attachmentsDao.insertAll(attachments)

@@ -288,7 +288,7 @@ fun SharedTransitionScope.ContactViewHolder(
                 if (isSelected) {
                     Icon(
                         Icons.Filled.CheckCircle,
-                        stringResource(id = R.string.selected),
+                        stringResource(id = R.string.selected_label),
                         tint = MaterialTheme.colorScheme.onSecondary
                     )
                 } else {

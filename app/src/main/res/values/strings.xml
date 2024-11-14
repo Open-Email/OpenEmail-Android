@@ -78,7 +78,13 @@
     <string name="add_instant_photo">Add instant photo</string>
     <string name="attachment_deleted">Attachment deleted</string>
     <string name="draft_deleted">Draft deleted</string>
-    <string name="selected">Selected</string>
-    <string name="message_sending">Message sending...</string>
+    <string name="selected_label">Selected</string>
+    <string name="message_sending">Message sending…</string>
     <string name="delete">Delete</string>
+    <string name="broadcast_placeholder">There is no broadcasts from your contacts at the moment.</string>
+    <string name="inbox_placeholder">You don\'t have any private messages.</string>
+    <string name="outbox_placeholder">You didn\'t send any messages yet.</string>
+    <string name="pending_placeholder">Nothing is pending at the moment. All sent messages are uploaded.</string>
+    <string name="drafts_placeholder">All new mesages you compose will be saved here.</string>
+    <string name="downloaded_attachemnts_placeholder">All attachments you\'ve downloaded will be listed here.</string>
 </resources>

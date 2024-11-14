@@ -324,10 +324,12 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         updateState(currentState.copy(mode = if (addressFieldFocused) ComposingScreenMode.ContactSuggestion else ComposingScreenMode.Default))
     }
 
-    fun addContact(person: DBContact) {
+    fun addContactSuggestion(person: DBContact) {
         val publicData = person.toPublicUserData()
         if (!currentState.recipients.contains(publicData)) {
-            currentState.recipients.add(publicData)
+            viewModelScope.launch(Dispatchers.IO) {
+                db.draftReaderDao().insert(person.toPublicUserData().toDBDraftReader(draftId))
+            }
         }
     }
 

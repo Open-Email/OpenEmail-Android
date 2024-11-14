@@ -19,6 +19,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -39,11 +40,9 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.Clear
@@ -93,6 +92,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -112,6 +112,8 @@ import com.mercata.pingworks.db.drafts.DBDraftWithReaders
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.theme.bodyFontFamily
+import com.mercata.pingworks.theme.displayFontFamily
 import kotlinx.coroutines.launch
 
 @Composable
@@ -396,6 +398,13 @@ fun SharedTransitionScope.HomeScreen(
                         }
                     }
                 }
+                if (state.items.isEmpty()) {
+                    EmptyPlaceholder(
+                        modifier = modifier.align(Alignment.Center),
+                        screen = state.screen
+                    )
+                }
+
                 PullRefreshIndicator(
                     modifier = modifier
                         .align(Alignment.TopCenter)
@@ -457,8 +466,8 @@ fun SharedTransitionScope.MessageViewHolder(
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
                     .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
-                    .clickable(enabled = onMessageSelected != null) {
-                        onMessageSelected!!(item)
+                    .clickable {
+                        onMessageSelected?.invoke(item)
                     }
                     .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                     .background(if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary)
@@ -466,7 +475,7 @@ fun SharedTransitionScope.MessageViewHolder(
                 if (isSelected) {
                     Icon(
                         Icons.Filled.CheckCircle,
-                        stringResource(id = R.string.selected),
+                        stringResource(id = R.string.selected_label),
                         tint = MaterialTheme.colorScheme.onSecondary
                     )
                 } else {
@@ -658,9 +667,48 @@ fun SwipeBackground(
         contentAlignment = if (deleteSwipe) Alignment.CenterEnd else Alignment.CenterStart
     ) {
         Icon(
-            imageVector = if (deleteSwipe) Icons.Default.Delete else Icons.Default.Favorite,
+            imageVector = if (deleteSwipe) Icons.Default.Delete else Icons.Default.CheckCircle,
             contentDescription = null,
             tint = if (deleteSwipe) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary,
+        )
+    }
+}
+
+@Composable
+fun EmptyPlaceholder(modifier: Modifier = Modifier, screen: HomeScreen) {
+    Column(
+        modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if (screen.icon != null) {
+            Icon(
+                imageVector = screen.icon,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = modifier.size(100.dp),
+                contentDescription = null
+            )
+        } else if (screen.iconResId != null) {
+            Icon(
+                painter = painterResource(id = screen.iconResId),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = modifier.size(100.dp),
+                contentDescription = null
+            )
+        }
+        Text(
+            stringResource(id = screen.titleResId),
+            fontFamily = displayFontFamily,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.displayMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+        Text(
+            stringResource(id = screen.placeholderDescriptionResId),
+            fontFamily = bodyFontFamily,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Bold
         )
     }
 }

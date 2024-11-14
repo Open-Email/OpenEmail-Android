@@ -484,7 +484,7 @@ fun SharedTransitionScope.ComposingScreen(
                                 isSelected = false,
                                 onSelect = null,
                                 onClick = { person ->
-                                    viewModel.addContact(person)
+                                    viewModel.addContactSuggestion(person)
                                     viewModel.clearAddressField()
                                     focusManager.clearFocus()
                                 }

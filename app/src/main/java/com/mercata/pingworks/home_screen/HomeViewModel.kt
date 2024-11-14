@@ -293,17 +293,14 @@ data class HomeState(
 enum class HomeScreen(
     val titleResId: Int,
     val outbox: Boolean,
+    val placeholderDescriptionResId: Int,
     val icon: ImageVector? = null,
     val iconResId: Int? = null,
 ) {
-    Broadcast(R.string.broadcast_title, iconResId = R.drawable.cast, outbox = false),
-    Inbox(R.string.inbox_title, icon = Icons.Default.KeyboardArrowDown, outbox = false),
-    Outbox(R.string.outbox_title, icon = Icons.Default.KeyboardArrowUp, outbox = true),
-    Pending(R.string.pending, iconResId = R.drawable.pending, outbox = true),
-    Drafts(R.string.drafts, iconResId = R.drawable.draft, outbox = true),
-    DownloadedAttachments(
-        R.string.downloaded_attachments,
-        iconResId = R.drawable.download,
-        outbox = false
-    )
+    Broadcast(R.string.broadcast_title, iconResId = R.drawable.cast, outbox = false, placeholderDescriptionResId = R.string.broadcast_placeholder),
+    Inbox(R.string.inbox_title, icon = Icons.Default.KeyboardArrowDown, outbox = false, placeholderDescriptionResId = R.string.inbox_placeholder),
+    Outbox(R.string.outbox_title, icon = Icons.Default.KeyboardArrowUp, outbox = true, placeholderDescriptionResId = R.string.outbox_placeholder),
+    Pending(R.string.pending, iconResId = R.drawable.pending, outbox = true, placeholderDescriptionResId = R.string.pending_placeholder),
+    Drafts(R.string.drafts, iconResId = R.drawable.draft, outbox = true, placeholderDescriptionResId = R.string.drafts_placeholder),
+    DownloadedAttachments(R.string.downloaded_attachments, iconResId = R.drawable.download, outbox = false, placeholderDescriptionResId = R.string.downloaded_attachemnts_placeholder)
 }
