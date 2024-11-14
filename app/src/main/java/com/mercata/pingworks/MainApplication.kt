@@ -6,7 +6,7 @@ import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.repository.SendMessageRepository
 import com.mercata.pingworks.utils.BioManager
 import com.mercata.pingworks.utils.CopyAttachmentService
-import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.SoundPlayer
@@ -19,8 +19,8 @@ class MainApplication : Application() {
 
     private val appModule = module {
         single { SharedPreferences(get(), get()) }
+        single { DownloadRepository(get(), get()) }
         factory { BioManager(get()) }
-        factory { Downloader(get(), get()) }
         factory { FileUtils(get()) }
         factory { SoundPlayer(get()) }
         factory { CopyAttachmentService(get()) }

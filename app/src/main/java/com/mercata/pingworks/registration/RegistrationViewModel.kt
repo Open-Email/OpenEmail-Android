@@ -6,7 +6,7 @@ import com.mercata.pingworks.SUPPORT_ADDRESS
 import com.mercata.pingworks.availableHosts
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.models.toDBContact
-import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.EncryptionKeys
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SigningKeys
@@ -27,7 +27,7 @@ import org.koin.core.component.inject
 
 class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationState()) {
 
-   private val dl: Downloader by inject()
+   private val dl: DownloadRepository by inject()
 
     fun onUsernameChange(str: String) {
         updateState(currentState.copy(usernameInput = str))

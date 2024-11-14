@@ -17,6 +17,8 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
@@ -29,16 +31,20 @@ import java.util.Locale
 import kotlin.text.Charsets.UTF_8
 
 
-class Downloader(val context: Context, private val fileUtils: FileUtils) {
+class DownloadRepository(val context: Context, private val fileUtils: FileUtils) {
+
+
+    private val _downloadedAttachmentsState = MutableStateFlow(listOf<CachedAttachment>())
+    val downloadedAttachmentsState: StateFlow<List<CachedAttachment>> = _downloadedAttachmentsState
 
     companion object {
         const val FOLDER_NAME = "messages"
     }
 
-    fun getCachedAttachments(): List<CachedAttachment> {
+    fun getCachedAttachments() {
         val folder = File(context.filesDir, FOLDER_NAME)
         folder.mkdirs()
-        return folder.listFiles()?.map {
+        _downloadedAttachmentsState.value = folder.listFiles()?.map {
             val uri = fileUtils.getUriForFile(it)
             CachedAttachment(
                 uri,
@@ -53,10 +59,12 @@ class Downloader(val context: Context, private val fileUtils: FileUtils) {
         if (folder.exists()) {
             folder.listFiles()?.forEach { it.delete() }
         }
+        getCachedAttachments()
     }
 
     fun deleteFile(uri: Uri) {
         context.contentResolver.delete(uri, null, null)
+        getCachedAttachments()
     }
 
     private fun getMimeTypeFromFile(file: File): String? {
@@ -85,6 +93,7 @@ class Downloader(val context: Context, private val fileUtils: FileUtils) {
         }).forEach { attachment ->
             File(folder, attachment.name).delete()
         }
+        getCachedAttachments()
     }
 
     //emits -1 on error
@@ -105,14 +114,17 @@ class Downloader(val context: Context, private val fileUtils: FileUtils) {
                 is HttpResult.Error -> {
                     Log.e("DOWNLOAD FILE", call.message ?: call.code.toString())
                     emit(AttachmentResult(null, Error()))
+                    getCachedAttachments()
                 }
 
                 is HttpResult.Success -> {
                     call.data?.byteStream()
                         ?.dumpToFile(attachment.parts.first(), null, folder)
                         ?.collect { emit(it) }
+                    getCachedAttachments()
                 }
             }
+
         } else {
             emit(
                 AttachmentResult(
@@ -169,6 +181,7 @@ class Downloader(val context: Context, private val fileUtils: FileUtils) {
 
             if (decryptedParts.contains(null)) {
                 emit(AttachmentResult(null, Error()))
+                getCachedAttachments()
                 return@flow
             }
 
@@ -187,6 +200,7 @@ class Downloader(val context: Context, private val fileUtils: FileUtils) {
                 }
             }
             emit(AttachmentResult(fusedFile, Progress(100)))
+            getCachedAttachments()
         }
     }.flowOn(Dispatchers.IO)
 

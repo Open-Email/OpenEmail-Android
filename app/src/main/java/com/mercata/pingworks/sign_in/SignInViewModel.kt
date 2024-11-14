@@ -8,7 +8,7 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
-import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.EncryptionKeys
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
@@ -22,7 +22,7 @@ import org.koin.core.component.inject
 
 class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
-    private val dl: Downloader by inject();
+    private val dl: DownloadRepository by inject();
     init {
         val sharedPreferences: SharedPreferences by inject()
         val address = sharedPreferences.getUserAddress()

@@ -9,7 +9,7 @@ import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.models.toDBContact
-import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.getProfilePublicData
@@ -44,7 +44,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         updateState(currentState.copy(loggedInPersonAddress = sp.getUserAddress()!!))
     }
 
-    private val downloader: Downloader by inject()
+    private val downloadRepository: DownloadRepository by inject()
 
     fun onNewContactAddressInput(str: String) {
         updateState(
@@ -124,7 +124,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     private suspend fun onDeleteWaitComplete() {
         val item = currentState.itemToDelete ?: return
         withContext(Dispatchers.IO) {
-            downloader.deleteAttachmentsForMessages(
+            downloadRepository.deleteAttachmentsForMessages(
                 db.messagesDao().getAllForContactAddress(item.address)
             )
             db.userDao().update(item.copy(markedToDelete = true))
@@ -138,7 +138,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
             onDeleteWaitComplete()
             val db: AppDatabase by inject()
             val sp: SharedPreferences by inject()
-            val dl: Downloader by inject()
+            val dl: DownloadRepository by inject()
             syncContacts(sp, db.userDao())
             syncAllMessages(db, sp, dl)
         }

@@ -2,7 +2,7 @@ package com.mercata.pingworks.repository
 
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.drafts.draft_reader.toPublicUserData
-import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.SoundPlayer
@@ -20,7 +20,7 @@ class SendMessageRepository(
     private val db: AppDatabase,
     private val fileUtils: FileUtils,
     private val sp: SharedPreferences,
-    private val dl: Downloader
+    private val dl: DownloadRepository
 ) {
 
     private val _sendingState = MutableStateFlow(false)

@@ -363,7 +363,7 @@ suspend fun syncMessagesForContact(
     contact: DBContact,
     db: AppDatabase,
     sp: SharedPreferences,
-    dl: Downloader,
+    dl: DownloadRepository,
     isFirstTime: Boolean
 ) {
     withContext(Dispatchers.IO) {
@@ -389,7 +389,7 @@ suspend fun syncMessagesForContact(
     }
 }
 
-suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: Downloader) {
+suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: DownloadRepository) {
 
     val isFirsTime = sp.isFirstTime()
 
@@ -726,7 +726,7 @@ private suspend fun uploadFileMessage(
 }
 
 suspend fun saveMessagesToDb(
-    dl: Downloader,
+    dl: DownloadRepository,
     results: List<Envelope>,
     messagesDao: MessagesDao,
     attachmentsDao: AttachmentsDao,

@@ -80,4 +80,5 @@
     <string name="draft_deleted">Draft deleted</string>
     <string name="selected">Selected</string>
     <string name="message_sending">Message sending...</string>
+    <string name="delete">Delete</string>
 </resources>

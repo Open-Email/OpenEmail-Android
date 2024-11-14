@@ -19,7 +19,7 @@ import com.mercata.pingworks.db.pending.DBPendingMessage
 import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.repository.SendMessageRepository
-import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.syncAllMessages
@@ -31,7 +31,7 @@ import org.koin.core.component.inject
 
 class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
-    private val dl: Downloader by inject()
+    private val dl: DownloadRepository by inject()
     private val fu: FileUtils by inject()
     private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
     private val pendingMessages: ArrayList<DBPendingMessage> = arrayListOf()
@@ -41,7 +41,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     init {
         val sp: SharedPreferences by inject()
         val db: AppDatabase by inject()
-        val dl: Downloader by inject()
+        val dl: DownloadRepository by inject()
         val fu: FileUtils by inject()
         val sendMessageRepository: SendMessageRepository by inject()
         viewModelScope.launch {
@@ -92,17 +92,13 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             }
         }
         viewModelScope.launch(Dispatchers.IO) {
-            cachedAttachments.clear()
-            cachedAttachments.addAll(dl.getCachedAttachments())
-            updateList()
+            dl.downloadedAttachmentsState.collect { attachmentsList ->
+                cachedAttachments.clear()
+                cachedAttachments.addAll(attachmentsList)
+                updateList()
+            }
         }
-        viewModelScope.launch(Dispatchers.IO) {
-            updateState(currentState.copy(refreshing = true))
-            syncContacts(sp, db.userDao())
-            uploadPendingMessages(sp.getUserData()!!, db, fu, sp)
-            syncAllMessages(db, sp, dl)
-            updateState(currentState.copy(refreshing = false))
-        }
+        refresh()
     }
 
     fun onSearchQuery(query: String) {
@@ -114,6 +110,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         updateState(currentState.copy(screen = screen))
         updateList()
         sp.saveSelectedNavigationScreen(screen)
+        currentState.selectedItems.clear()
     }
 
     fun toggleSearch() {
@@ -128,45 +125,44 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             updateState(currentState.copy(refreshing = true))
             uploadPendingMessages(sp.getUserData()!!, db, fu, sp)
             syncAllMessages(db, sp, dl)
-            cachedAttachments.clear()
-            cachedAttachments.addAll(dl.getCachedAttachments())
+            dl.getCachedAttachments()
             updateState(currentState.copy(refreshing = false))
         }
     }
 
     private fun updateList() {
         val currentUserAddress = sp.getUserAddress()
-        currentState.messages.clear()
+        currentState.items.clear()
 
         when (currentState.screen) {
             HomeScreen.Drafts -> {
-                currentState.messages.addAll(draftMessages.filter { it.searchMatched() })
+                currentState.items.addAll(draftMessages.filter { it.searchMatched() })
             }
 
             HomeScreen.Pending -> {
-                currentState.messages.addAll(pendingMessages.filter { it.searchMatched() })
+                currentState.items.addAll(pendingMessages.filter { it.searchMatched() })
             }
 
-            HomeScreen.Broadcast -> currentState.messages.addAll(allMessages.filter {
+            HomeScreen.Broadcast -> currentState.items.addAll(allMessages.filter {
                 it.message.message.isBroadcast
                         && it.message.author?.address != currentUserAddress
                         && it.searchMatched()
             })
 
             HomeScreen.Outbox -> {
-                currentState.messages.addAll(allMessages.filter {
+                currentState.items.addAll(allMessages.filter {
                     it.message.author?.address == currentUserAddress && it.searchMatched()
                 })
             }
 
             HomeScreen.Inbox -> {
-                currentState.messages.addAll(allMessages.filter {
+                currentState.items.addAll(allMessages.filter {
                     it.message.message.isBroadcast.not() &&
                             it.message.author?.address != currentUserAddress && it.searchMatched()
                 })
             }
 
-            HomeScreen.DownloadedAttachments -> currentState.messages.addAll(cachedAttachments.filter { it.searchMatched() })
+            HomeScreen.DownloadedAttachments -> currentState.items.addAll(cachedAttachments.filter { it.searchMatched() })
         }
     }
 
@@ -211,9 +207,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         when (currentState.itemToDelete) {
             is CachedAttachment -> {
                 dl.deleteFile((currentState.itemToDelete as CachedAttachment).uri)
-                cachedAttachments.clear()
-                cachedAttachments.addAll(dl.getCachedAttachments())
-                updateList()
             }
 
             is DBDraftWithReaders -> {
@@ -228,9 +221,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         viewModelScope.launch(Dispatchers.IO) {
             when (currentState.itemToDelete) {
                 is CachedAttachment -> {
-                    cachedAttachments.clear()
-                    cachedAttachments.addAll(dl.getCachedAttachments())
-                    updateList()
+                    dl.getCachedAttachments()
                 }
 
                 is DBDraftWithReaders -> {
@@ -258,6 +249,29 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
+    fun toggleSelectItem(item: HomeItem) {
+        when (item) {
+            is CachedAttachment -> {
+                if (currentState.selectedItems.contains(item)) {
+                    currentState.selectedItems.remove(item)
+                } else {
+                    currentState.selectedItems.add(item)
+                }
+            }
+        }
+    }
+
+    fun deleteSelected() {
+        currentState.selectedItems.forEach {
+            when(it) {
+                is CachedAttachment -> {
+                    dl.deleteFile(it.uri)
+                }
+            }
+        }
+        currentState.selectedItems.clear()
+    }
+
 }
 
 data class HomeState(
@@ -269,8 +283,8 @@ data class HomeState(
     val refreshing: Boolean = false,
     val undoDelete: Int? = null,
     val screen: HomeScreen = HomeScreen.Broadcast,
-    val messages: SnapshotStateList<HomeItem> = mutableStateListOf(),
-    //TODO get unread statuses from DB
+    val items: SnapshotStateList<HomeItem> = mutableStateListOf(),
+    val selectedItems: SnapshotStateList<HomeItem> = mutableStateListOf(),
     val unread: SnapshotStateMap<HomeScreen, Int> = mutableStateMapOf()
 )
 

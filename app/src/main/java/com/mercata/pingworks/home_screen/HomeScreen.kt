@@ -7,6 +7,7 @@
 package com.mercata.pingworks.home_screen
 
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -14,8 +15,10 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -36,6 +39,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
@@ -137,6 +142,10 @@ fun SharedTransitionScope.HomeScreen(
         viewModel.refresh()
     })
 
+    BackHandler(enabled = state.selectedItems.isNotEmpty()) {
+        state.selectedItems.clear()
+    }
+
     LaunchedEffect(state.searchOpened) {
         if (state.searchOpened) {
             searchFocusRequester.requestFocus()
@@ -201,14 +210,14 @@ fun SharedTransitionScope.HomeScreen(
             },
             topBar = {
                 LargeTopAppBar(
-
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                        scrolledContainerColor = MaterialTheme.colorScheme.primary
-                    ), title = {
+                        scrolledContainerColor = if (state.selectedItems.isNotEmpty()) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary,
+                        containerColor = if (state.selectedItems.isNotEmpty()) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary,
+                        titleContentColor = if (state.selectedItems.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+                        navigationIconContentColor = if (state.selectedItems.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+                        actionIconContentColor = if (state.selectedItems.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    title = {
                         Text(
                             stringResource(id = state.screen.titleResId),
                             maxLines = 1,
@@ -230,62 +239,73 @@ fun SharedTransitionScope.HomeScreen(
                             )
                         }
                     }, actions = {
-                        Row {
-                            AnimatedVisibility(
-                                visible = state.searchOpened, modifier = modifier.weight(1f)
-                            ) {
-                                Row(modifier = modifier.fillMaxWidth()) {
-                                    Spacer(modifier = modifier.width(MARGIN_DEFAULT + 42.dp))
-                                    Box(
-                                        modifier = modifier.fillMaxWidth(),
-                                        contentAlignment = Alignment.CenterEnd
-                                    ) {
-                                        BasicTextField(keyboardOptions = KeyboardOptions(
-                                            imeAction = ImeAction.Search,
-                                            showKeyboardOnFocus = true,
-                                        ),
-                                            singleLine = true,
-                                            modifier = modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
-                                                .background(MaterialTheme.colorScheme.surface)
-                                                .padding(
-                                                    start = MARGIN_DEFAULT,
-                                                    top = MARGIN_DEFAULT,
-                                                    bottom = MARGIN_DEFAULT,
-                                                    end = 48.dp
+                        if (state.selectedItems.isEmpty()) {
+                            Row {
+                                AnimatedVisibility(
+                                    visible = state.searchOpened, modifier = modifier.weight(1f)
+                                ) {
+                                    Row(modifier = modifier.fillMaxWidth()) {
+                                        Spacer(modifier = modifier.width(MARGIN_DEFAULT + 42.dp))
+                                        Box(
+                                            modifier = modifier.fillMaxWidth(),
+                                            contentAlignment = Alignment.CenterEnd
+                                        ) {
+                                            BasicTextField(keyboardOptions = KeyboardOptions(
+                                                imeAction = ImeAction.Search,
+                                                showKeyboardOnFocus = true,
+                                            ),
+                                                singleLine = true,
+                                                modifier = modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                                                    .background(MaterialTheme.colorScheme.surface)
+                                                    .padding(
+                                                        start = MARGIN_DEFAULT,
+                                                        top = MARGIN_DEFAULT,
+                                                        bottom = MARGIN_DEFAULT,
+                                                        end = 48.dp
+                                                    )
+                                                    .focusRequester(searchFocusRequester),
+                                                textStyle = MaterialTheme.typography.bodySmall,
+                                                value = state.query,
+                                                onValueChange = {
+                                                    viewModel.onSearchQuery(it)
+                                                })
+                                            IconButton(onClick = {
+                                                if (state.query.isEmpty()) {
+                                                    viewModel.toggleSearch()
+                                                } else {
+                                                    viewModel.onSearchQuery("")
+                                                }
+                                            }) {
+                                                Icon(
+                                                    Icons.Rounded.Clear,
+                                                    stringResource(id = R.string.clear_button),
+                                                    tint = MaterialTheme.colorScheme.primary
                                                 )
-                                                .focusRequester(searchFocusRequester),
-                                            textStyle = MaterialTheme.typography.bodySmall,
-                                            value = state.query,
-                                            onValueChange = {
-                                                viewModel.onSearchQuery(it)
-                                            })
-                                        IconButton(onClick = {
-                                            if (state.query.isEmpty()) {
-                                                viewModel.toggleSearch()
-                                            } else {
-                                                viewModel.onSearchQuery("")
                                             }
-                                        }) {
-                                            Icon(
-                                                Icons.Rounded.Clear,
-                                                stringResource(id = R.string.clear_button),
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
                                         }
+                                        Spacer(modifier = modifier.width(8.dp))
                                     }
-                                    Spacer(modifier = modifier.width(8.dp))
+                                }
+                                IconButton(onClick = { viewModel.toggleSearch() }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Search,
+                                        contentDescription = stringResource(id = R.string.search)
+                                    )
                                 }
                             }
-                            IconButton(onClick = { viewModel.toggleSearch() }) {
+                        } else {
+                            IconButton(onClick = {
+                                viewModel.deleteSelected()
+                            }) {
                                 Icon(
-                                    imageVector = Icons.Filled.Search,
-                                    contentDescription = stringResource(id = R.string.search)
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = stringResource(R.string.delete),
+                                    tint = MaterialTheme.colorScheme.error
                                 )
                             }
                         }
-
                     }, scrollBehavior = scrollBehavior
                 )
             },
@@ -317,7 +337,7 @@ fun SharedTransitionScope.HomeScreen(
                     ), modifier = Modifier.fillMaxSize()
                 ) {
                     items(
-                        items = state.messages.filter { it != state.itemToDelete },
+                        items = state.items.filter { it != state.itemToDelete },
                         key = { it.getMessageId() }) { item ->
                         SwipeContainer(modifier = modifier.animateItem(),
                             item = item,
@@ -342,8 +362,15 @@ fun SharedTransitionScope.HomeScreen(
                             MessageViewHolder(item = item,
                                 currentUser = state.currentUser!!,
                                 animatedVisibilityScope = animatedVisibilityScope,
-                                onMessageClicked = { message ->
+                                onMessageSelected = when (item) {
+                                    is CachedAttachment -> { attachment ->
+                                        viewModel.toggleSelectItem(attachment)
+                                    }
 
+                                    else -> null
+                                },
+                                isSelected = state.selectedItems.contains(item),
+                                onMessageClicked = { message ->
                                     when (message) {
                                         is CachedAttachment -> {
                                             val attachment = item as CachedAttachment
@@ -381,32 +408,44 @@ fun SharedTransitionScope.HomeScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SharedTransitionScope.MessageViewHolder(
     currentUser: UserData,
     item: HomeItem,
+    isSelected: Boolean,
     modifier: Modifier = Modifier,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    onMessageClicked: (message: HomeItem) -> Unit
+    onMessageClicked: (message: HomeItem) -> Unit,
+    onMessageSelected: ((message: HomeItem) -> Unit)?
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
 
     Box {
-
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier
-            .sharedBounds(
-                sharedContentState = rememberSharedContentState(
-                    key = "message_bounds/${item.getMessageId()}"
-                ),
-                animatedVisibilityScope = animatedVisibilityScope,
-            )
-            .background(color = MaterialTheme.colorScheme.surface)
-            .height(MESSAGE_LIST_ITEM_HEIGHT)
-            .fillMaxWidth()
-            .clickable {
-                onMessageClicked(item)
-            }
-            .padding(horizontal = MARGIN_DEFAULT)
+        Row(
+            verticalAlignment = Alignment.CenterVertically, modifier = modifier
+                .sharedBounds(
+                    sharedContentState = rememberSharedContentState(
+                        key = "message_bounds/${item.getMessageId()}"
+                    ),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                )
+                .background(color = MaterialTheme.colorScheme.surface)
+                .height(MESSAGE_LIST_ITEM_HEIGHT)
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {
+                        onMessageClicked(item)
+                    },
+                    onLongClick = if (onMessageSelected == null) {
+                        null
+                    } else {
+                        {
+                            onMessageSelected(item)
+                        }
+                    },
+                )
+                .padding(horizontal = MARGIN_DEFAULT)
 
         ) {
             Box(
@@ -418,65 +457,75 @@ fun SharedTransitionScope.MessageViewHolder(
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
                     .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                    .clickable(enabled = onMessageSelected != null) {
+                        onMessageSelected!!(item)
+                    }
                     .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary)
             ) {
-                when (item) {
-                    is CachedAttachment -> {
-                        val resId = if (item.type?.contains("image") == true) {
-                            R.drawable.image
-                        } else if (item.type?.contains("video") == true) {
-                            R.drawable.video
-                        } else if (item.type?.contains("audio") == true) {
-                            R.drawable.sound
-                        } else {
-                            R.drawable.file
+                if (isSelected) {
+                    Icon(
+                        Icons.Filled.CheckCircle,
+                        stringResource(id = R.string.selected),
+                        tint = MaterialTheme.colorScheme.onSecondary
+                    )
+                } else {
+                    when (item) {
+                        is CachedAttachment -> {
+                            val resId = if (item.type?.contains("image") == true) {
+                                R.drawable.image
+                            } else if (item.type?.contains("video") == true) {
+                                R.drawable.video
+                            } else if (item.type?.contains("audio") == true) {
+                                R.drawable.sound
+                            } else {
+                                R.drawable.file
+                            }
+
+                            Icon(
+                                painter = painterResource(resId),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
 
-                        Icon(
-                            painter = painterResource(resId),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-
-                    else -> {
-                        //TODO public image
-                        val imageUrl =
-                            null //item.getContacts().firstOrNull().imageUrl ?: currentUser.avatarLink
-                        if (imageUrl == null) {
-                            Text(
-                                text = "${
-                                    if (item.getContacts().isEmpty()) {
-                                        currentUser.name.first()
-                                    } else {
-                                        item.getContacts()
-                                            .firstOrNull()?.fullName?.firstOrNull() ?: item.getContacts()
-                                            .firstOrNull()?.address?.first() ?: ""
-                                    }
-                                }",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else {
-                            AsyncImage(
-                                contentScale = ContentScale.Crop,
-                                modifier = modifier
-                                    .sharedBounds(
-                                        sharedContentState = rememberSharedContentState(
-                                            key = "message_image/${item.getMessageId()}"
-                                        ),
-                                        animatedVisibilityScope = animatedVisibilityScope,
-                                    )
-                                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                                    .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
-                                model = imageUrl,
-                                contentDescription = stringResource(id = R.string.profile_image)
-                            )
+                        else -> {
+                            //TODO public image
+                            val imageUrl =
+                                null //item.getContacts().firstOrNull().imageUrl ?: currentUser.avatarLink
+                            if (imageUrl == null) {
+                                Text(
+                                    text = "${
+                                        if (item.getContacts().isEmpty()) {
+                                            currentUser.name.first()
+                                        } else {
+                                            item.getContacts()
+                                                .firstOrNull()?.fullName?.firstOrNull() ?: item.getContacts()
+                                                .firstOrNull()?.address?.first() ?: ""
+                                        }
+                                    }",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                AsyncImage(
+                                    contentScale = ContentScale.Crop,
+                                    modifier = modifier
+                                        .sharedBounds(
+                                            sharedContentState = rememberSharedContentState(
+                                                key = "message_image/${item.getMessageId()}"
+                                            ),
+                                            animatedVisibilityScope = animatedVisibilityScope,
+                                        )
+                                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                        .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
+                                    model = imageUrl,
+                                    contentDescription = stringResource(id = R.string.profile_image)
+                                )
+                            }
                         }
                     }
                 }
-
             }
             Spacer(modifier = modifier.width(MARGIN_DEFAULT))
             Column {

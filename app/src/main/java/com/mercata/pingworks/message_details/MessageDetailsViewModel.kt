@@ -12,7 +12,7 @@ import com.mercata.pingworks.db.messages.FusedAttachment
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.AttachmentResult
-import com.mercata.pingworks.utils.Downloader
+import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.Progress
@@ -34,7 +34,7 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
 
     init {
         val db: AppDatabase by inject()
-        val dl: Downloader by inject()
+        val dl: DownloadRepository by inject()
         val sp: SharedPreferences by inject()
         viewModelScope.launch(Dispatchers.IO) {
             val message = db.messagesDao().getById(currentState.messageId)
@@ -90,13 +90,13 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
         }
     }
 
-    private val downloader: Downloader by inject()
+    private val downloadRepository: DownloadRepository by inject()
     private val fileUtils: FileUtils by inject()
 
     fun downloadFile(attachment: FusedAttachment) {
         currentState.attachmentsWithStatus[attachment] = AttachmentResult(null, Progress(0))
         viewModelScope.launch(Dispatchers.IO) {
-            downloader.downloadAttachment(sp.getUserData()!!, attachment)
+            downloadRepository.downloadAttachment(sp.getUserData()!!, attachment)
                 .collect { result ->
                     currentState.attachmentsWithStatus[attachment] = result
                 }
