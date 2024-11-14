@@ -4,11 +4,14 @@
 
 package com.mercata.pingworks.contacts_screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,6 +31,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -94,6 +99,10 @@ fun SharedTransitionScope.ContactsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
 
+    BackHandler(enabled = state.selectedContacts.isNotEmpty()) {
+        state.selectedContacts.clear()
+    }
+
     LaunchedEffect(state.showUndoDeleteSnackBar) {
         if (state.showUndoDeleteSnackBar) {
             coroutineScope.launch {
@@ -122,8 +131,10 @@ fun SharedTransitionScope.ContactsScreen(
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    containerColor = if (state.selectedContacts.isEmpty()) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary,
+                    titleContentColor = if (state.selectedContacts.isEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = if (state.selectedContacts.isEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = if (state.selectedContacts.isEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
                 ),
                 title = {
                     Text(
@@ -134,7 +145,11 @@ fun SharedTransitionScope.ContactsScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        navController.popBackStack()
+                        if (state.selectedContacts.isNotEmpty()) {
+                            state.selectedContacts.clear()
+                        } else {
+                            navController.popBackStack()
+                        }
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -149,9 +164,21 @@ fun SharedTransitionScope.ContactsScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 onClick = {
-                    viewModel.updateContactSearchDialog(true)
+                    if (state.selectedContacts.isEmpty()) {
+                        viewModel.toggleSearchAddressDialog(true)
+                    } else {
+                        navController.navigate("ComposingScreen/${
+                            state.selectedContacts.joinToString(
+                                ","
+                            ) { it.address }
+                        }/null/null")
+                    }
                 }) {
-                Icon(Icons.Filled.Add, stringResource(id = R.string.add_new_contact))
+                if (state.selectedContacts.isEmpty()) {
+                    Icon(Icons.Filled.Add, stringResource(id = R.string.add_new_contact))
+                } else {
+                    Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
+                }
             }
         }
     ) { padding ->
@@ -168,7 +195,6 @@ fun SharedTransitionScope.ContactsScreen(
             ) {
                 itemsIndexed(items = state.contacts,
                     key = { _, contact -> contact.address }) { index, item ->
-
                     SwipeContainer(
                         modifier = modifier.animateItem(),
                         item = item,
@@ -177,10 +203,23 @@ fun SharedTransitionScope.ContactsScreen(
                         }) {
                         ContactViewHolder(
                             modifier = modifier,
-                            navController = navController,
                             animatedVisibilityScope = animatedVisibilityScope,
                             person = item,
-                            uploading = item.address == state.loadingContactAddress
+                            uploading = item.address == state.loadingContactAddress,
+                            isSelected = state.selectedContacts.contains(item),
+                            onSelect = { person ->
+                                viewModel.toggleSelect(person)
+                            },
+                            onClick = { person ->
+                                if (state.selectedContacts.isEmpty()) {
+                                    navController.navigate(
+                                        "ContactDetailsScreen/${person.address}"
+                                    )
+                                } else {
+                                    viewModel.toggleSelect(person)
+                                }
+
+                            }
                         )
                     }
                 }
@@ -194,15 +233,19 @@ fun SharedTransitionScope.ContactsScreen(
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SharedTransitionScope.ContactViewHolder(
     modifier: Modifier = Modifier,
-    navController: NavController,
     animatedVisibilityScope: AnimatedVisibilityScope,
     person: DBContact,
-    uploading: Boolean
+    uploading: Boolean,
+    isSelected: Boolean,
+    onSelect: (person: DBContact) -> Unit,
+    onClick: (person: DBContact) -> Unit
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .sharedBounds(
                 sharedContentState = rememberSharedContentState(
@@ -213,11 +256,14 @@ fun SharedTransitionScope.ContactViewHolder(
             .fillMaxSize()
             .height(CONTACT_LIST_ITEM_HEIGHT)
             .background(MaterialTheme.colorScheme.surface)
-            .clickable {
-                navController.navigate(
-                    "ContactDetailsScreen/${person.address}"
-                )
-            }
+            .combinedClickable(
+                onClick = {
+                    onClick(person)
+                },
+                onLongClick = {
+                    onSelect(person)
+                },
+            )
             .padding(horizontal = MARGIN_DEFAULT)
     ) {
         if (uploading) {
@@ -233,22 +279,34 @@ fun SharedTransitionScope.ContactViewHolder(
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
                     .clip(CircleShape)
+                    .clickable {
+                        onSelect(person)
+                    }
                     .size(CONTACT_LIST_ITEM_IMAGE_SIZE)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary)
             ) {
-                if (person.imageUrl == null) {
-                    Text(
-                        text = "${person.name?.firstOrNull() ?: person.address.first()}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
+                if (isSelected) {
+                    Icon(
+                        Icons.Filled.CheckCircle,
+                        stringResource(id = R.string.selected),
+                        tint = MaterialTheme.colorScheme.onSecondary
                     )
                 } else {
-                    AsyncImage(
-                        contentScale = ContentScale.Crop,
-                        model = person.imageUrl,
-                        contentDescription = stringResource(id = R.string.profile_image)
-                    )
+                    if (person.imageUrl == null) {
+                        Text(
+                            text = "${person.name?.firstOrNull() ?: person.address.first()}",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        AsyncImage(
+                            contentScale = ContentScale.Crop,
+                            model = person.imageUrl,
+                            contentDescription = stringResource(id = R.string.profile_image)
+                        )
+                    }
                 }
+
             }
         }
         Spacer(modifier = modifier.width(MARGIN_DEFAULT))
@@ -345,7 +403,7 @@ fun AddContactDialog(
             }
         },
         onDismissRequest = {
-            viewModel.updateContactSearchDialog(false)
+            viewModel.toggleSearchAddressDialog(false)
         },
         confirmButton = {
             if (!addressPresented && !samePerson) {
@@ -366,7 +424,7 @@ fun AddContactDialog(
             TextButton(
                 onClick = {
                     if (state.existingContactFound == null) {
-                        viewModel.updateContactSearchDialog(false)
+                        viewModel.toggleSearchAddressDialog(false)
                     } else {
                         viewModel.clearFoundContact()
                     }

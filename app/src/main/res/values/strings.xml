@@ -78,4 +78,5 @@
     <string name="add_instant_photo">Add instant photo</string>
     <string name="attachment_deleted">Attachment deleted</string>
     <string name="draft_deleted">Draft deleted</string>
+    <string name="selected">Selected</string>
 </resources>

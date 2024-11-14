@@ -38,9 +38,7 @@ import java.util.UUID
 
 class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     AbstractViewModel<ComposingState>(
-        ComposingState(
-            addressFieldText = savedStateHandle.get<String>("contactAddress") ?: "",
-        )
+        ComposingState()
     ) {
 
     init {
@@ -65,6 +63,17 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                         draft.draft.attachmentUriList?.split(",")?.map { Uri.parse(it) }
                             ?: listOf())
                 }
+            }
+            launch {
+                updateState(currentState.copy(addressLoading = true))
+                val selectedContactAddresses: String =
+                    savedStateHandle.get<String>("contactAddress") ?: ""
+                selectedContactAddresses.split(",").map { address ->
+                    launch(Dispatchers.IO) {
+                        addAddress(address)
+                    }
+                }
+                updateState(currentState.copy(addressLoading = false))
             }
             launch { listenToDraftReaders() }
             launch { listenToDraftChanges() }
@@ -232,27 +241,31 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         if (!currentState.recipients.any { it.address == text }) {
             viewModelScope.launch(Dispatchers.IO) {
                 updateState(currentState.copy(addressLoading = true))
-                when (val call =
-                    safeApiCall { getProfilePublicData(text) }) {
-                    is HttpResult.Error -> {
-                        updateState(currentState.copy(addressErrorResId = R.string.invalid_email))
-                    }
-
-                    is HttpResult.Success -> {
-                        if (call.data == null) {
-                            updateState(currentState.copy(addressErrorResId = R.string.invalid_email))
-                        } else {
-                            updateState(
-                                currentState.copy(
-                                    addressErrorResId = null,
-                                    addressFieldText = ""
-                                )
-                            )
-                            db.draftReaderDao().insert(call.data.toDBDraftReader(draftId))
-                        }
-                    }
-                }
+                addAddress(text)
                 updateState(currentState.copy(addressLoading = false))
+            }
+        }
+    }
+
+    private suspend fun addAddress(address: String) {
+        when (val call =
+            safeApiCall { getProfilePublicData(address) }) {
+            is HttpResult.Error -> {
+                updateState(currentState.copy(addressErrorResId = R.string.invalid_email))
+            }
+
+            is HttpResult.Success -> {
+                if (call.data == null) {
+                    updateState(currentState.copy(addressErrorResId = R.string.invalid_email))
+                } else {
+                    updateState(
+                        currentState.copy(
+                            addressErrorResId = null,
+                            addressFieldText = ""
+                        )
+                    )
+                    db.draftReaderDao().insert(call.data.toDBDraftReader(draftId))
+                }
             }
         }
     }

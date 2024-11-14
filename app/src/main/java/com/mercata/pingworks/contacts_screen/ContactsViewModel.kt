@@ -93,7 +93,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
             updateState(currentState.copy(loadingContactAddress = publicData.address))
             val dbContact = publicData.toDBContact()
             db.userDao().insert(dbContact)
-            updateContactSearchDialog(false)
+            toggleSearchAddressDialog(false)
             when (safeApiCall {
                 uploadContact(
                     contact = publicData,
@@ -113,7 +113,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         }
     }
 
-    fun updateContactSearchDialog(isShown: Boolean) {
+    fun toggleSearchAddressDialog(isShown: Boolean) {
         updateState(currentState.copy(newContactSearchDialogShown = isShown))
         if (!isShown) {
             updateState(currentState.copy(newContactAddressInput = ""))
@@ -185,10 +185,19 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         }
         super.onCleared()
     }
+
+    fun toggleSelect(person: DBContact) {
+        if (currentState.selectedContacts.contains(person)) {
+            currentState.selectedContacts.remove(person)
+        } else {
+            currentState.selectedContacts.add(person)
+        }
+    }
 }
 
 
 data class ContactsState(
+    val selectedContacts: SnapshotStateList<DBContact> = mutableStateListOf(),
     val contacts: SnapshotStateList<DBContact> = mutableStateListOf(),
     val itemToDeleteIndex: Int? = null,
     val itemToDelete: DBContact? = null,
