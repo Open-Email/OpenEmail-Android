@@ -126,7 +126,7 @@ fun SharedTransitionScope.ComposingScreen(
 
     val photoSnapLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) {
-            viewModel.addInstantPhotoAsAttachment()
+            viewModel.addInstantPhotoAsAttachment(it)
         }
 
     val state by viewModel.state.collectAsState()

@@ -314,9 +314,13 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         return instantPhotoUri!!
     }
 
-    fun addInstantPhotoAsAttachment() {
-        instantPhotoUri?.let {
-            addAttachments(listOf(it))
+    fun addInstantPhotoAsAttachment(success: Boolean) {
+        if (success) {
+            instantPhotoUri?.let {
+                addAttachments(listOf(it))
+            }
+        } else {
+            instantPhotoUri = null
         }
     }
 

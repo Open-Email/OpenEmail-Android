@@ -57,7 +57,7 @@ class DownloadRepository(val context: Context, private val fileUtils: FileUtils)
     fun clearAllCachedAttachments() {
         val folder = File(context.filesDir, FOLDER_NAME)
         if (folder.exists()) {
-            folder.listFiles()?.forEach { it.delete() }
+            folder.delete()
         }
         getCachedAttachments()
     }
