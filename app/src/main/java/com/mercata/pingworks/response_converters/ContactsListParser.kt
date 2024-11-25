@@ -32,17 +32,17 @@ class ContactsListConverter : Converter<ResponseBody, List<String>> {
         val sp: SharedPreferences by inject(SharedPreferences::class.java)
         val pairs: List<String> =
             value.string()
-                .split("\n")
+                .splitToSequence("\n")
                 .map { it.trim() }
                 .filterNot { it.isBlank() }
                 .map { part ->
                     val parts = part
-                        .split(",")
+                        .splitToSequence(",")
                         .map { it.trim() }
                         .filterNot { it.isBlank() }
                     val decrypted = decryptAnonymous(parts.last(), sp.getUserData()!!)
                     String(decrypted, charset = UTF_8)
-                }
+                }.toList()
 
         return pairs
     }

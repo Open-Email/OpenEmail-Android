@@ -17,6 +17,7 @@ import com.mercata.pingworks.SYMMETRIC_CIPHER
 import com.mercata.pingworks.db.pending.readers.DBPendingReaderPublicData
 import com.mercata.pingworks.models.ContentHeaders
 import com.mercata.pingworks.registration.UserData
+import java.security.MessageDigest
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -122,4 +123,17 @@ fun ContentHeaders.seal(
 fun Instant.toServerFormatString(): String {
     return DateTimeFormatter.ofPattern(DEFAULT_SERVER_DATE_FORMAT)
         .withZone(ZoneId.of("UTC")).format(this)
+}
+
+fun UserData.connectionLinkFor(remoteAddress: Address): String {
+    val linkJoin = listOf(this.address, remoteAddress)
+        .map { it.lowercase().trim() }
+        .sorted()
+        .joinToString("")
+
+    // Hash the combined string using SHA-256
+    val digest = MessageDigest.getInstance("SHA-256").digest(linkJoin.toByteArray())
+
+    // Convert the digest to a hexadecimal string
+    return digest.joinToString("") { "%02x".format(it) }
 }

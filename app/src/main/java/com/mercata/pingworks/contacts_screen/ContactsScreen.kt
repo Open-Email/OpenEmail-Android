@@ -1,5 +1,6 @@
 @file:OptIn(
-    ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class
+    ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
+    ExperimentalMaterialApi::class
 )
 
 package com.mercata.pingworks.contacts_screen
@@ -28,12 +29,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,6 +56,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -94,9 +100,13 @@ fun SharedTransitionScope.ContactsScreen(
 ) {
 
     val state by viewModel.state.collectAsState()
+    val topAppBarState = rememberTopAppBarState()
     val context = LocalContext.current as FragmentActivity
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val refreshState = rememberPullRefreshState(state.refreshing, onRefresh = {
+        viewModel.refresh()
+    })
 
 
     BackHandler(enabled = state.selectedContacts.isNotEmpty()) {
@@ -182,7 +192,9 @@ fun SharedTransitionScope.ContactsScreen(
             }
         }
     ) { padding ->
-        Box {
+        Box(modifier = modifier.pullRefresh(
+            state = refreshState, enabled = topAppBarState.collapsedFraction == 0F
+        )) {
             LazyColumn(
                 contentPadding = PaddingValues(
                     top = padding.calculateTopPadding() + (MARGIN_DEFAULT.value / 2).dp,
@@ -228,6 +240,14 @@ fun SharedTransitionScope.ContactsScreen(
             if (state.newContactSearchDialogShown) {
                 AddContactDialog(modifier = modifier, state = state, viewModel = viewModel)
             }
+
+            PullRefreshIndicator(
+                modifier = modifier
+                    .align(Alignment.TopCenter)
+                    .padding(padding),
+                refreshing = state.refreshing,
+                state = refreshState,
+            )
         }
     }
 }

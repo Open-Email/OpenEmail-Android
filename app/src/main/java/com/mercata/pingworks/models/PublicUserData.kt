@@ -20,6 +20,8 @@ data class PublicUserData(
     val signingKeyAlgorithm: String,
     val publicEncryptionKey: String,
     val publicSigningKey: String,
+    val lastSigningKey: String?,
+    val lastSigningKeyAlgorithm: String?,
 )
 
 fun PublicUserData.toDBContact() = DBContact(
@@ -29,6 +31,8 @@ fun PublicUserData.toDBContact() = DBContact(
     signingKeyAlgorithm = this.signingKeyAlgorithm,
     publicEncryptionKey = this.publicEncryptionKey,
     publicSigningKey = this.publicSigningKey,
+    lastSigningKey = this.lastSigningKey,
+    lastSigningKeyAlgorithm = this.lastSigningKeyAlgorithm,
     updated = this.updated?.toString(),
     lastSeen = this.lastSeen?.toString(),
     name = this.fullName,
@@ -52,7 +56,9 @@ fun PublicUserData.toDBPendingReaderPublicData(messageId: String) = DBPendingRea
     signingKeyAlgorithm = this.signingKeyAlgorithm,
     publicEncryptionKey = this.publicEncryptionKey,
     publicSigningKey = this.publicSigningKey,
-    messageId = messageId
+    lastSigningKey = this.lastSigningKey,
+    lastSigningKeyAlgorithm = this.lastSigningKeyAlgorithm,
+    messageId = messageId,
 )
 
 fun PublicUserData.toDBDraftReader(draftId: String) = DBDraftReader(
@@ -67,5 +73,7 @@ fun PublicUserData.toDBDraftReader(draftId: String) = DBDraftReader(
     signingKeyAlgorithm = signingKeyAlgorithm,
     publicEncryptionKey = publicEncryptionKey,
     publicSigningKey = publicSigningKey,
+    lastSigningKey = lastSigningKey,
+    lastSigningKeyAlgorithm = lastSigningKeyAlgorithm,
     draftId = draftId
 )

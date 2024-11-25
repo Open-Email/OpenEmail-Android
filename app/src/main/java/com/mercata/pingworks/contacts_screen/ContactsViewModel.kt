@@ -12,6 +12,7 @@ import com.mercata.pingworks.models.toDBContact
 import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
+import com.mercata.pingworks.utils.syncNotifications
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
 import com.mercata.pingworks.utils.syncAllMessages
@@ -19,6 +20,8 @@ import com.mercata.pingworks.utils.syncContacts
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -29,16 +32,17 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         val sp: SharedPreferences by inject()
 
         viewModelScope.launch {
-            syncContacts(sp, db.userDao())
-        }
-
-        viewModelScope.launch {
             db.userDao().getAllAsFlow().collect { dbEntities ->
                 currentState.contacts.clear()
                 currentState.contacts.addAll(dbEntities.filterNot {
                     it.address == sp.getUserAddress() || it.markedToDelete
                 })
             }
+        }
+
+        viewModelScope.launch {
+            delay(100)
+            refresh()
         }
 
         updateState(currentState.copy(loggedInPersonAddress = sp.getUserAddress()!!))
@@ -163,6 +167,19 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
             currentState.selectedContacts.add(person)
         }
     }
+
+    fun refresh() {
+        viewModelScope.launch(Dispatchers.IO) {
+            updateState(currentState.copy(refreshing = true))
+
+            listOf(
+                launch { syncNotifications(sp.getUserData()!!) },
+                launch { syncContacts(sp, db.userDao()) }
+            ).joinAll()
+
+            updateState(currentState.copy(refreshing = false))
+        }
+    }
 }
 
 
@@ -176,5 +193,6 @@ data class ContactsState(
     val existingContactFound: PublicUserData? = null,
     val searchButtonActive: Boolean = false,
     val loading: Boolean = false,
+    val refreshing: Boolean = false,
     val newContactSearchDialogShown: Boolean = false,
 )

@@ -25,8 +25,9 @@ class EnvelopeIdsListConverterFactory : Converter.Factory() {
 class EnvelopeIdsListConverter : Converter<ResponseBody, List<String>> {
     override fun convert(value: ResponseBody): List<String> {
         return value.string()
-            .split("\n")
+            .splitToSequence("\n")
             .map { it.trim() }
             .filterNot { it.isBlank() }
+            .toList()
     }
 }

@@ -69,6 +69,8 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
                 publicEncryptionKeyId = user.encryptionKeys.id,
                 publicSigningKey = user.signingKeys.pair.publicKey.asBytes.encodeToBase64(),
                 markedToDelete = false,
+                lastSigningKey = null,
+                lastSigningKeyAlgorithm = null,
                 uploaded = true
             )
         )
@@ -154,6 +156,8 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
             signingKeyAlgorithm = SIGNING_ALGORITHM,
             publicEncryptionKey = encryptionKeys.pair.publicKey.asBytes.encodeToBase64(),
             publicSigningKey = signingKeys.pair.publicKey.asBytes.encodeToBase64(),
+            lastSigningKey = null,
+            lastSigningKeyAlgorithm = null,
             imageUrl = null
         )
     }

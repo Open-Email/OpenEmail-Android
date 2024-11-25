@@ -22,7 +22,10 @@ class WellKnownHostsConverterFactory : Converter.Factory() {
 
 class WellKnownHostsConverter : Converter<ResponseBody, List<WellKnownHost>> {
     override fun convert(value: ResponseBody): List<WellKnownHost> {
-        return value.string().split("\n").filterNot { it.startsWith("#") || it.isBlank() }
+        return value.string()
+            .splitToSequence("\n")
+            .filterNot { it.startsWith("#") || it.isBlank() }
+            .toList()
     }
 }
 

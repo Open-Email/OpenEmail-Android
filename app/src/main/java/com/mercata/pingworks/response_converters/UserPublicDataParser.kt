@@ -6,9 +6,6 @@ import retrofit2.Converter
 import retrofit2.Retrofit
 import java.lang.reflect.Type
 import java.time.Instant
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 
 annotation class UserPublicData
 
@@ -29,18 +26,21 @@ class UserPublicDataConverterFactory : Converter.Factory() {
 
 class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
     override fun convert(value: ResponseBody): PublicUserData? {
-        val split = value.string().split("\n")
+        val split = value.string().splitToSequence("\n")
         val address = split.first().substringAfter("Profile of ")
         val map = split.filterNot { it.startsWith("#") }
             .associate { it.substringBefore(": ") to it.substringAfter(": ") }
 
         if (!map.containsKey("Encryption-Key") || !map.containsKey("Signing-Key")) return null
 
-        val encryptionData = map["Encryption-Key"]?.split("; ")
+        val encryptionData = map["Encryption-Key"]?.splitToSequence("; ")
             ?.associate { it.substringBefore("=") to it.substringAfter("=") } as Map
 
-        val signingData = map["Signing-Key"]?.split("; ")
+        val signingData = map["Signing-Key"]?.splitToSequence("; ")
             ?.associate { it.substringBefore("=") to it.substringAfter("=") } as Map
+
+        val lastSigningData: Map<String, String>? = map["Last-Signing-Key"]?.splitToSequence("; ")
+            ?.associate { it.substringBefore("=") to it.substringAfter("=") }
 
         return PublicUserData(
             address = address,
@@ -53,6 +53,8 @@ class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
             publicEncryptionKey = encryptionData["value"]!!,
             signingKeyAlgorithm = signingData["algorithm"]!!,
             publicSigningKey = signingData["value"]!!,
+            lastSigningKey = lastSigningData?.get("value"),
+            lastSigningKeyAlgorithm = lastSigningData?.get("algorithm"),
             imageUrl = null
         )
     }

@@ -38,7 +38,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -82,100 +81,113 @@ private fun getInstance(baseUrl: String): RestApi {
 }
 
 suspend fun getWellKnownHosts(hostName: String): Response<List<WellKnownHost>> {
-    return getInstance("https://$hostName").getWellKnownHosts()
+    return withContext(Dispatchers.IO) { getInstance("https://$hostName").getWellKnownHosts() }
 }
 
-//https://main.ping.works/mail/ping.works/testdejan6/profile
 suspend fun getProfilePublicData(address: String): Response<PublicUserData> {
-    return getInstance("https://$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}").getProfilePublicData(
-        hostPart = address.getHost(),
-        localPart = address.getLocal()
-    )
+    return withContext(Dispatchers.IO) {
+        getInstance("https://$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}").getProfilePublicData(
+            hostPart = address.getHost(),
+            localPart = address.getLocal()
+        )
+    }
 }
 
 suspend fun isAddressAvailable(address: String): Response<Void> {
-    val host = "$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}"
-    return getInstance("https://$host").isAddressAvailable(
-        hostPart = address.getHost(),
-        localPart = address.getLocal()
-    )
+    return withContext(Dispatchers.IO) {
+        val host = "$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}"
+        getInstance("https://$host").isAddressAvailable(
+            hostPart = address.getHost(),
+            localPart = address.getLocal()
+        )
+    }
 }
 
 suspend fun registerCall(user: UserData): Response<Void> {
-    if (BuildConfig.DEBUG) {
-        Log.i(
-            "KEYS", "\n" +
-                    "signPrivate: ${user.signingKeys.pair.secretKey.asBytes.encodeToBase64()}\n" +
-                    "signPublic: ${user.signingKeys.pair.publicKey.asBytes.encodeToBase64()}\n" +
-                    "encryptPrivate: ${user.encryptionKeys.pair.secretKey.asBytes.encodeToBase64()}\n" +
-                    "encryptPublic: ${user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64()}\n"
-        )
-    }
+    return withContext(Dispatchers.IO) {
+        if (BuildConfig.DEBUG) {
+            Log.i(
+                "KEYS", "\n" +
+                        "signPrivate: ${user.signingKeys.pair.secretKey.asBytes.encodeToBase64()}\n" +
+                        "signPublic: ${user.signingKeys.pair.publicKey.asBytes.encodeToBase64()}\n" +
+                        "encryptPrivate: ${user.encryptionKeys.pair.secretKey.asBytes.encodeToBase64()}\n" +
+                        "encryptPublic: ${user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64()}\n"
+            )
+        }
 
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX")
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX")
 
-    val postData = """
+        val postData = """
             Name: ${user.name}
             Encryption-Key: id=${user.encryptionKeys.id}; algorithm=$ANONYMOUS_ENCRYPTION_CIPHER; value=${user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64()}
             Signing-Key: algorithm=$SIGNING_ALGORITHM; value=${user.signingKeys.pair.publicKey.asBytes.encodeToBase64()}
             Updated: ${LocalDateTime.now().atOffset(ZoneOffset.UTC).format(formatter)}
             """.trimIndent()
 
-    return getInstance("https://${user.address.getMailHost()}").register(
-        sotnHeader = user.sign(),
-        hostPart = user.address.getHost(),
-        localPart = user.address.getLocal(),
-        body = postData.toRequestBody()
-    )
+        getInstance("https://${user.address.getMailHost()}").register(
+            sotnHeader = user.sign(),
+            hostPart = user.address.getHost(),
+            localPart = user.address.getLocal(),
+            body = postData.toRequestBody()
+        )
+    }
 }
 
 suspend fun loginCall(user: UserData): Response<Void> {
-    return getInstance("https://${user.address.getMailHost()}").login(
-        user.sign(),
-        hostPart = user.address.getHost(),
-        localPart = user.address.getLocal()
-    )
+    return withContext(Dispatchers.IO) {
+        getInstance("https://${user.address.getMailHost()}").login(
+            user.sign(),
+            hostPart = user.address.getHost(),
+            localPart = user.address.getLocal()
+        )
+    }
 }
 
 suspend fun uploadContact(
     address: Address,
     sharedPreferences: SharedPreferences
 ): Response<Void> {
-    val link = address.connectionLink()
+    return withContext(Dispatchers.IO) {
+        val link = address.connectionLink()
 
-    val currentUser = sharedPreferences.getUserData()!!
+        val currentUser = sharedPreferences.getUserData()!!
 
-    val encryptedRemoteAddress = encryptAnonymous(address, currentUser)
+        val encryptedRemoteAddress = encryptAnonymous(address, currentUser)
 
-    return getInstance("https://${currentUser.address.getMailHost()}").uploadContact(
-        sotnHeader = currentUser.sign(),
-        hostPart = currentUser.address.getHost(),
-        localPart = currentUser.address.getLocal(),
-        link = link,
-        body = encryptedRemoteAddress.toRequestBody()
-    )
+        getInstance("https://${currentUser.address.getMailHost()}").uploadContact(
+            sotnHeader = currentUser.sign(),
+            hostPart = currentUser.address.getHost(),
+            localPart = currentUser.address.getLocal(),
+            link = link,
+            body = encryptedRemoteAddress.toRequestBody()
+        )
+    }
 }
 
 private suspend fun getAllContacts(sharedPreferences: SharedPreferences): Response<List<String>> {
-    val currentUser = sharedPreferences.getUserData()!!
-    return getInstance("https://${currentUser.address.getMailHost()}").getAllContacts(
-        sotnHeader = currentUser.sign(),
-        hostPart = currentUser.address.getHost(),
-        localPart = currentUser.address.getLocal()
-    )
+    return withContext(Dispatchers.IO) {
+        val currentUser = sharedPreferences.getUserData()!!
+        getInstance("https://${currentUser.address.getMailHost()}").getAllContacts(
+            sotnHeader = currentUser.sign(),
+            hostPart = currentUser.address.getHost(),
+            localPart = currentUser.address.getLocal()
+        )
+    }
 }
 
 suspend fun deleteContact(
     address: Address,
     sharedPreferences: SharedPreferences
 ): Response<Void> {
-    val currentUser = sharedPreferences.getUserData()!!
-    return getInstance("https://${currentUser.address.getMailHost()}").deleteContact(
-        sotnHeader = currentUser.sign(),
-        hostPart = currentUser.address.getHost(),
-        localPart = currentUser.address.getLocal(),
-        linkAddr = address.connectionLink()
-    )
+    return withContext(Dispatchers.IO) {
+        val currentUser = sharedPreferences.getUserData()!!
+        getInstance("https://${currentUser.address.getMailHost()}").deleteContact(
+            sotnHeader = currentUser.sign(),
+            hostPart = currentUser.address.getHost(),
+            localPart = currentUser.address.getLocal(),
+            linkAddr = address.connectionLink()
+        )
+    }
 }
 
 private suspend fun getAllBroadcastEnvelopes(
@@ -280,20 +292,97 @@ suspend fun downloadMessage(
     contactAddress: Address,
     messageId: String
 ): Response<ResponseBody> {
-    return getInstance("https://${currentUser.address.getMailHost()}").downloadMessage(
-        sotnHeader = currentUser.sign(),
-        hostPart = contactAddress.getHost(),
-        localPart = contactAddress.getLocal(),
-        messageId = messageId
-    )
+    return withContext(Dispatchers.IO) {
+        getInstance("https://${currentUser.address.getMailHost()}").downloadMessage(
+            sotnHeader = currentUser.sign(),
+            hostPart = contactAddress.getHost(),
+            localPart = contactAddress.getLocal(),
+            messageId = messageId
+        )
+    }
 }
+
+suspend fun syncNotifications(currentUser: UserData) {
+    withContext(Dispatchers.IO) {
+        val result: List<String>? = when (val call = safeApiCall {
+            getInstance("https://${currentUser.address.getMailHost()}").getNotifications(
+                sotnHeader = currentUser.sign(),
+                hostPart = currentUser.address.getHost(),
+                localPart = currentUser.address.getLocal(),
+            )
+        }) {
+            is HttpResult.Error -> null
+            is HttpResult.Success -> call.data?.splitToSequence("\n")
+                ?.map { it.trim() }
+                ?.filter { it.isNotEmpty() }
+                ?.distinct()
+                ?.toList()
+        }
+
+        result?.forEach {
+            verifyNotification(it, currentUser)
+        }
+        println()
+        println(result)
+    }
+
+}
+
+suspend fun verifyNotification(
+    notificationLine: String,
+    currentUser: UserData,
+) = withContext(Dispatchers.IO) {
+    val notificationParts = notificationLine.split(",")
+        .map { it.trim() }
+
+    val id = notificationParts[0]
+    val link = notificationParts[1]
+    val signingKeyFP = notificationParts[2]
+    val encryptedNotifier = notificationParts[3]
+
+    // Decrypt the notifier address
+    val notifierAddressBytes = decryptAnonymous(
+        cipherText = encryptedNotifier,
+        currentUser = currentUser
+    )
+
+    val address = notifierAddressBytes.toString(Charsets.US_ASCII)
+
+    val profile: PublicUserData =
+        when (val call = safeApiCall { getProfilePublicData(address) }) {
+            is HttpResult.Error -> null
+            is HttpResult.Success -> call.data
+        } ?: return@withContext
+
+    if (currentUser.connectionLinkFor(profile.address) != link) {
+        return@withContext
+    }
+
+    val signHash = profile.publicSigningKey.decodeFromBase64().hashedWithSha256()
+
+    var fpMatchFound = signingKeyFP == signHash.first
+
+    if (!fpMatchFound) {
+        fpMatchFound = signingKeyFP == profile.lastSigningKey?.decodeFromBase64()?.hashedWithSha256()?.first
+    }
+
+    if (fpMatchFound) {
+        println("success")
+    } else {
+        println("error")
+    }
+    println(signHash)
+}
+
 
 suspend fun downloadMessage(
     currentUser: UserData,
     contact: DBContact,
     messageId: String
 ): Response<ResponseBody> {
-    return downloadMessage(currentUser, contact.address, messageId)
+    return withContext(Dispatchers.IO) {
+        downloadMessage(currentUser, contact.address, messageId)
+    }
 }
 
 private suspend fun fetchEnvelopesForContact(
@@ -641,36 +730,37 @@ private suspend fun uploadRootMessage(
     content: ContentHeaders,
     currentUser: UserData
 ): Response<Void> {
+    return withContext(Dispatchers.IO) {
+        val accessKey = generateRandomBytes(32)
+        val accessLinks = recipients.generateAccessLinks(accessKey)
 
-    val accessKey = generateRandomBytes(32)
-    val accessLinks = recipients.generateAccessLinks(accessKey)
-
-    val envelopeHeadersMap =
-        content.seal(
-            accessKey,
-            content.messageID,
-            accessLinks,
-            currentUser,
-            pendingRootMessage.isBroadcast
-        )
-
-    val sealedBody =
-        if (pendingRootMessage.isBroadcast)
-            pendingRootMessage.textBody.toByteArray()
-        else
-            encrypt_xchacha20poly1305(
-                secretKey = accessKey,
-                message = pendingRootMessage.textBody.toByteArray()
+        val envelopeHeadersMap =
+            content.seal(
+                accessKey,
+                content.messageID,
+                accessLinks,
+                currentUser,
+                pendingRootMessage.isBroadcast
             )
 
-    return getInstance("https://${currentUser.address.getMailHost()}").uploadMessageFile(
-        sotnHeader = currentUser.sign(),
-        contentLength = pendingRootMessage.textBody.toByteArray().size.toLong(),
-        headers = envelopeHeadersMap.filter { it.key.startsWith(HEADER_PREFIX) },
-        hostPart = currentUser.address.getHost(),
-        localPart = currentUser.address.getLocal(),
-        file = sealedBody!!.toRequestBody("application/octet-stream".toMediaTypeOrNull())
-    )
+        val sealedBody =
+            if (pendingRootMessage.isBroadcast)
+                pendingRootMessage.textBody.toByteArray()
+            else
+                encrypt_xchacha20poly1305(
+                    secretKey = accessKey,
+                    message = pendingRootMessage.textBody.toByteArray()
+                )
+
+        getInstance("https://${currentUser.address.getMailHost()}").uploadMessageFile(
+            sotnHeader = currentUser.sign(),
+            contentLength = pendingRootMessage.textBody.toByteArray().size.toLong(),
+            headers = envelopeHeadersMap.filter { it.key.startsWith(HEADER_PREFIX) },
+            hostPart = currentUser.address.getHost(),
+            localPart = currentUser.address.getLocal(),
+            file = sealedBody!!.toRequestBody("application/octet-stream".toMediaTypeOrNull())
+        )
+    }
 }
 
 private suspend fun uploadFileMessage(
@@ -679,47 +769,49 @@ private suspend fun uploadFileMessage(
     readers: List<DBPendingReaderPublicData>,
     fileUtils: FileUtils,
 ): Response<Void> {
-    val accessKey = generateRandomBytes(32)
+    return withContext(Dispatchers.IO) {
+        val accessKey = generateRandomBytes(32)
 
-    val accessLinks = readers.generateAccessLinks(accessKey)
+        val accessLinks = readers.generateAccessLinks(accessKey)
 
-    val envelopeHeadersMap =
-        pendingAttachment.getContentHeaders(
-            currentUser.address,
-            readers
-        ).seal(
-            accessKey,
-            pendingAttachment.messageId,
-            accessLinks,
-            currentUser,
-            pendingAttachment.isBroadcast
-        )
-
-    val urlInfo = pendingAttachment.getUrlInfo()
-
-    val encryptedData =
-        if (pendingAttachment.isBroadcast)
-            fileUtils.getAllBytesForUri(
-                uri = urlInfo.uri!!,
-                offset = pendingAttachment.offset ?: 0,
-                bytesCount = pendingAttachment.partSize
+        val envelopeHeadersMap =
+            pendingAttachment.getContentHeaders(
+                currentUser.address,
+                readers
+            ).seal(
+                accessKey,
+                pendingAttachment.messageId,
+                accessLinks,
+                currentUser,
+                pendingAttachment.isBroadcast
             )
-        else
-            fileUtils.encryptFilePartXChaCha20Poly1305(
-                inputUri = urlInfo.uri!!,
-                secretKey = accessKey,
-                bytesCount = pendingAttachment.partSize,
-                offset = pendingAttachment.offset ?: 0
-            )!!
 
-    return getInstance("https://${currentUser.address.getMailHost()}").uploadMessageFile(
-        sotnHeader = currentUser.sign(),
-        contentLength = urlInfo.size,
-        headers = envelopeHeadersMap.filter { it.key.startsWith(HEADER_PREFIX) },
-        hostPart = currentUser.address.getHost(),
-        localPart = currentUser.address.getLocal(),
-        file = encryptedData!!.toRequestBody("application/octet-stream".toMediaTypeOrNull())
-    )
+        val urlInfo = pendingAttachment.getUrlInfo()
+
+        val encryptedData =
+            if (pendingAttachment.isBroadcast)
+                fileUtils.getAllBytesForUri(
+                    uri = urlInfo.uri!!,
+                    offset = pendingAttachment.offset ?: 0,
+                    bytesCount = pendingAttachment.partSize
+                )
+            else
+                fileUtils.encryptFilePartXChaCha20Poly1305(
+                    inputUri = urlInfo.uri!!,
+                    secretKey = accessKey,
+                    bytesCount = pendingAttachment.partSize,
+                    offset = pendingAttachment.offset ?: 0
+                )!!
+
+        getInstance("https://${currentUser.address.getMailHost()}").uploadMessageFile(
+            sotnHeader = currentUser.sign(),
+            contentLength = urlInfo.size,
+            headers = envelopeHeadersMap.filter { it.key.startsWith(HEADER_PREFIX) },
+            hostPart = currentUser.address.getHost(),
+            localPart = currentUser.address.getLocal(),
+            file = encryptedData!!.toRequestBody("application/octet-stream".toMediaTypeOrNull())
+        )
+    }
 }
 
 suspend fun saveMessagesToDb(
@@ -730,65 +822,62 @@ suspend fun saveMessagesToDb(
     sp: SharedPreferences,
 ) {
     withContext(Dispatchers.IO) {
-        launch {
+        val saved = messagesDao.getAll()
 
-            val saved = messagesDao.getAll()
+        val newResults =
+            results.filterNot { envelope -> saved.any { dbMessage -> dbMessage.messageId == envelope.messageId } }
 
-            val newResults =
-                results.filterNot { envelope -> saved.any { dbMessage -> dbMessage.messageId == envelope.messageId } }
+        val removed =
+            saved.filterNot { dbMessage -> results.any { envelope -> envelope.messageId == dbMessage.messageId } }
 
-            val removed =
-                saved.filterNot { dbMessage -> results.any { envelope -> envelope.messageId == dbMessage.messageId } }
+        messagesDao.deleteList(removed)
 
-            messagesDao.deleteList(removed)
+        val envelopesPair = newResults.partition { envelope -> envelope.isRootMessage() }
 
-            val envelopesPair = newResults.partition { envelope -> envelope.isRootMessage() }
+        val rootEnvelopes = envelopesPair.first
+        val attachmentEnvelopes = envelopesPair.second
 
-            val rootEnvelopes = envelopesPair.first
-            val attachmentEnvelopes = envelopesPair.second
+        val rootMessages = dl.downloadMessagesPayload(rootEnvelopes).awaitAll()
 
-            val rootMessages = dl.downloadMessagesPayload(rootEnvelopes).awaitAll()
+        val attachments: List<DBAttachment> = rootMessages.map { root ->
+            val headers = root.first.contentHeaders
+            headers.fileParts?.filter { fileInfo ->
+                attachmentEnvelopes.firstOrNull { it.messageId == fileInfo.messageId }?.accessKey != null
+            }?.map { fileInfo ->
+                DBAttachment(
+                    attachmentMessageId = fileInfo.messageId,
+                    authorAddress = root.first.contact.address,
+                    parentId = root.first.messageId,
+                    name = fileInfo.urlInfo.name,
+                    type = fileInfo.urlInfo.mimeType,
+                    fileSize = fileInfo.size,
+                    partSize = fileInfo.size,
+                    partIndex = fileInfo.part,
+                    partsAmount = fileInfo.totalParts,
+                    accessKey = attachmentEnvelopes.first { it.messageId == fileInfo.messageId }.accessKey,
+                    createdTimestamp = fileInfo.urlInfo.modifiedAt.toEpochMilli(),
+                )
+            } ?: listOf()
+        }.fold(
+            initial = arrayListOf(),
+            operation = { initial, new ->
+                initial.apply { addAll(new) }
+            })
 
-            val attachments: List<DBAttachment> = rootMessages.map { root ->
-                val headers = root.first.contentHeaders
-                headers.fileParts?.filter { fileInfo ->
-                    attachmentEnvelopes.firstOrNull { it.messageId == fileInfo.messageId }?.accessKey != null
-                }?.map { fileInfo ->
-                    DBAttachment(
-                        attachmentMessageId = fileInfo.messageId,
-                        authorAddress = root.first.contact.address,
-                        parentId = root.first.messageId,
-                        name = fileInfo.urlInfo.name,
-                        type = fileInfo.urlInfo.mimeType,
-                        fileSize = fileInfo.size,
-                        partSize = fileInfo.size,
-                        partIndex = fileInfo.part,
-                        partsAmount = fileInfo.totalParts,
-                        accessKey = attachmentEnvelopes.first { it.messageId == fileInfo.messageId }.accessKey,
-                        createdTimestamp = fileInfo.urlInfo.modifiedAt.toEpochMilli(),
-                    )
-                } ?: listOf()
-            }.fold(
-                initial = arrayListOf(),
-                operation = { initial, new ->
-                    initial.apply { addAll(new) }
-                })
-
-            messagesDao.insertAll(
-                rootMessages.map {
-                    DBMessage(
-                        messageId = it.first.messageId,
-                        authorAddress = it.first.contact.address,
-                        subject = it.first.contentHeaders.subject,
-                        textBody = it.second ?: "",
-                        isBroadcast = it.first.isBroadcast(),
-                        timestamp = it.first.contentHeaders.date.toEpochMilli(),
-                        readerAddresses = it.first.contentHeaders.readersAddresses?.joinToString(","),
-                        isUnread = !sp.isFirstTime() && sp.getUserAddress() != it.first.contact.address
-                    )
-                })
-            attachmentsDao.insertAll(attachments)
-        }
+        messagesDao.insertAll(
+            rootMessages.map {
+                DBMessage(
+                    messageId = it.first.messageId,
+                    authorAddress = it.first.contact.address,
+                    subject = it.first.contentHeaders.subject,
+                    textBody = it.second ?: "",
+                    isBroadcast = it.first.isBroadcast(),
+                    timestamp = it.first.contentHeaders.date.toEpochMilli(),
+                    readerAddresses = it.first.contentHeaders.readersAddresses?.joinToString(","),
+                    isUnread = !sp.isFirstTime() && sp.getUserAddress() != it.first.contact.address
+                )
+            })
+        attachmentsDao.insertAll(attachments)
     }
 }
 

@@ -25,6 +25,8 @@ import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.syncAllMessages
 import com.mercata.pingworks.utils.uploadPendingMessages
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
@@ -96,7 +98,11 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 updateList()
             }
         }
-        refresh()
+
+        viewModelScope.launch {
+            delay(100)
+            refresh()
+        }
     }
 
     fun onSearchQuery(query: String) {
@@ -121,12 +127,16 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     fun refresh() {
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(refreshing = true))
-            launch {
-                uploadPendingMessages(sp.getUserData()!!, db, fu, sp)
-                syncAllMessages(db, sp, dl)
-            }
 
-            dl.getCachedAttachments()
+            listOf(
+                launch {
+                    uploadPendingMessages(sp.getUserData()!!, db, fu, sp)
+                    syncAllMessages(db, sp, dl)
+                },
+                launch {
+                    dl.getCachedAttachments()
+                }
+            ).joinAll()
 
             updateState(currentState.copy(refreshing = false))
         }

@@ -21,7 +21,10 @@ data class DBContact(
     @ColumnInfo(name = "encryption_key_algorithm") val encryptionKeyAlgorithm: String,
     @ColumnInfo(name = "public_encryption_key") val publicEncryptionKey: String,
     @ColumnInfo(name = "public_encryption_key_id") val publicEncryptionKeyId: String,
-    @ColumnInfo(name = "public_signing_key") val publicSigningKey: String)
+    @ColumnInfo(name = "public_signing_key") val publicSigningKey: String,
+    @ColumnInfo(name = "last_signing_key") val lastSigningKey: String?,
+    @ColumnInfo(name = "last_signing_key_algorithm") val lastSigningKeyAlgorithm: String?,
+)
 
 fun DBContact.toPublicUserData(): PublicUserData =
     PublicUserData(
@@ -35,5 +38,7 @@ fun DBContact.toPublicUserData(): PublicUserData =
         encryptionKeyAlgorithm = this.encryptionKeyAlgorithm,
         signingKeyAlgorithm = this.signingKeyAlgorithm,
         publicEncryptionKey = this.publicEncryptionKey,
-        publicSigningKey = this.publicSigningKey
+        publicSigningKey = this.publicSigningKey,
+        lastSigningKey = this.lastSigningKey,
+        lastSigningKeyAlgorithm = this.lastSigningKeyAlgorithm
     )

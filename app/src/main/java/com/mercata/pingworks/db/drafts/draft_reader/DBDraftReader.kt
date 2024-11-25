@@ -31,6 +31,8 @@ data class DBDraftReader(
     @ColumnInfo("signing_key_algorithm") val signingKeyAlgorithm: String,
     @ColumnInfo("public_encryption_key") val publicEncryptionKey: String,
     @ColumnInfo("public_signing_key") val publicSigningKey: String,
+    @ColumnInfo("last_signing_key") val lastSigningKey: String?,
+    @ColumnInfo("last_signing_key_algorithm") val lastSigningKeyAlgorithm: String?,
 )
 
 fun DBDraftReader.toPublicUserData() = PublicUserData(
@@ -44,5 +46,7 @@ fun DBDraftReader.toPublicUserData() = PublicUserData(
     encryptionKeyAlgorithm = encryptionKeyAlgorithm,
     signingKeyAlgorithm = signingKeyAlgorithm,
     publicEncryptionKey = publicEncryptionKey,
-    publicSigningKey = publicSigningKey
+    publicSigningKey = publicSigningKey,
+    lastSigningKey = lastSigningKey,
+    lastSigningKeyAlgorithm = lastSigningKeyAlgorithm,
 )

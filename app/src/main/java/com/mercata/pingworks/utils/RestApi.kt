@@ -135,5 +135,13 @@ interface RestApi {
         @Path("localPart") localPart: String,
         @Body file: RequestBody
     ): Response<Void>
+
+    @GET("/home/{hostPart}/{localPart}/notifications")
+    @Headers("Content-Type: application/octet-stream")
+    suspend fun getNotifications(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+    ): Response<String>
 }
 
