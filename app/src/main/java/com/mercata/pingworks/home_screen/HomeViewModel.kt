@@ -23,6 +23,7 @@ import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.syncAllMessages
+import com.mercata.pingworks.utils.syncNotifications
 import com.mercata.pingworks.utils.uploadPendingMessages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -125,13 +126,18 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     }
 
     fun refresh() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             updateState(currentState.copy(refreshing = true))
+
+            val currentUser = sp.getUserData()!!
 
             listOf(
                 launch {
-                    uploadPendingMessages(sp.getUserData()!!, db, fu, sp)
+                    uploadPendingMessages(currentUser, db, fu, sp)
                     syncAllMessages(db, sp, dl)
+                },
+                launch {
+                    syncNotifications(currentUser, db.notificationsDao())
                 },
                 launch {
                     dl.getCachedAttachments()

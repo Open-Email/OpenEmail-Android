@@ -169,11 +169,11 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     }
 
     fun refresh() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             updateState(currentState.copy(refreshing = true))
 
             listOf(
-                launch { syncNotifications(sp.getUserData()!!) },
+                launch { syncNotifications(sp.getUserData()!!, db.notificationsDao()) },
                 launch { syncContacts(sp, db.userDao()) }
             ).joinAll()
 

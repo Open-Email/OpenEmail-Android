@@ -16,6 +16,8 @@ import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.db.drafts.DBDraft
 import com.mercata.pingworks.db.messages.DBMessage
 import com.mercata.pingworks.db.messages.MessagesDao
+import com.mercata.pingworks.db.notifications.DBNotification
+import com.mercata.pingworks.db.notifications.NotificationsDao
 import com.mercata.pingworks.db.pending.attachments.DBPendingAttachment
 import com.mercata.pingworks.db.pending.messages.DBPendingRootMessage
 import com.mercata.pingworks.db.pending.readers.DBPendingReaderPublicData
@@ -302,7 +304,7 @@ suspend fun downloadMessage(
     }
 }
 
-suspend fun syncNotifications(currentUser: UserData) {
+suspend fun syncNotifications(currentUser: UserData, notificationsDao: NotificationsDao) {
     withContext(Dispatchers.IO) {
         val result: List<String>? = when (val call = safeApiCall {
             getInstance("https://${currentUser.address.getMailHost()}").getNotifications(
@@ -319,61 +321,60 @@ suspend fun syncNotifications(currentUser: UserData) {
                 ?.toList()
         }
 
-        result?.forEach {
-            verifyNotification(it, currentUser)
-        }
-        println()
-        println(result)
-    }
+        val notifications: List<DBNotification> = result?.map {
+            async { verifyNotification(it, currentUser) }
+        }?.awaitAll()?.filterNotNull() ?: listOf()
 
+        notificationsDao.insertAll(notifications)
+    }
 }
 
 suspend fun verifyNotification(
     notificationLine: String,
     currentUser: UserData,
-) = withContext(Dispatchers.IO) {
-    val notificationParts = notificationLine.split(",")
-        .map { it.trim() }
+): DBNotification? {
+    return withContext(Dispatchers.IO) {
+        val notificationParts = notificationLine.split(",")
+            .map { it.trim() }
 
-    val id = notificationParts[0]
-    val link = notificationParts[1]
-    val signingKeyFP = notificationParts[2]
-    val encryptedNotifier = notificationParts[3]
+        val id = notificationParts[0]
+        val link = notificationParts[1]
+        val signingKeyFP = notificationParts[2]
+        val encryptedNotifier = notificationParts[3]
 
-    // Decrypt the notifier address
-    val notifierAddressBytes = decryptAnonymous(
-        cipherText = encryptedNotifier,
-        currentUser = currentUser
-    )
+        val notifierAddressBytes = decryptAnonymous(
+            cipherText = encryptedNotifier,
+            currentUser = currentUser
+        )
 
-    val address = notifierAddressBytes.toString(Charsets.US_ASCII)
+        val address = notifierAddressBytes.toString(Charsets.US_ASCII)
 
-    val profile: PublicUserData =
-        when (val call = safeApiCall { getProfilePublicData(address) }) {
-            is HttpResult.Error -> null
-            is HttpResult.Success -> call.data
-        } ?: return@withContext
+        val profile: PublicUserData =
+            when (val call = safeApiCall { getProfilePublicData(address) }) {
+                is HttpResult.Error -> null
+                is HttpResult.Success -> call.data
+            } ?: return@withContext null
 
-    if (currentUser.connectionLinkFor(profile.address) != link) {
-        return@withContext
+        if (currentUser.connectionLinkFor(profile.address) != link) {
+            return@withContext null
+        }
+
+        val signHash = profile.publicSigningKey.decodeFromBase64().hashedWithSha256()
+
+        var fpMatchFound = signingKeyFP == signHash.first
+
+        if (!fpMatchFound) {
+            fpMatchFound = signingKeyFP == profile.lastSigningKey?.decodeFromBase64()
+                ?.hashedWithSha256()?.first
+        }
+
+        if (fpMatchFound) {
+            DBNotification(id, System.currentTimeMillis(), link, profile.fullName, profile.imageUrl, address, false)
+        } else {
+            null
+        }
     }
-
-    val signHash = profile.publicSigningKey.decodeFromBase64().hashedWithSha256()
-
-    var fpMatchFound = signingKeyFP == signHash.first
-
-    if (!fpMatchFound) {
-        fpMatchFound = signingKeyFP == profile.lastSigningKey?.decodeFromBase64()?.hashedWithSha256()?.first
-    }
-
-    if (fpMatchFound) {
-        println("success")
-    } else {
-        println("error")
-    }
-    println(signHash)
 }
-
 
 suspend fun downloadMessage(
     currentUser: UserData,
