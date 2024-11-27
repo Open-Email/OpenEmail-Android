@@ -20,17 +20,20 @@ interface NotificationsDao {
     suspend fun getById(id: String): DBNotification?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertAll(messages: List<DBNotification>)
+    suspend fun insertAll(notifications: List<DBNotification>)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(vararg message: DBNotification)
+    suspend fun insert(vararg notification: DBNotification)
 
     @Delete
-    suspend fun delete(message: DBNotification)
+    suspend fun deleteList(notifications: List<DBNotification>)
+
+    @Delete
+    suspend fun delete(notification: DBNotification)
 
     @Query("DELETE FROM dbnotification")
     suspend fun deleteAll()
 
     @Update
-    suspend fun update(message: DBNotification)
+    suspend fun update(notification: DBNotification)
 }

@@ -53,6 +53,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -95,6 +98,7 @@ import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.contacts_screen.ContactViewHolder
+import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.theme.bodyFontFamily
 import com.mercata.pingworks.utils.getMimeType
@@ -118,6 +122,7 @@ fun SharedTransitionScope.ComposingScreen(
     val toFocusRequester = remember { FocusRequester() }
     val subjectFocusRequester = remember { FocusRequester() }
     val bodyFocusRequester = remember { FocusRequester() }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val documentChooserLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) {
@@ -130,6 +135,17 @@ fun SharedTransitionScope.ComposingScreen(
         }
 
     val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(state.snackbarErrorResId) {
+        state.snackbarErrorResId?.let {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    message = context.getString(it),
+                    duration = SnackbarDuration.Short
+                )
+            }
+        }
+    }
 
     BackHandler(enabled = true) {
         viewModel.confirmExit()
@@ -165,6 +181,9 @@ fun SharedTransitionScope.ComposingScreen(
 
     Box {
         Scaffold(
+            snackbarHost = {
+                SnackbarHost(hostState = snackbarHostState)
+            },
             modifier = modifier.sharedBounds(
                 rememberSharedContentState(
                     key = "composing_bounds"
@@ -484,7 +503,7 @@ fun SharedTransitionScope.ComposingScreen(
                                 isSelected = false,
                                 onSelect = null,
                                 onClick = { person ->
-                                    viewModel.addContactSuggestion(person)
+                                    viewModel.addContactSuggestion(person as DBContact)
                                     viewModel.clearAddressField()
                                     focusManager.clearFocus()
                                 }

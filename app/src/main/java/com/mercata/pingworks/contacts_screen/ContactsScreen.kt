@@ -65,6 +65,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -86,9 +87,10 @@ import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
-import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.db.notifications.DBNotification
 import com.mercata.pingworks.home_screen.SwipeContainer
 import com.mercata.pingworks.utils.getProfilePictureUrl
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Composable
@@ -134,6 +136,14 @@ fun SharedTransitionScope.ContactsScreen(
         }
     }
 
+    fun openComposingScreen() {
+        navController.navigate("ComposingScreen/${
+            state.selectedContacts.joinToString(
+                ","
+            ) { it.address }
+        }/null/null")
+    }
+
     Scaffold(
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
@@ -177,11 +187,20 @@ fun SharedTransitionScope.ContactsScreen(
                     if (state.selectedContacts.isEmpty()) {
                         viewModel.toggleSearchAddressDialog(true)
                     } else {
-                        navController.navigate("ComposingScreen/${
-                            state.selectedContacts.joinToString(
-                                ","
-                            ) { it.address }
-                        }/null/null")
+                        val unapprovedRequests =
+                            state.selectedContacts.filterIsInstance<DBNotification>()
+
+                        if (unapprovedRequests.isEmpty()) {
+                            openComposingScreen()
+                        } else {
+                            //TODO confirm adding selected requests to contacts
+                            coroutineScope.launch(Dispatchers.IO) {
+                                viewModel.addSelectedNotificationsToContacts()
+                            }.invokeOnCompletion {
+                                viewModel.syncWithServer()
+                                openComposingScreen()
+                            }
+                        }
                     }
                 }) {
                 if (state.selectedContacts.isEmpty()) {
@@ -207,7 +226,7 @@ fun SharedTransitionScope.ContactsScreen(
                 modifier = Modifier
                     .fillMaxSize()
             ) {
-                items(items = state.contacts.filter { it != state.itemToDelete },
+                items(items = (state.notifications + state.contacts).filter { it != state.itemToDelete },
                     key = { contact -> contact.address }) { item ->
                     SwipeContainer(
                         modifier = modifier.animateItem(),
@@ -232,7 +251,6 @@ fun SharedTransitionScope.ContactsScreen(
                                 } else {
                                     viewModel.toggleSelect(person)
                                 }
-
                             }
                         )
                     }
@@ -260,12 +278,19 @@ fun SharedTransitionScope.ContactsScreen(
 fun SharedTransitionScope.ContactViewHolder(
     modifier: Modifier = Modifier,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    person: DBContact,
+    person: ContactItem,
     uploading: Boolean,
     isSelected: Boolean,
-    onSelect: ((person: DBContact) -> Unit)?,
-    onClick: (person: DBContact) -> Unit
+    onSelect: ((person: ContactItem) -> Unit)?,
+    onClick: (person: ContactItem) -> Unit
 ) {
+
+    val transparencyModifier: Modifier = modifier.let {
+        when (person) {
+            is DBNotification -> it.alpha(0.6f)
+            else -> it
+        }
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -293,7 +318,7 @@ fun SharedTransitionScope.ContactViewHolder(
         } else {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = modifier
+                modifier = transparencyModifier
                     .sharedBounds(
                         sharedContentState = rememberSharedContentState(
                             key = "contact_image/${person.address}"
@@ -315,7 +340,7 @@ fun SharedTransitionScope.ContactViewHolder(
                     )
                 } else {
                     ProfileImage(
-                        modifier,
+                        modifier = transparencyModifier,
                         person.address.getProfilePictureUrl(),
                         onError = { _ ->
                             Text(
@@ -330,9 +355,17 @@ fun SharedTransitionScope.ContactViewHolder(
         Spacer(modifier = modifier.width(MARGIN_DEFAULT))
         Column {
             person.name?.let {
-                Text(text = person.name, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = person.name!!,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = transparencyModifier
+                )
             }
-            Text(text = person.address, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = person.address,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = transparencyModifier
+            )
         }
     }
 }

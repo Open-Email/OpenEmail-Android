@@ -3,6 +3,7 @@ package com.mercata.pingworks.db.contacts
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.mercata.pingworks.contacts_screen.ContactItem
 import com.mercata.pingworks.models.PublicUserData
 import java.time.Instant
 
@@ -12,8 +13,8 @@ data class DBContact(
     @ColumnInfo(name = "uploaded") val uploaded: Boolean,
     @ColumnInfo(name = "marked_to_delete") val markedToDelete: Boolean,
     @ColumnInfo(name = "last_seen") val lastSeen: String?,
-    @PrimaryKey @ColumnInfo(name = "address") val address: String,
-    @ColumnInfo(name = "name") val name: String?,
+    @PrimaryKey @ColumnInfo(name = "address") override val address: String,
+    @ColumnInfo(name = "name") override val name: String?,
     @ColumnInfo(name = "last_seen_public") val lastSeenPublic: Boolean,
     @ColumnInfo(name = "receive_broadcasts") val receiveBroadcasts: Boolean,
     @ColumnInfo(name = "signing_key_algorithm") val signingKeyAlgorithm: String,
@@ -23,7 +24,7 @@ data class DBContact(
     @ColumnInfo(name = "public_signing_key") val publicSigningKey: String,
     @ColumnInfo(name = "last_signing_key") val lastSigningKey: String?,
     @ColumnInfo(name = "last_signing_key_algorithm") val lastSigningKeyAlgorithm: String?,
-)
+): ContactItem
 
 fun DBContact.toPublicUserData(): PublicUserData =
     PublicUserData(

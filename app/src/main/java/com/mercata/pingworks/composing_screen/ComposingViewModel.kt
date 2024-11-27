@@ -24,6 +24,7 @@ import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
+import com.mercata.pingworks.utils.syncContacts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -192,14 +193,34 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         }
 
         if (!valid) return
-        sendMessageRepository.send(
-            draftId, currentState.broadcast, savedStateHandle.get<String>("replyMessageId")
-        )
-        viewModelScope.launch {
-            draftDB.delete(draftId)
-            updateState(currentState.copy(sent = true))
+
+        viewModelScope.launch(Dispatchers.IO) {
+            updateState(currentState.copy(loading = true))
+            if (getNonSyncedContacts().isEmpty()) {
+                sendMessageRepository.send(
+                    draftId, currentState.broadcast, savedStateHandle.get<String>("replyMessageId")
+                )
+                draftDB.delete(draftId)
+                updateState(currentState.copy(sent = true))
+            } else {
+                syncContacts(sp, db.userDao())
+                if (getNonSyncedContacts().isEmpty()) {
+                    sendMessageRepository.send(
+                        draftId, currentState.broadcast, savedStateHandle.get<String>("replyMessageId")
+                    )
+                    draftDB.delete(draftId)
+                    updateState(currentState.copy(sent = true))
+                } else {
+                    updateState(currentState.copy(snackbarErrorResId = R.string.couldnt_upload_contacts_error))
+                }
+            }
+
+            updateState(currentState.copy(loading = false))
         }
     }
+
+    private suspend fun getNonSyncedContacts() = db.userDao().getAll()
+        .filter { dbContact -> !dbContact.uploaded && currentState.recipients.any { it.address == dbContact.address } }
 
 
     fun removeAttachment(attachment: Uri) {
@@ -357,6 +378,7 @@ data class ComposingState(
     val confirmExitDialogShown: Boolean = false,
     val addressErrorResId: Int? = null,
     val subjectErrorResId: Int? = null,
+    val snackbarErrorResId: Int? = null,
     val bodyErrorResId: Int? = null,
     val broadcast: Boolean = false,
     val currentUser: UserData? = null,

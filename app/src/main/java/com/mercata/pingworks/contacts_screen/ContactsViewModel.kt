@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.db.notifications.DBNotification
+import com.mercata.pingworks.db.notifications.toPublicUserData
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.models.toDBContact
@@ -31,11 +33,20 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         val db: AppDatabase by inject()
         val sp: SharedPreferences by inject()
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             db.userDao().getAllAsFlow().collect { dbEntities ->
                 currentState.contacts.clear()
                 currentState.contacts.addAll(dbEntities.filterNot {
                     it.address == sp.getUserAddress() || it.markedToDelete
+                })
+            }
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            db.notificationsDao().getAllAsFlow().collect { dbEntities ->
+                currentState.notifications.clear()
+                currentState.notifications.addAll(dbEntities.filterNot {
+                    it.address == sp.getUserAddress() || it.isExpired() || it.dismissed
                 })
             }
         }
@@ -128,16 +139,24 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     private suspend fun onDeleteWaitComplete() {
         val item = currentState.itemToDelete ?: return
         withContext(Dispatchers.IO) {
-            downloadRepository.deleteAttachmentsForMessages(
-                db.messagesDao().getAllForContactAddress(item.address)
-            )
-            db.userDao().update(item.copy(markedToDelete = true))
+            when(item) {
+                is DBContact -> {
+                    downloadRepository.deleteAttachmentsForMessages(
+                        db.messagesDao().getAllForContactAddress(item.address)
+                    )
+                    db.userDao().update(item.copy(markedToDelete = true))
+                }
+                is DBNotification -> {
+                    db.notificationsDao().update(item.copy(dismissed = true))
+                }
+            }
+
             updateState(currentState.copy(itemToDelete = null))
         }
     }
 
     @OptIn(DelicateCoroutinesApi::class)
-    private fun syncWithServer() {
+    fun syncWithServer() {
         GlobalScope.launch(Dispatchers.IO) {
             onDeleteWaitComplete()
             val db: AppDatabase by inject()
@@ -148,7 +167,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         }
     }
 
-    fun removeItem(item: DBContact) {
+    fun removeItem(item: ContactItem) {
         viewModelScope.launch {
             onDeleteWaitComplete()
             updateState(currentState.copy(itemToDelete = item))
@@ -160,7 +179,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         super.onCleared()
     }
 
-    fun toggleSelect(person: DBContact) {
+    fun toggleSelect(person: ContactItem) {
         if (currentState.selectedContacts.contains(person)) {
             currentState.selectedContacts.remove(person)
         } else {
@@ -180,13 +199,22 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
             updateState(currentState.copy(refreshing = false))
         }
     }
+
+    suspend fun addSelectedNotificationsToContacts() {
+        val approvedRequests = currentState.selectedContacts.filterIsInstance<DBNotification>().map { request ->
+           request.toPublicUserData().toDBContact().copy(uploaded = false)
+        }
+
+        db.userDao().insertAll(approvedRequests)
+    }
 }
 
 
 data class ContactsState(
-    val selectedContacts: SnapshotStateList<DBContact> = mutableStateListOf(),
+    val selectedContacts: SnapshotStateList<ContactItem> = mutableStateListOf(),
+    val notifications: SnapshotStateList<DBNotification> = mutableStateListOf(),
     val contacts: SnapshotStateList<DBContact> = mutableStateListOf(),
-    val itemToDelete: DBContact? = null,
+    val itemToDelete: ContactItem? = null,
     val searchInput: String = "",
     val newContactAddressInput: String = "",
     val loggedInPersonAddress: String = "",
@@ -196,3 +224,8 @@ data class ContactsState(
     val refreshing: Boolean = false,
     val newContactSearchDialogShown: Boolean = false,
 )
+
+interface ContactItem {
+    val name: String?
+    val address: String
+}
