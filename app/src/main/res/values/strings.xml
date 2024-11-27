@@ -87,4 +87,5 @@
     <string name="pending_placeholder">Nothing is pending at the moment. All sent messages are uploaded.</string>
     <string name="drafts_placeholder">All new mesages you compose will be saved here.</string>
     <string name="downloaded_attachemnts_placeholder">All attachments you\'ve downloaded will be listed here.</string>
+    <string name="couldnt_upload_contacts_error">Uploading local contacts failed. Please try again.</string>
 </resources>

@@ -311,6 +311,9 @@ suspend fun downloadMessage(
 
 suspend fun syncNotifications(currentUser: UserData, notificationsDao: NotificationsDao) {
     withContext(Dispatchers.IO) {
+        val expired = notificationsDao.getAll().filter { it.isExpired() }
+        notificationsDao.deleteList(expired)
+
         val result: List<String>? = when (val call = safeApiCall {
             getInstance("https://${currentUser.address.getMailHost()}").getNotifications(
                 sotnHeader = currentUser.sign(),
@@ -375,12 +378,22 @@ suspend fun verifyNotification(
 
         if (fpMatchFound) {
             DBNotification(
-                id,
-                System.currentTimeMillis(),
-                link,
-                profile.fullName,
-                address,
-                false
+                id = id,
+                receivedOnTimestamp = System.currentTimeMillis(),
+                link = link,
+                name = profile.fullName,
+                address = address,
+                dismissed = false,
+                lastSeenPublic = profile.lastSeenPublic,
+                lastSeen = profile.lastSeen?.toEpochMilli(),
+                updated = profile.updated?.toEpochMilli(),
+                encryptionKeyId = profile.encryptionKeyId,
+                encryptionKeyAlgorithm = profile.encryptionKeyAlgorithm,
+                signingKeyAlgorithm = profile.signingKeyAlgorithm,
+                publicEncryptionKey = profile.publicEncryptionKey,
+                publicSigningKey = profile.publicSigningKey,
+                lastSigningKey = profile.lastSigningKey,
+                lastSigningKeyAlgorithm = profile.lastSigningKeyAlgorithm
             )
         } else {
             null
