@@ -71,7 +71,6 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -85,7 +84,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.mercata.pingworks.ATTACHMENT_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.CHIP_HEIGHT
 import com.mercata.pingworks.CHIP_ICON_SIZE
@@ -95,11 +93,13 @@ import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
+import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.contacts_screen.ContactViewHolder
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.theme.bodyFontFamily
 import com.mercata.pingworks.utils.getMimeType
 import com.mercata.pingworks.utils.getNameFromURI
+import com.mercata.pingworks.utils.getProfilePictureUrl
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -515,18 +515,15 @@ fun SharedTransitionScope.ComposingScreen(
                             .clip(CircleShape)
                             .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                     ) {
-                        if (state.openedAddressDetails?.imageUrl == null) {
-                            Icon(
-                                Icons.Default.AccountCircle,
-                                contentDescription = stringResource(id = R.string.profile_image)
-                            )
-                        } else {
-                            AsyncImage(
-                                contentScale = ContentScale.Crop,
-                                model = state.openedAddressDetails!!.imageUrl,
-                                contentDescription = stringResource(id = R.string.profile_image)
-                            )
-                        }
+                        ProfileImage(
+                            modifier = modifier,
+                            imageUrl = state.openedAddressDetails?.address?.getProfilePictureUrl() ?: "",
+                            onError = { _ ->
+                                Icon(
+                                    Icons.Default.AccountCircle,
+                                    contentDescription = stringResource(id = R.string.profile_image)
+                                )
+                            })
                     }
                 },
                 title = {
@@ -598,6 +595,7 @@ fun AddressChip(
     onClick: (address: PublicUserData) -> Unit,
     onDismiss: ((address: PublicUserData) -> Unit)? = null
 ) {
+
     Box(modifier.padding(MARGIN_DEFAULT / 4)) {
         Box(
             modifier = modifier
@@ -617,18 +615,16 @@ fun AddressChip(
                         .clip(CircleShape)
                         .size(CHIP_ICON_SIZE)
                 ) {
-                    if (user.imageUrl == null) {
-                        Icon(
-                            Icons.Default.AccountCircle,
-                            contentDescription = stringResource(id = R.string.profile_image)
-                        )
-                    } else {
-                        AsyncImage(
-                            contentScale = ContentScale.Crop,
-                            model = user.imageUrl,
-                            contentDescription = stringResource(id = R.string.profile_image)
-                        )
-                    }
+                    ProfileImage(
+                        modifier,
+                        user.address.getProfilePictureUrl(),
+                        onError = { modifier ->
+                            Icon(
+                                Icons.Default.AccountCircle,
+                                modifier = modifier,
+                                contentDescription = stringResource(id = R.string.profile_image)
+                            )
+                        })
                 }
                 Spacer(modifier = modifier.width(MARGIN_DEFAULT / 4))
                 Text(text = user.fullName, style = MaterialTheme.typography.bodySmall)

@@ -59,8 +59,6 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
                 lastSeen = null,
                 address = user.address,
                 name = user.name,
-                //TODO
-                imageUrl = null,
                 lastSeenPublic = true,
                 receiveBroadcasts = true,
                 signingKeyAlgorithm = SIGNING_ALGORITHM,
@@ -158,7 +156,6 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
             publicSigningKey = signingKeys.pair.publicKey.asBytes.encodeToBase64(),
             lastSigningKey = null,
             lastSigningKeyAlgorithm = null,
-            imageUrl = null
         )
     }
 

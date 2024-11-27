@@ -86,7 +86,7 @@ suspend fun getWellKnownHosts(hostName: String): Response<List<WellKnownHost>> {
     return withContext(Dispatchers.IO) { getInstance("https://$hostName").getWellKnownHosts() }
 }
 
-suspend fun getProfilePublicData(address: String): Response<PublicUserData> {
+suspend fun getProfilePublicData(address: Address): Response<PublicUserData> {
     return withContext(Dispatchers.IO) {
         getInstance("https://$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}").getProfilePublicData(
             hostPart = address.getHost(),
@@ -94,6 +94,11 @@ suspend fun getProfilePublicData(address: String): Response<PublicUserData> {
         )
     }
 }
+
+fun Address.getProfilePictureUrl(): String =
+    //"https://mail.open.email/mail/open.email/babe/image"
+    "https://$DEFAULT_MAIL_SUBDOMAIN.${this.getHost()}/mail/${this.getHost()}/${this.getLocal()}/image"
+
 
 suspend fun isAddressAvailable(address: String): Response<Void> {
     return withContext(Dispatchers.IO) {
@@ -369,7 +374,14 @@ suspend fun verifyNotification(
         }
 
         if (fpMatchFound) {
-            DBNotification(id, System.currentTimeMillis(), link, profile.fullName, profile.imageUrl, address, false)
+            DBNotification(
+                id,
+                System.currentTimeMillis(),
+                link,
+                profile.fullName,
+                address,
+                false
+            )
         } else {
             null
         }

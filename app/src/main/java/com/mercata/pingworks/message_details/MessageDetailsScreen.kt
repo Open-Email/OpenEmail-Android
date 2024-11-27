@@ -3,7 +3,6 @@
 package com.mercata.pingworks.message_details
 
 import android.content.Intent
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -53,32 +52,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.mercata.pingworks.ATTACHMENT_LIST_ITEM_HEIGHT
-import com.mercata.pingworks.BuildConfig
 import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.DEFAULT_DATE_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
+import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.composing_screen.AddressChip
 import com.mercata.pingworks.db.messages.FusedAttachment
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloaded
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloading
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.NotDownloaded
-import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.Indefinite
+import com.mercata.pingworks.utils.getProfilePictureUrl
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -232,21 +227,19 @@ fun SharedTransitionScope.MessageDetailsScreen(
                             .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                             .background(MaterialTheme.colorScheme.primary)
                     ) {
-                        if (messageWithAuthor?.author?.imageUrl == null) {
-                            Text(
-                                text = "${
-                                    messageWithAuthor?.author?.name?.firstOrNull() ?: messageWithAuthor?.author?.address?.first()
-                                }",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else {
-                            AsyncImage(
-                                contentScale = ContentScale.Crop,
-                                model = messageWithAuthor.author.imageUrl,
-                                contentDescription = stringResource(id = R.string.profile_image)
-                            )
-                        }
+
+                        ProfileImage(
+                            modifier = modifier,
+                            imageUrl =  messageWithAuthor?.author?.address?.getProfilePictureUrl() ?: "",
+                            onError = { _ ->
+                                Text(
+                                    text = "${
+                                        messageWithAuthor?.author?.name?.firstOrNull() ?: messageWithAuthor?.author?.address?.first()
+                                    }",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            })
                     }
 
                     Spacer(modifier = modifier.width(MARGIN_DEFAULT))

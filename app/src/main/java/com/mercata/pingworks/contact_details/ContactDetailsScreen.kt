@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -35,10 +36,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
+import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.theme.bodyFontFamily
+import com.mercata.pingworks.utils.getProfilePictureUrl
 
 @Composable
 fun SharedTransitionScope.ContactDetailsScreen(
@@ -89,28 +91,27 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.primary)
             ) {
-                if (state.contact?.imageUrl == null) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = modifier
-                            .height(imageSize)
-                            .padding(horizontal = MARGIN_DEFAULT)
-                            .fillMaxWidth()
+                ProfileImage(
+                    modifier,
+                    state.contact?.address?.getProfilePictureUrl() ?: "",
+                    onError = { modifier ->
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = modifier
+                                .height(imageSize)
+                                .padding(horizontal = MARGIN_DEFAULT)
+                                .fillMaxWidth()
 
-                    ) {
-                        Text(
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            text = state.contact?.name ?: state.address,
-                            style = MaterialTheme.typography.displayLarge
-                        )
-                    }
-                } else {
-                    AsyncImage(
-                        model = state.contact!!.imageUrl,
-                        contentDescription = stringResource(id = R.string.profile_image)
-                    )
-                }
+                        ) {
+                            Text(
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                text = state.contact?.name ?: state.address,
+                                style = MaterialTheme.typography.displayLarge
+                            )
+                        }
+                    })
+
                 state.contact?.address?.let {
                     Text(
                         text = it,

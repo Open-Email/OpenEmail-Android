@@ -13,7 +13,6 @@ data class DBNotification(
     @ColumnInfo("received_on_timestamp") val receivedOnTimestamp: Long,
     @ColumnInfo("link") val link: String,
     @ColumnInfo("full_name") val fullName: String,
-    @ColumnInfo("image_url") val imageUrl: String?,
     @ColumnInfo("address") val address: Address,
     @ColumnInfo("dismissed") val dismissed: Boolean,
 ) {

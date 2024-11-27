@@ -55,7 +55,6 @@ class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
             publicSigningKey = signingData["value"]!!,
             lastSigningKey = lastSigningData?.get("value"),
             lastSigningKeyAlgorithm = lastSigningData?.get("algorithm"),
-            imageUrl = null
         )
     }
 }

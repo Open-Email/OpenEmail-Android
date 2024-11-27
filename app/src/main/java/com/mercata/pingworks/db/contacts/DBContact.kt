@@ -14,7 +14,6 @@ data class DBContact(
     @ColumnInfo(name = "last_seen") val lastSeen: String?,
     @PrimaryKey @ColumnInfo(name = "address") val address: String,
     @ColumnInfo(name = "name") val name: String?,
-    @ColumnInfo(name = "image_url") val imageUrl: String?,
     @ColumnInfo(name = "last_seen_public") val lastSeenPublic: Boolean,
     @ColumnInfo(name = "receive_broadcasts") val receiveBroadcasts: Boolean,
     @ColumnInfo(name = "signing_key_algorithm") val signingKeyAlgorithm: String,
@@ -29,7 +28,6 @@ data class DBContact(
 fun DBContact.toPublicUserData(): PublicUserData =
     PublicUserData(
         fullName = this.name ?: "",
-        imageUrl = this.imageUrl,
         address = this.address,
         lastSeenPublic = this.lastSeenPublic,
         lastSeen = this.lastSeen?.let { Instant.parse(it) },

@@ -85,7 +85,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -99,7 +98,6 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.DEFAULT_LIST_ITEM_STATUS_ICON_SIZE
 import com.mercata.pingworks.MARGIN_DEFAULT
@@ -107,6 +105,7 @@ import com.mercata.pingworks.MESSAGE_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.NavigationDrawerBody
+import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.db.drafts.DBDraftWithReaders
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
@@ -114,6 +113,7 @@ import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.theme.bodyFontFamily
 import com.mercata.pingworks.theme.displayFontFamily
+import com.mercata.pingworks.utils.getProfilePictureUrl
 import kotlinx.coroutines.launch
 
 @Composable
@@ -362,6 +362,7 @@ fun SharedTransitionScope.HomeScreen(
                                 else -> null
                             }) {
                             MessageViewHolder(item = item,
+                                isDrawerOpen = drawerState.isOpen || drawerState.isAnimationRunning,
                                 currentUser = state.currentUser!!,
                                 animatedVisibilityScope = animatedVisibilityScope,
                                 onMessageSelected = when (item) {
@@ -421,6 +422,7 @@ fun SharedTransitionScope.HomeScreen(
 @Composable
 fun SharedTransitionScope.MessageViewHolder(
     currentUser: UserData,
+    isDrawerOpen: Boolean,
     item: HomeItem,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
@@ -499,39 +501,35 @@ fun SharedTransitionScope.MessageViewHolder(
                         }
 
                         else -> {
-                            //TODO public image
-                            val imageUrl =
-                                null //item.getContacts().firstOrNull().imageUrl ?: currentUser.avatarLink
-                            if (imageUrl == null) {
-                                Text(
-                                    text = "${
-                                        if (item.getContacts().isEmpty()) {
-                                            currentUser.name.first()
-                                        } else {
-                                            item.getContacts()
-                                                .firstOrNull()?.fullName?.firstOrNull() ?: item.getContacts()
-                                                .firstOrNull()?.address?.first() ?: ""
-                                        }
-                                    }",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                            } else {
-                                AsyncImage(
-                                    contentScale = ContentScale.Crop,
-                                    modifier = modifier
-                                        .sharedBounds(
-                                            sharedContentState = rememberSharedContentState(
-                                                key = "message_image/${item.getMessageId()}"
-                                            ),
-                                            animatedVisibilityScope = animatedVisibilityScope,
-                                        )
-                                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                                        .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
-                                    model = imageUrl,
-                                    contentDescription = stringResource(id = R.string.profile_image)
-                                )
-                            }
+                            ProfileImage(
+                                modifier
+                                    .let {
+                                        if (!isDrawerOpen) {
+                                            it.sharedBounds(
+                                                sharedContentState = rememberSharedContentState(
+                                                    key = "message_image/${item.getMessageId()}"
+                                                ),
+                                                animatedVisibilityScope = animatedVisibilityScope,
+                                            )
+                                        } else it
+                                    }.size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                    .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
+                                item.getContacts().firstOrNull()?.address?.getProfilePictureUrl() ?: "",
+                                onError = { _ ->
+                                    Text(
+                                        text = "${
+                                            if (item.getContacts().isEmpty()) {
+                                                currentUser.name.first()
+                                            } else {
+                                                item.getContacts()
+                                                    .firstOrNull()?.fullName?.firstOrNull() ?: item.getContacts()
+                                                    .firstOrNull()?.address?.first() ?: ""
+                                            }
+                                        }",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                })
                         }
                     }
                 }

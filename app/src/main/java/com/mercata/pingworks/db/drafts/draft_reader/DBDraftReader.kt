@@ -21,7 +21,6 @@ import java.time.Instant
 data class DBDraftReader(
     @ColumnInfo("draft_id") val draftId: String,
     @ColumnInfo("address") @PrimaryKey val address: String,
-    @ColumnInfo("image_url") val imageUrl: String?,
     @ColumnInfo("full_name") val fullName: String,
     @ColumnInfo("last_seen_public") val lastSeenPublic: Boolean,
     @ColumnInfo("last_seen") val lastSeenTimestamp: Long?,
@@ -37,7 +36,6 @@ data class DBDraftReader(
 
 fun DBDraftReader.toPublicUserData() = PublicUserData(
     fullName = fullName,
-    imageUrl = imageUrl,
     address = address,
     lastSeenPublic = lastSeenPublic,
     lastSeen = lastSeenTimestamp?.let { Instant.ofEpochMilli(it) },

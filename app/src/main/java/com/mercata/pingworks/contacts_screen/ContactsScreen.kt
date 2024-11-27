@@ -68,7 +68,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -82,13 +81,14 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
 import com.mercata.pingworks.CONTACT_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
+import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.home_screen.SwipeContainer
+import com.mercata.pingworks.utils.getProfilePictureUrl
 import kotlinx.coroutines.launch
 
 @Composable
@@ -192,9 +192,11 @@ fun SharedTransitionScope.ContactsScreen(
             }
         }
     ) { padding ->
-        Box(modifier = modifier.pullRefresh(
-            state = refreshState, enabled = topAppBarState.collapsedFraction == 0F
-        )) {
+        Box(
+            modifier = modifier.pullRefresh(
+                state = refreshState, enabled = topAppBarState.collapsedFraction == 0F
+            )
+        ) {
             LazyColumn(
                 contentPadding = PaddingValues(
                     top = padding.calculateTopPadding() + (MARGIN_DEFAULT.value / 2).dp,
@@ -312,21 +314,17 @@ fun SharedTransitionScope.ContactViewHolder(
                         tint = MaterialTheme.colorScheme.onSecondary
                     )
                 } else {
-                    if (person.imageUrl == null) {
-                        Text(
-                            text = "${person.name?.firstOrNull() ?: person.address.first()}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        AsyncImage(
-                            contentScale = ContentScale.Crop,
-                            model = person.imageUrl,
-                            contentDescription = stringResource(id = R.string.profile_image)
-                        )
-                    }
+                    ProfileImage(
+                        modifier,
+                        person.address.getProfilePictureUrl(),
+                        onError = { _ ->
+                            Text(
+                                text = "${person.name?.firstOrNull() ?: person.address.first()}",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        })
                 }
-
             }
         }
         Spacer(modifier = modifier.width(MARGIN_DEFAULT))
@@ -374,11 +372,22 @@ fun AddContactDialog(
 
     AlertDialog(
         icon = {
-            if (state.loading) CircularProgressIndicator(modifier = modifier.size(24.0.dp)) else Icon(
-                Icons.Default.Person,
-                modifier = modifier.size(24.0.dp),
-                contentDescription = stringResource(id = R.string.add_new_contact)
-            )
+            if (state.loading) {
+                CircularProgressIndicator(modifier = modifier.size(24.0.dp))
+            } else {
+                ProfileImage(
+                    modifier
+                        .clip(CircleShape)
+                        .size(24.0.dp),
+                    state.existingContactFound?.address?.getProfilePictureUrl() ?: "",
+                    onError = { modifier ->
+                        Icon(
+                            Icons.Default.Person,
+                            modifier = modifier.size(24.0.dp),
+                            contentDescription = stringResource(id = R.string.add_new_contact)
+                        )
+                    })
+            }
         },
         title = {
             Text(text = stringResource(id = titleResId), textAlign = TextAlign.Center)

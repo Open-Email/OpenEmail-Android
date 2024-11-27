@@ -10,7 +10,6 @@ import java.time.Instant
 data class DBPendingReaderPublicData(
     @ColumnInfo("uuid") @PrimaryKey val uuid: String,
     @ColumnInfo("address") val address: String,
-    @ColumnInfo("image_url") val imageUrl: String?,
     @ColumnInfo("message_id", index = true) val messageId: String,
     @ColumnInfo("full_name") val fullName: String,
     @ColumnInfo("last_seen_public") val lastSeenPublic: Boolean,
@@ -28,7 +27,6 @@ data class DBPendingReaderPublicData(
 
 fun DBPendingReaderPublicData.toPublicUserData() = PublicUserData(
     fullName = this.fullName,
-    imageUrl = this.imageUrl,
     address = this.address,
     lastSeenPublic = this.lastSeenPublic,
     lastSeen = this.lastSeenTimestamp?.let { Instant.ofEpochMilli(it) },
