@@ -154,33 +154,34 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
         when (currentState.screen) {
             HomeScreen.Drafts -> {
-                currentState.items.addAll(draftMessages.filter { it.searchMatched() })
+                currentState.items.addAll(draftMessages.filter { it.searchMatched() }.toList())
             }
 
             HomeScreen.Pending -> {
-                currentState.items.addAll(pendingMessages.filter { it.searchMatched() })
+                currentState.items.addAll(pendingMessages.filter { it.searchMatched() }.toList())
             }
 
             HomeScreen.Broadcast -> currentState.items.addAll(allMessages.filter {
                 it.message.message.isBroadcast
                         && it.message.author?.address != currentUserAddress
                         && it.searchMatched()
-            })
+            }.toList())
 
             HomeScreen.Outbox -> {
                 currentState.items.addAll(allMessages.filter {
                     it.message.author?.address == currentUserAddress && it.searchMatched()
-                })
+                }.toList())
             }
 
             HomeScreen.Inbox -> {
                 currentState.items.addAll(allMessages.filter {
                     it.message.message.isBroadcast.not() &&
                             it.message.author?.address != currentUserAddress && it.searchMatched()
-                })
+                }.toList())
             }
 
-            HomeScreen.DownloadedAttachments -> currentState.items.addAll(cachedAttachments.filter { it.searchMatched() })
+            HomeScreen.DownloadedAttachments -> currentState.items.addAll(cachedAttachments.filter { it.searchMatched() }
+                .toList())
         }
     }
 
@@ -281,7 +282,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
     fun deleteSelected() {
         currentState.selectedItems.forEach {
-            when(it) {
+            when (it) {
                 is CachedAttachment -> {
                     dl.deleteFile(it.uri)
                 }
@@ -313,10 +314,40 @@ enum class HomeScreen(
     val icon: ImageVector? = null,
     val iconResId: Int? = null,
 ) {
-    Broadcast(R.string.broadcast_title, iconResId = R.drawable.cast, outbox = false, placeholderDescriptionResId = R.string.broadcast_placeholder),
-    Inbox(R.string.inbox_title, icon = Icons.Default.KeyboardArrowDown, outbox = false, placeholderDescriptionResId = R.string.inbox_placeholder),
-    Outbox(R.string.outbox_title, icon = Icons.Default.KeyboardArrowUp, outbox = true, placeholderDescriptionResId = R.string.outbox_placeholder),
-    Pending(R.string.pending, iconResId = R.drawable.pending, outbox = true, placeholderDescriptionResId = R.string.pending_placeholder),
-    Drafts(R.string.drafts, iconResId = R.drawable.draft, outbox = true, placeholderDescriptionResId = R.string.drafts_placeholder),
-    DownloadedAttachments(R.string.downloaded_attachments, iconResId = R.drawable.download, outbox = false, placeholderDescriptionResId = R.string.downloaded_attachemnts_placeholder)
+    Broadcast(
+        R.string.broadcast_title,
+        iconResId = R.drawable.cast,
+        outbox = false,
+        placeholderDescriptionResId = R.string.broadcast_placeholder
+    ),
+    Inbox(
+        R.string.inbox_title,
+        icon = Icons.Default.KeyboardArrowDown,
+        outbox = false,
+        placeholderDescriptionResId = R.string.inbox_placeholder
+    ),
+    Outbox(
+        R.string.outbox_title,
+        icon = Icons.Default.KeyboardArrowUp,
+        outbox = true,
+        placeholderDescriptionResId = R.string.outbox_placeholder
+    ),
+    Pending(
+        R.string.pending,
+        iconResId = R.drawable.pending,
+        outbox = true,
+        placeholderDescriptionResId = R.string.pending_placeholder
+    ),
+    Drafts(
+        R.string.drafts,
+        iconResId = R.drawable.draft,
+        outbox = true,
+        placeholderDescriptionResId = R.string.drafts_placeholder
+    ),
+    DownloadedAttachments(
+        R.string.downloaded_attachments,
+        iconResId = R.drawable.download,
+        outbox = false,
+        placeholderDescriptionResId = R.string.downloaded_attachemnts_placeholder
+    )
 }

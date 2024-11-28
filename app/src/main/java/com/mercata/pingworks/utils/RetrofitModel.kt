@@ -40,6 +40,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Headers
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -165,6 +167,22 @@ suspend fun uploadContact(
             sotnHeader = currentUser.sign(),
             hostPart = currentUser.address.getHost(),
             localPart = currentUser.address.getLocal(),
+            link = link,
+            body = encryptedRemoteAddress.toRequestBody()
+        )
+    }
+}
+
+suspend fun notifyAddress(address: Address, sharedPreferences: SharedPreferences): Response<Void> {
+    return withContext(Dispatchers.IO) {
+        val link = address.connectionLink()
+        val currentUser = sharedPreferences.getUserData()!!
+        val encryptedRemoteAddress = encryptAnonymous(address, currentUser)
+
+        getInstance("https://${currentUser.address.getMailHost()}").notifyAddress(
+            sotnHeader = currentUser.sign(),
+            hostPart = address.getHost(),
+            localPart = address.getLocal(),
             link = link,
             body = encryptedRemoteAddress.toRequestBody()
         )
@@ -661,7 +679,7 @@ suspend fun uploadPendingMessages(
                     val messagesToUpload = arrayListOf(
                         //root message
                         async {
-                            UploadResult(
+                            val result = UploadResult(
                                 messageId = pendingMessage.message.messageId,
                                 isAttachment = false,
                                 messagesResult = safeApiCall {
@@ -672,12 +690,25 @@ suspend fun uploadPendingMessages(
                                         currentUser = currentUser
                                     )
                                 },
-                                contactResult = pendingMessage.readers.map { reader ->
+                                contactResult = pendingMessage.readers.filterNot { pendingReader ->
+                                    db.userDao().getAll()
+                                        .any { it.address == pendingReader.address && it.uploaded }
+                                }.map { reader ->
                                     async {
                                         safeApiCall { uploadContact(reader.address, sp) }
                                     }
                                 }.awaitAll()
                             )
+
+                            if (result.messagesResult is HttpResult.Success) {
+                                pendingMessage.readers.map {
+                                    launch {
+                                        notifyAddress(it.address, sp)
+                                    }
+                                }.joinAll()
+                            }
+
+                            result
                         }
                     )
                     messagesToUpload.addAll(pendingMessage.fileParts.map { part ->

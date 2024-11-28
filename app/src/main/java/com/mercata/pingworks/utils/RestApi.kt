@@ -66,6 +66,15 @@ interface RestApi {
         @Body body: RequestBody
     ): Response<Void>
 
+    @PUT("/mail/{hostPart}/{localPart}/link/{link}/notifications")
+    suspend fun notifyAddress(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+        @Path("link") link: String,
+        @Body body: RequestBody
+    ): Response<Void>
+
     @GET("/home/{hostPart}/{localPart}/links")
     @ContactsList
     suspend fun getAllContacts(

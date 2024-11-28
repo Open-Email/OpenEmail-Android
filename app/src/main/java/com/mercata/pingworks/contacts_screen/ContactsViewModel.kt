@@ -38,7 +38,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
                 currentState.contacts.clear()
                 currentState.contacts.addAll(dbEntities.filterNot {
                     it.address == sp.getUserAddress() || it.markedToDelete
-                })
+                }.toList())
             }
         }
 
@@ -47,7 +47,7 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
                 currentState.notifications.clear()
                 currentState.notifications.addAll(dbEntities.filterNot {
                     it.address == sp.getUserAddress() || it.isExpired() || it.dismissed
-                })
+                }.toList())
             }
         }
 
