@@ -36,16 +36,19 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -85,8 +88,10 @@ import androidx.navigation.NavController
 import com.mercata.pingworks.CONTACT_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.MARGIN_DEFAULT
+import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
+import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.db.notifications.DBNotification
 import com.mercata.pingworks.home_screen.SwipeContainer
 import com.mercata.pingworks.utils.getProfilePictureUrl
@@ -144,129 +149,240 @@ fun SharedTransitionScope.ContactsScreen(
         }/null/null")
     }
 
-    Scaffold(
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
-        },
-        topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (state.selectedContacts.isEmpty()) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary,
-                    titleContentColor = if (state.selectedContacts.isEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = if (state.selectedContacts.isEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = if (state.selectedContacts.isEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
-                ),
-                title = {
-                    Text(
-                        stringResource(id = R.string.contacts_title),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (state.selectedContacts.isNotEmpty()) {
-                            state.selectedContacts.clear()
+    Box {
+        Scaffold(
+            snackbarHost = {
+                SnackbarHost(hostState = snackbarHostState)
+            },
+            topBar = {
+                TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = if (state.selectedContacts.isEmpty()) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary,
+                        titleContentColor = if (state.selectedContacts.isEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+                        navigationIconContentColor = if (state.selectedContacts.isEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+                        actionIconContentColor = if (state.selectedContacts.isEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    title = {
+                        Text(
+                            stringResource(id = R.string.contacts_title),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            if (state.selectedContacts.isNotEmpty()) {
+                                state.selectedContacts.clear()
+                            } else {
+                                navController.popBackStack()
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(id = R.string.back_button)
+                            )
+                        }
+                    },
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    onClick = {
+                        if (state.selectedContacts.isEmpty()) {
+                            viewModel.toggleSearchAddressDialog(true)
                         } else {
-                            navController.popBackStack()
+                            val unapprovedRequests =
+                                state.selectedContacts.filterIsInstance<DBNotification>()
+
+                            if (unapprovedRequests.isEmpty()) {
+                                openComposingScreen()
+                            } else {
+                                viewModel.showRequestApprovingConfirmationDialog()
+                            }
                         }
                     }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(id = R.string.back_button)
+                    if (state.selectedContacts.isEmpty()) {
+                        Icon(Icons.Filled.Add, stringResource(id = R.string.add_new_contact))
+                    } else {
+                        Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
+                    }
+                }
+            }
+        ) { padding ->
+            Box(
+                modifier = modifier.pullRefresh(
+                    state = refreshState, enabled = topAppBarState.collapsedFraction == 0F
+                )
+            ) {
+                LazyColumn(
+                    contentPadding = PaddingValues(
+                        top = padding.calculateTopPadding() + (MARGIN_DEFAULT.value / 2).dp,
+                        start = padding.calculateLeftPadding(LayoutDirection.Ltr),
+                        end = padding.calculateRightPadding(LayoutDirection.Ltr),
+                        bottom = padding.calculateBottomPadding() + (MARGIN_DEFAULT.value * 1.5).dp + 52.dp
+                    ),
+                    modifier = modifier.fillMaxSize()
+                ) {
+                    items(items = (state.notifications + state.contacts).filter { it != state.itemToDelete },
+                        key = { contact -> contact.key }) { item ->
+                        SwipeContainer(
+                            modifier = modifier.animateItem(),
+                            item = item,
+                            onDelete = {
+                                viewModel.removeItem(it)
+                            }) {
+                            ContactViewHolder(
+                                modifier = modifier,
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                person = item,
+                                uploading = false,
+                                isSelected = state.selectedContacts.contains(item),
+                                onSelect = { person ->
+                                    viewModel.toggleSelect(person)
+                                },
+                                onClick = { person ->
+                                    if (state.selectedContacts.isEmpty()) {
+                                        when(person) {
+                                            is DBContact -> {
+                                                navController.navigate(
+                                                    "ContactDetailsScreen/${person.address}"
+                                                )
+                                            }
+                                            is DBNotification -> {
+                                                viewModel.openNotificationDetails(person)
+                                            }
+                                        }
+                                    } else {
+                                        viewModel.toggleSelect(person)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+
+                if (state.newContactSearchDialogShown) {
+                    AddContactDialog(modifier = modifier, state = state, viewModel = viewModel)
+                }
+
+                PullRefreshIndicator(
+                    modifier = modifier
+                        .align(Alignment.TopCenter)
+                        .padding(padding),
+                    refreshing = state.refreshing,
+                    state = refreshState,
+                )
+            }
+        }
+
+        state.requestDetails?.let {
+            AlertDialog(
+                icon = {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = modifier
+                            .clip(CircleShape)
+                            .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                    ) {
+                        ProfileImage(modifier = modifier, imageUrl = it.address.getProfilePictureUrl(), onError = {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = stringResource(id = R.string.profile_image)
+                            )
+                        })
+                    }
+                },
+                title = {
+                    Text(text = it.name)
+                },
+                text = {
+                    Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = it.address,
+                            textAlign = TextAlign.Center
                         )
                     }
                 },
+                onDismissRequest = { viewModel.closeNotificationDetails() },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.approveRequest()
+                        }
+                    ) {
+                        Text(stringResource(id = R.string.add_new_contact))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.closeNotificationDetails()
+                        }
+                    ) {
+                        Text(stringResource(id = R.string.cancel_button))
+                    }
+                }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                onClick = {
-                    if (state.selectedContacts.isEmpty()) {
-                        viewModel.toggleSearchAddressDialog(true)
-                    } else {
-                        val unapprovedRequests =
-                            state.selectedContacts.filterIsInstance<DBNotification>()
+        }
 
-                        if (unapprovedRequests.isEmpty()) {
-                            openComposingScreen()
-                        } else {
-                            //TODO confirm adding selected requests to contacts
-                            coroutineScope.launch(Dispatchers.IO) {
+        if (state.addRequestsToContactsDialogShown) {
+            AlertDialog(
+                icon = {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = stringResource(id = R.string.warning)
+                    )
+                },
+                title = {
+                    Text(text = stringResource(R.string.warning))
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.add_selected_requests_warning),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                        ElevatedButton(modifier = modifier.fillMaxWidth(), onClick = {
+                            coroutineScope.launch(Dispatchers.Main) {
                                 viewModel.addSelectedNotificationsToContacts()
                             }.invokeOnCompletion {
                                 viewModel.syncWithServer()
                                 openComposingScreen()
                             }
+                        }) {
+                            Text(
+                                stringResource(id = R.string.add_contacts_and_proceed),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
+                        if (state.selectedContacts.filterIsInstance<DBContact>().isNotEmpty()) {
+                            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                            OutlinedButton(modifier = modifier.fillMaxWidth(), onClick = {
+                                viewModel.clearSelectedRequests()
+                                openComposingScreen()
+                            }) {
+                                Text(
+                                    stringResource(id = R.string.proceed_with_existing_contacts_only),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
-                }) {
-                if (state.selectedContacts.isEmpty()) {
-                    Icon(Icons.Filled.Add, stringResource(id = R.string.add_new_contact))
-                } else {
-                    Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
-                }
-            }
-        }
-    ) { padding ->
-        Box(
-            modifier = modifier.pullRefresh(
-                state = refreshState, enabled = topAppBarState.collapsedFraction == 0F
-            )
-        ) {
-            LazyColumn(
-                contentPadding = PaddingValues(
-                    top = padding.calculateTopPadding() + (MARGIN_DEFAULT.value / 2).dp,
-                    start = padding.calculateLeftPadding(LayoutDirection.Ltr),
-                    end = padding.calculateRightPadding(LayoutDirection.Ltr),
-                    bottom = padding.calculateBottomPadding() + (MARGIN_DEFAULT.value * 1.5).dp + 52.dp
-                ),
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
-                items(items = (state.notifications + state.contacts).filter { it != state.itemToDelete },
-                    key = { contact -> contact.address }) { item ->
-                    SwipeContainer(
-                        modifier = modifier.animateItem(),
-                        item = item,
-                        onDelete = {
-                            viewModel.removeItem(it)
-                        }) {
-                        ContactViewHolder(
-                            modifier = modifier,
-                            animatedVisibilityScope = animatedVisibilityScope,
-                            person = item,
-                            uploading = false,
-                            isSelected = state.selectedContacts.contains(item),
-                            onSelect = { person ->
-                                viewModel.toggleSelect(person)
-                            },
-                            onClick = { person ->
-                                if (state.selectedContacts.isEmpty()) {
-                                    navController.navigate(
-                                        "ContactDetailsScreen/${person.address}"
-                                    )
-                                } else {
-                                    viewModel.toggleSelect(person)
-                                }
-                            }
-                        )
+                },
+                onDismissRequest = { viewModel.hideRequestApprovingConfirmationDialog() },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.hideRequestApprovingConfirmationDialog()
+                        }
+                    ) {
+                        Text(stringResource(id = R.string.cancel_button))
                     }
-                }
-            }
-
-            if (state.newContactSearchDialogShown) {
-                AddContactDialog(modifier = modifier, state = state, viewModel = viewModel)
-            }
-
-            PullRefreshIndicator(
-                modifier = modifier
-                    .align(Alignment.TopCenter)
-                    .padding(padding),
-                refreshing = state.refreshing,
-                state = refreshState,
+                },
             )
         }
     }

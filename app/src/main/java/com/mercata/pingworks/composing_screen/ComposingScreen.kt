@@ -594,7 +594,6 @@ fun SharedTransitionScope.ComposingScreen(
                 },
                 confirmButton = {
                     TextButton(
-                        //modifier = modifier.fillMaxWidth(),
                         onClick = {
                             viewModel.closeExitConfirmation()
                         }

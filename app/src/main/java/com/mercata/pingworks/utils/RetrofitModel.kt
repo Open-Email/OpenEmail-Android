@@ -378,7 +378,7 @@ suspend fun verifyNotification(
 
         if (fpMatchFound) {
             DBNotification(
-                id = id,
+                notificationId = id,
                 receivedOnTimestamp = System.currentTimeMillis(),
                 link = link,
                 name = profile.fullName,

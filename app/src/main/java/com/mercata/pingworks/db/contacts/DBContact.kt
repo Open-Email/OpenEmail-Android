@@ -2,6 +2,7 @@ package com.mercata.pingworks.db.contacts
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import com.mercata.pingworks.contacts_screen.ContactItem
 import com.mercata.pingworks.models.PublicUserData
@@ -24,7 +25,11 @@ data class DBContact(
     @ColumnInfo(name = "public_signing_key") val publicSigningKey: String,
     @ColumnInfo(name = "last_signing_key") val lastSigningKey: String?,
     @ColumnInfo(name = "last_signing_key_algorithm") val lastSigningKeyAlgorithm: String?,
-): ContactItem
+): ContactItem {
+
+    @Ignore
+    override val key: String = address
+}
 
 fun DBContact.toPublicUserData(): PublicUserData =
     PublicUserData(

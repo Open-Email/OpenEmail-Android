@@ -88,4 +88,7 @@
     <string name="drafts_placeholder">All new mesages you compose will be saved here.</string>
     <string name="downloaded_attachemnts_placeholder">All attachments you\'ve downloaded will be listed here.</string>
     <string name="couldnt_upload_contacts_error">Uploading local contacts failed. Please try again.</string>
+    <string name="add_selected_requests_warning">You\'ve selected some unapproved contact requests. Do you want to add them to your contacts?</string>
+    <string name="add_contacts_and_proceed">Add selected requests to contacts and proceed</string>
+    <string name="proceed_with_existing_contacts_only">Proceed with previously added contacts only</string>
 </resources>

@@ -2,6 +2,7 @@ package com.mercata.pingworks.db.notifications
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import com.mercata.pingworks.contacts_screen.ContactItem
 import com.mercata.pingworks.models.PublicUserData
@@ -12,7 +13,7 @@ const val SEVEN_DAYS_MILLIS = 1000 * 60 * 60 * 24 * 7
 
 @Entity
 data class DBNotification(
-    @PrimaryKey @ColumnInfo("notification_id") val id: String,
+    @PrimaryKey @ColumnInfo("notification_id") val notificationId: String,
     @ColumnInfo("received_on_timestamp") val receivedOnTimestamp: Long,
     @ColumnInfo("link") val link: String,
     @ColumnInfo("full_name") override val name: String,
@@ -29,6 +30,10 @@ data class DBNotification(
     @ColumnInfo("last_signing_key") val lastSigningKey: String?,
     @ColumnInfo("last_signing_key_algorithm") val lastSigningKeyAlgorithm: String?,
 ) : ContactItem {
+
+    @Ignore
+    override val key: String = notificationId
+
     fun isExpired(): Boolean {
         val currentTimestamp = System.currentTimeMillis()
         return currentTimestamp - SEVEN_DAYS_MILLIS > receivedOnTimestamp
