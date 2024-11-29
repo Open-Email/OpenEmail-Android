@@ -20,4 +20,7 @@ interface AttachmentsDao {
 
     @Update
     suspend fun update(attachment: DBAttachment)
+
+    @Query("DELETE FROM dbattachment")
+    suspend fun deleteAll()
 }

@@ -8,7 +8,6 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
-import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.EncryptionKeys
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
@@ -22,7 +21,6 @@ import org.koin.core.component.inject
 
 class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
-    private val dl: DownloadRepository by inject();
     init {
         val sharedPreferences: SharedPreferences by inject()
         val address = sharedPreferences.getUserAddress()
@@ -155,13 +153,6 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
         val signingKey = currentState.privateSigningKeyInput.trim().replace("\n", "")
 
         viewModelScope.launch {
-            if (sp.getUserAddress() != currentState.emailInput) {
-                launch { db.userDao().deleteAll() }
-                launch { db.messagesDao().deleteAll() }
-                launch { db.draftDao().deleteAll() }
-                launch { db.pendingMessagesDao().deleteAll() }
-                dl.clearAllCachedAttachments()
-            }
             var publicData: PublicUserData? = null
             updateState(currentState.copy(loading = true))
             when (val call = safeApiCall { getProfilePublicData(currentState.emailInput) }) {

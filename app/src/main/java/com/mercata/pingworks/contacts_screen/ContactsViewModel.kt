@@ -216,10 +216,8 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
         viewModelScope.launch {
             updateState(currentState.copy(refreshing = true))
 
-            listOf(
-                launch { syncNotifications(sp.getUserData()!!, db.notificationsDao()) },
-                launch { syncContacts(sp, db.userDao()) }
-            ).joinAll()
+            syncContacts(sp, db.userDao())
+            syncNotifications(sp.getUserData()!!, db)
 
             updateState(currentState.copy(refreshing = false))
         }

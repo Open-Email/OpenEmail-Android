@@ -165,9 +165,11 @@ fun SettingsScreen(
             Spacer(modifier = modifier.weight(1f))
             TextButton(modifier = modifier.fillMaxWidth(),
                 onClick = {
-                    viewModel.logout()
-                    navController.popBackStack(route = "HomeScreen", inclusive = true)
-                    navController.navigate(route = "SignInScreen")
+                    viewModel.logout {
+                        navController.popBackStack(route = "HomeScreen", inclusive = true)
+                        navController.navigate(route = "SignInScreen")
+                    }
+
                 }) {
                 Text(
                     text = stringResource(id = R.string.logout_button),

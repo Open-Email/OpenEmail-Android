@@ -14,4 +14,8 @@ interface PendingReadersDao {
 
     @Delete
     suspend fun deleteList(messages: List<DBPendingReaderPublicData>)
+
+    @Query("DELETE FROM dbpendingreaderpublicdata")
+    suspend fun deleteAll()
+
 }

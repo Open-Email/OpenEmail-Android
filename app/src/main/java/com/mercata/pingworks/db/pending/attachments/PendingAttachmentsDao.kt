@@ -21,6 +21,9 @@ interface PendingAttachmentsDao {
     @Query("DELETE FROM dbpendingattachment WHERE message_id = :messageId")
     suspend fun delete(messageId: String)
 
+    @Query("DELETE FROM dbpendingattachment")
+    suspend fun deleteAll()
+
     @Delete
     suspend fun deleteList(messages: List<DBPendingAttachment>)
 

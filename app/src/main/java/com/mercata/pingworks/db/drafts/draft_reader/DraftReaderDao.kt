@@ -17,4 +17,7 @@ interface DraftReaderDao {
 
     @Query("SELECT * FROM dbdraftreader WHERE draft_id == :draftId ORDER BY address DESC")
     fun getAllAsFlow(draftId: String): Flow<List<DBDraftReader>>
+
+    @Query("DELETE FROM dbdraftreader")
+    suspend fun deleteAll()
 }

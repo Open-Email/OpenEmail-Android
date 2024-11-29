@@ -19,7 +19,6 @@ import com.mercata.pingworks.db.drafts.DBDraft
 import com.mercata.pingworks.db.messages.DBMessage
 import com.mercata.pingworks.db.messages.MessagesDao
 import com.mercata.pingworks.db.notifications.DBNotification
-import com.mercata.pingworks.db.notifications.NotificationsDao
 import com.mercata.pingworks.db.pending.attachments.DBPendingAttachment
 import com.mercata.pingworks.db.pending.messages.DBPendingRootMessage
 import com.mercata.pingworks.db.pending.readers.DBPendingReaderPublicData
@@ -181,7 +180,10 @@ suspend fun notifyAddress(receiver: PublicUserData, sharedPreferences: SharedPre
         val currentUser: UserData = sharedPreferences.getUserData()!!
         val link = receiver.address.connectionLink()
 
-        val encryptedRemoteAddress = encryptAnonymous(currentUser.address, Key.fromBase64String(receiver.publicEncryptionKey))
+        val encryptedRemoteAddress = encryptAnonymous(
+            currentUser.address,
+            Key.fromBase64String(receiver.publicEncryptionKey)
+        )
 
         getInstance("https://${currentUser.address.getMailHost()}").notifyAddress(
             sotnHeader = currentUser.sign(),
@@ -331,10 +333,10 @@ suspend fun downloadMessage(
     }
 }
 
-suspend fun syncNotifications(currentUser: UserData, notificationsDao: NotificationsDao) {
+suspend fun syncNotifications(currentUser: UserData, db: AppDatabase) {
     withContext(Dispatchers.IO) {
-        val expired = notificationsDao.getAll().filter { it.isExpired() }
-        notificationsDao.deleteList(expired)
+        val expired = db.notificationsDao().getAll().filter { it.isExpired() }
+        db.notificationsDao().deleteList(expired)
 
         val result: List<String>? = when (val call = safeApiCall {
             getInstance("https://${currentUser.address.getMailHost()}").getNotifications(
@@ -351,11 +353,16 @@ suspend fun syncNotifications(currentUser: UserData, notificationsDao: Notificat
                 ?.toList()
         }
 
+        val contacts = db.userDao().getAll()
+
         val notifications: List<DBNotification> = result?.map {
             async { verifyNotification(it, currentUser) }
-        }?.awaitAll()?.filterNotNull() ?: listOf()
+        }?.awaitAll()
+            ?.filterNotNull()
+            ?.filterNot { notification -> contacts.any { notification.address == it.address } }
+            ?: listOf()
 
-        notificationsDao.insertAll(notifications)
+        db.notificationsDao().insertAll(notifications)
     }
 }
 
@@ -377,7 +384,7 @@ suspend fun verifyNotification(
                 cipherText = encryptedNotifier,
                 currentUser = currentUser
             )
-        } catch(e: SodiumException) {
+        } catch (e: SodiumException) {
             return@withContext null
         }
 
