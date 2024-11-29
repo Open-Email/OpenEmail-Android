@@ -43,6 +43,7 @@ class SendMessageRepository(
                 replyToSubjectId = replyToSubjectId,
                 sp = sp
             )
+            db.draftDao().delete(draftId)
             _sendingState.value = false
             syncAllMessages(db, sp, dl)
         }

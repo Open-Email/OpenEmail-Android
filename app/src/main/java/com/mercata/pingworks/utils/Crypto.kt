@@ -1,4 +1,3 @@
-@file:OptIn(ExperimentalStdlibApi::class)
 
 package com.mercata.pingworks.utils
 
@@ -31,7 +30,6 @@ import java.util.Base64
 
 data class EncryptionKeys(val pair: KeyPair, val id: String)
 data class SigningKeys(val pair: KeyPair)
-typealias Nonce = ByteArray
 
 val sodium = LazySodiumAndroid(SodiumAndroid(), StandardCharsets.UTF_8, Base64MessageEncoder())
 

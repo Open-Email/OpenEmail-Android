@@ -2,6 +2,8 @@ package com.mercata.pingworks.utils
 
 import android.net.Uri
 import android.util.Log
+import com.goterl.lazysodium.exceptions.SodiumException
+import com.goterl.lazysodium.utils.Key
 import com.mercata.pingworks.ANONYMOUS_ENCRYPTION_CIPHER
 import com.mercata.pingworks.BuildConfig
 import com.mercata.pingworks.DEFAULT_MAIL_SUBDOMAIN
@@ -21,6 +23,7 @@ import com.mercata.pingworks.db.notifications.NotificationsDao
 import com.mercata.pingworks.db.pending.attachments.DBPendingAttachment
 import com.mercata.pingworks.db.pending.messages.DBPendingRootMessage
 import com.mercata.pingworks.db.pending.readers.DBPendingReaderPublicData
+import com.mercata.pingworks.db.pending.readers.toPublicUserData
 import com.mercata.pingworks.exceptions.EnvelopeAuthenticity
 import com.mercata.pingworks.exceptions.SignatureMismatch
 import com.mercata.pingworks.models.ContentHeaders
@@ -173,16 +176,17 @@ suspend fun uploadContact(
     }
 }
 
-suspend fun notifyAddress(address: Address, sharedPreferences: SharedPreferences): Response<Void> {
+suspend fun notifyAddress(receiver: PublicUserData, sharedPreferences: SharedPreferences) {
     return withContext(Dispatchers.IO) {
-        val link = address.connectionLink()
-        val currentUser = sharedPreferences.getUserData()!!
-        val encryptedRemoteAddress = encryptAnonymous(address, currentUser)
+        val currentUser: UserData = sharedPreferences.getUserData()!!
+        val link = receiver.address.connectionLink()
+
+        val encryptedRemoteAddress = encryptAnonymous(currentUser.address, Key.fromBase64String(receiver.publicEncryptionKey))
 
         getInstance("https://${currentUser.address.getMailHost()}").notifyAddress(
             sotnHeader = currentUser.sign(),
-            hostPart = address.getHost(),
-            localPart = address.getLocal(),
+            hostPart = receiver.address.getHost(),
+            localPart = receiver.address.getLocal(),
             link = link,
             body = encryptedRemoteAddress.toRequestBody()
         )
@@ -368,10 +372,15 @@ suspend fun verifyNotification(
         val signingKeyFP = notificationParts[2]
         val encryptedNotifier = notificationParts[3]
 
-        val notifierAddressBytes = decryptAnonymous(
-            cipherText = encryptedNotifier,
-            currentUser = currentUser
-        )
+        val notifierAddressBytes = try {
+            decryptAnonymous(
+                cipherText = encryptedNotifier,
+                currentUser = currentUser
+            )
+        } catch(e: SodiumException) {
+            return@withContext null
+        }
+
 
         val address = notifierAddressBytes.toString(Charsets.US_ASCII)
 
@@ -701,11 +710,12 @@ suspend fun uploadPendingMessages(
                             )
 
                             if (result.messagesResult is HttpResult.Success) {
-                                pendingMessage.readers.map {
-                                    launch {
-                                        notifyAddress(it.address, sp)
-                                    }
-                                }.joinAll()
+                                pendingMessage.readers.filterNot { it.address == currentUser.address }
+                                    .map {
+                                        launch {
+                                            notifyAddress(it.toPublicUserData(), sp)
+                                        }
+                                    }.joinAll()
                             }
 
                             result

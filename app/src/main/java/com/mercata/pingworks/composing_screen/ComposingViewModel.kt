@@ -42,6 +42,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     init {
         viewModelScope.launch(Dispatchers.IO) {
             val db: AppDatabase by inject()
+            val sp: SharedPreferences by inject()
             initDraftId()
 
             launch {
@@ -78,7 +79,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             launch { consumeReplyMessage() }
             launch {
                 currentState.contacts.clear()
-                currentState.contacts.addAll(db.userDao().getAll())
+                currentState.contacts.addAll(db.userDao().getAll().filterNot { it.address == sp.getUserAddress() }.toList())
             }
         }
     }
@@ -200,7 +201,6 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                 sendMessageRepository.send(
                     draftId, currentState.broadcast, savedStateHandle.get<String>("replyMessageId")
                 )
-                draftDB.delete(draftId)
                 updateState(currentState.copy(sent = true))
             } else {
                 syncContacts(sp, db.userDao())
@@ -208,7 +208,6 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                     sendMessageRepository.send(
                         draftId, currentState.broadcast, savedStateHandle.get<String>("replyMessageId")
                     )
-                    draftDB.delete(draftId)
                     updateState(currentState.copy(sent = true))
                 } else {
                     updateState(currentState.copy(snackbarErrorResId = R.string.couldnt_upload_contacts_error))

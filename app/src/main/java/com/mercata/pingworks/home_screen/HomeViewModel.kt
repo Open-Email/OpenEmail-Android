@@ -290,7 +290,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
         currentState.selectedItems.clear()
     }
-
 }
 
 data class HomeState(
