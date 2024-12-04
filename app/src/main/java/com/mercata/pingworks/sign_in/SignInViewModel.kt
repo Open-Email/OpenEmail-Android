@@ -153,15 +153,15 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
         val signingKey = currentState.privateSigningKeyInput.trim().replace("\n", "")
 
         viewModelScope.launch {
-            var publicData: PublicUserData? = null
             updateState(currentState.copy(loading = true))
-            when (val call = safeApiCall { getProfilePublicData(currentState.emailInput) }) {
+            val publicData: PublicUserData? = when (val call = safeApiCall { getProfilePublicData(currentState.emailInput) }) {
                 is HttpResult.Success -> {
-                    publicData = call.data
+                   call.data
                 }
 
                 is HttpResult.Error -> {
                     updateState(currentState.copy(registrationError = "${call.code}: ${call.message}"))
+                    null
                 }
             }
             if (publicData == null) {

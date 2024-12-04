@@ -18,7 +18,7 @@ val CLEAR_ICON_SIZE = 24.dp
 const val animationDuration = 500
 const val snackBarDuration = 4000L
 const val MAX_HEADERS_SIZE = 512 * 1024
-const val MAX_MESSAGE_SIZE: Long = 64*1024*1024
+const val MAX_MESSAGE_SIZE: Long = 64 * 1024 * 1024
 const val MAX_CHUNK_SIZE: Int = 1048576
 const val DEFAULT_CHUNK_SIZE: Int = 8192
 const val MIN_CHUNK_SIZE: Int = 1024
@@ -69,7 +69,6 @@ val CHECKSUM_HEADERS = arrayOf(
     HEADER_MESSAGE_HEADERS,
     HEADER_MESSAGE_ENCRYPTION
 )
-
 
 const val SP_ADDRESS = "sp_address"
 const val SP_AVATAR_LINK = "sp_avatar_link"

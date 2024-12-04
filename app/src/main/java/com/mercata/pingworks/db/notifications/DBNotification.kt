@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import com.mercata.pingworks.contacts_screen.ContactItem
+import com.mercata.pingworks.db.contacts.toPublicUserData
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.utils.Address
 import java.time.Instant
@@ -29,6 +30,31 @@ data class DBNotification(
     @ColumnInfo("public_signing_key") val publicSigningKey: String,
     @ColumnInfo("last_signing_key") val lastSigningKey: String?,
     @ColumnInfo("last_signing_key_algorithm") val lastSigningKeyAlgorithm: String?,
+    @ColumnInfo("public_access") val publicAccess: Boolean?,
+    @ColumnInfo("away") val away: Boolean?,
+    @ColumnInfo("away_warning") val awayWarning: String?,
+    @ColumnInfo("status") val status: String?,
+    @ColumnInfo("about") val about: String?,
+    @ColumnInfo("gender") val gender: String?,
+    @ColumnInfo("language") val language: String?,
+    @ColumnInfo("relationship_status") val relationshipStatus: String?,
+    @ColumnInfo("education") val education: String?,
+    @ColumnInfo("paces_lived") val pacesLived: String?,
+    @ColumnInfo("notes") val notes: String?,
+    @ColumnInfo("work") val work: String?,
+    @ColumnInfo("department") val department: String?,
+    @ColumnInfo("organization") val organization: String?,
+    @ColumnInfo("job_title") val jobTitle: String?,
+    @ColumnInfo("interests") val interests: String?,
+    @ColumnInfo("books") val books: String?,
+    @ColumnInfo("music") val music: String?,
+    @ColumnInfo("movies") val movies: String?,
+    @ColumnInfo("sports") val sports: String?,
+    @ColumnInfo("website") val website: String?,
+    @ColumnInfo("mailing_address") val mailingAddress: String?,
+    @ColumnInfo("location") val location: String?,
+    @ColumnInfo("phone") val phone: String?,
+    @ColumnInfo("streams") val streams: String?
 ) : ContactItem {
 
     @Ignore
@@ -54,5 +80,30 @@ fun DBNotification.toPublicUserData(): PublicUserData {
         publicSigningKey = this.publicSigningKey,
         lastSigningKey = this.lastSigningKey,
         lastSigningKeyAlgorithm = this.lastSigningKeyAlgorithm,
+        publicAccess = this.publicAccess,
+        away = this.away,
+        awayWarning = this.awayWarning,
+        status = this.status,
+        about = this.about,
+        gender = this.gender,
+        language = this.language,
+        relationshipStatus = this.relationshipStatus,
+        education = this.education,
+        pacesLived = this.pacesLived,
+        notes = this.notes,
+        work = this.work,
+        department = this.department,
+        organization = this.organization,
+        jobTitle = this.jobTitle,
+        interests = this.interests,
+        books = this.books,
+        music = this.music,
+        movies = this.movies,
+        sports = this.sports,
+        website = this.website,
+        mailingAddress = this.mailingAddress,
+        location = this.location,
+        phone = this.phone,
+        streams = this.streams
     )
 }

@@ -29,32 +29,67 @@ class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
         val split = value.string().splitToSequence("\n")
         val address = split.first().substringAfter("Profile of ")
         val map = split.filterNot { it.startsWith("#") }
-            .associate { it.substringBefore(": ") to it.substringAfter(": ") }
+            .associate {
+                it.substringBefore(": ").lowercase() to it.substringAfter(": ")
+            }
 
-        if (!map.containsKey("Encryption-Key") || !map.containsKey("Signing-Key")) return null
+        if (!map.containsKey("Encryption-Key".lowercase()) || !map.containsKey("Signing-Key".lowercase())) return null
 
-        val encryptionData = map["Encryption-Key"]?.splitToSequence("; ")
-            ?.associate { it.substringBefore("=") to it.substringAfter("=") } as Map
+        val encryptionData = map["Encryption-Key".lowercase()]?.splitToSequence("; ")
+            ?.associate {
+                it.substringBefore("=").lowercase() to it.substringAfter("=")
+            } as Map
 
-        val signingData = map["Signing-Key"]?.splitToSequence("; ")
-            ?.associate { it.substringBefore("=") to it.substringAfter("=") } as Map
+        val signingData = map["Signing-Key".lowercase()]?.splitToSequence("; ")
+            ?.associate {
+                it.substringBefore("=").lowercase() to it.substringAfter("=")
+            } as Map
 
-        val lastSigningData: Map<String, String>? = map["Last-Signing-Key"]?.splitToSequence("; ")
-            ?.associate { it.substringBefore("=") to it.substringAfter("=") }
+        val lastSigningData: Map<String, String>? = map["Last-Signing-Key".lowercase()]?.splitToSequence("; ")
+            ?.associate {
+                it.substringBefore("=").lowercase() to it.substringAfter("=")
+            }
 
-        return PublicUserData(
+        val rv =  PublicUserData(
             address = address,
-            fullName = map["Name"] ?: "",
-            lastSeenPublic = map["Last-Seen-Public"] == "Yes",
-            lastSeen = map["Last-Seen"]?.run { Instant.parse(this) },
-            updated = map["Updated"]?.run { Instant.parse(this) },
-            encryptionKeyId = encryptionData["id"]!!,
-            encryptionKeyAlgorithm = encryptionData["algorithm"]!!,
-            publicEncryptionKey = encryptionData["value"]!!,
-            signingKeyAlgorithm = signingData["algorithm"]!!,
-            publicSigningKey = signingData["value"]!!,
-            lastSigningKey = lastSigningData?.get("value"),
-            lastSigningKeyAlgorithm = lastSigningData?.get("algorithm"),
-        )
+            fullName = map["Name".lowercase()] ?: "",
+            lastSeenPublic = map["Last-Seen-Public".lowercase()] == "Yes",
+            lastSeen = map["Last-Seen".lowercase()]?.run { Instant.parse(this) },
+            updated = map["Updated".lowercase()]?.run { Instant.parse(this) },
+            encryptionKeyId = encryptionData["id".lowercase()]!!,
+            encryptionKeyAlgorithm = encryptionData["algorithm".lowercase()]!!,
+            publicEncryptionKey = encryptionData["value".lowercase()]!!,
+            signingKeyAlgorithm = signingData["algorithm".lowercase()]!!,
+            publicSigningKey = signingData["value".lowercase()]!!,
+            lastSigningKey = lastSigningData?.get("value".lowercase()),
+            lastSigningKeyAlgorithm = lastSigningData?.get("algorithm".lowercase()),
+            away = map["Away".lowercase()]?.equals("Yes", true),
+            publicAccess = map["Public-Access".lowercase()]?.equals("Yes", true),
+            awayWarning = map["Away-Warning".lowercase()],
+            status = map["Status".lowercase()],
+            about = map["About".lowercase()],
+            gender = map["Gender".lowercase()],
+            language = map["Languages".lowercase()],
+            relationshipStatus = map["Relationship-Status".lowercase()],
+            education = map["Education".lowercase()],
+            pacesLived = map["Places-Lived".lowercase()],
+            notes = map["Notes".lowercase()],
+            work = map["Work".lowercase()],
+            department = map["Department".lowercase()],
+            organization = map["Organization".lowercase()],
+            jobTitle = map["Job-Title".lowercase()],
+            interests = map["Interests".lowercase()],
+            books = map["Books".lowercase()],
+            music = map["Music".lowercase()],
+            movies = map["Movies".lowercase()],
+            sports = map["Sports".lowercase()],
+            website = map["Website".lowercase()],
+            mailingAddress = map["Mailing-Address".lowercase()],
+            location = map["Location".lowercase()],
+            phone = map["Phone".lowercase()],
+            streams = map["Streams".lowercase()],
+
+            )
+        return rv
     }
 }

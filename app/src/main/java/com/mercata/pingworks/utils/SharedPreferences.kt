@@ -5,8 +5,6 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
-import com.mercata.pingworks.ANONYMOUS_ENCRYPTION_CIPHER
-import com.mercata.pingworks.SIGNING_ALGORITHM
 import com.mercata.pingworks.SP_ADDRESS
 import com.mercata.pingworks.SP_AUTOLOGIN
 import com.mercata.pingworks.SP_AVATAR_LINK
@@ -18,11 +16,10 @@ import com.mercata.pingworks.SP_FULL_NAME
 import com.mercata.pingworks.SP_SELECTED_NAV_SCREEN
 import com.mercata.pingworks.SP_SIGNING_KEYS
 import com.mercata.pingworks.db.AppDatabase
-import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.home_screen.HomeScreen
 import com.mercata.pingworks.models.PublicUserData
+import com.mercata.pingworks.models.toDBContact
 import com.mercata.pingworks.registration.UserData
-import java.time.Instant
 
 class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
 
@@ -53,25 +50,13 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
                 ).joinToString(separator = ",") { it.asBytes.encodeToBase64() })
             .apply()
 
-        db.userDao().insert(
-            DBContact(
-                updated = null,
-                lastSeen = null,
-                address = user.address,
-                name = user.name,
-                lastSeenPublic = true,
-                receiveBroadcasts = true,
-                signingKeyAlgorithm = SIGNING_ALGORITHM,
-                encryptionKeyAlgorithm = ANONYMOUS_ENCRYPTION_CIPHER,
-                publicEncryptionKey = user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64(),
-                publicEncryptionKeyId = user.encryptionKeys.id,
-                publicSigningKey = user.signingKeys.pair.publicKey.asBytes.encodeToBase64(),
-                markedToDelete = false,
-                lastSigningKey = null,
-                lastSigningKeyAlgorithm = null,
-                uploaded = true
-            )
-        )
+        val publicUserData: PublicUserData? =
+            when (val call = safeApiCall { getProfilePublicData(user.address) }) {
+                is HttpResult.Error -> null
+                is HttpResult.Success -> call.data
+            }
+
+        publicUserData?.let { db.userDao().insert(it.toDBContact()) }
     }
 
     fun saveUserAvatarLink(link: String) =
@@ -92,7 +77,8 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
     }
 
     fun isFirstTime() = sharedPreferences.getBoolean(SP_FIRST_TIME, true)
-    fun setFirstTime(isFirstTime: Boolean) = sharedPreferences.edit().putBoolean(SP_FIRST_TIME, isFirstTime).apply()
+    fun setFirstTime(isFirstTime: Boolean) =
+        sharedPreferences.edit().putBoolean(SP_FIRST_TIME, isFirstTime).apply()
 
     fun isBiometry() = sharedPreferences.getBoolean(SP_BIOMETRY, false)
 
@@ -134,28 +120,6 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
                 Key.fromBytes(encryptionSplit.first().decodeFromBase64()),
                 Key.fromBytes(encryptionSplit.last().decodeFromBase64())
             ), id = encryptionId
-        )
-    }
-
-    fun getPublicUserData(): PublicUserData? {
-        val address: String = getUserAddress() ?: return null
-        val name: String = sharedPreferences.getString(SP_FULL_NAME, null) ?: return null
-        val signingKeys = getSigningKeys() ?: return null
-        val encryptionKeys = getEncryptionKeys() ?: return null
-
-        return PublicUserData(
-            fullName = name,
-            address = address,
-            lastSeenPublic = true,
-            lastSeen = Instant.now(),
-            updated = Instant.now(),
-            encryptionKeyId = encryptionKeys.id,
-            encryptionKeyAlgorithm = ANONYMOUS_ENCRYPTION_CIPHER,
-            signingKeyAlgorithm = SIGNING_ALGORITHM,
-            publicEncryptionKey = encryptionKeys.pair.publicKey.asBytes.encodeToBase64(),
-            publicSigningKey = signingKeys.pair.publicKey.asBytes.encodeToBase64(),
-            lastSigningKey = null,
-            lastSigningKeyAlgorithm = null,
         )
     }
 

@@ -30,6 +30,7 @@ import com.mercata.pingworks.models.Envelope
 import com.mercata.pingworks.models.MessageCategory
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.models.toDBContact
+import com.mercata.pingworks.models.toDBNotification
 import com.mercata.pingworks.models.toDBPendingReaderPublicData
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.response_converters.ContactsListConverterFactory
@@ -411,24 +412,7 @@ suspend fun verifyNotification(
         }
 
         if (fpMatchFound) {
-            DBNotification(
-                notificationId = id,
-                receivedOnTimestamp = System.currentTimeMillis(),
-                link = link,
-                name = profile.fullName,
-                address = address,
-                dismissed = false,
-                lastSeenPublic = profile.lastSeenPublic,
-                lastSeen = profile.lastSeen?.toEpochMilli(),
-                updated = profile.updated?.toEpochMilli(),
-                encryptionKeyId = profile.encryptionKeyId,
-                encryptionKeyAlgorithm = profile.encryptionKeyAlgorithm,
-                signingKeyAlgorithm = profile.signingKeyAlgorithm,
-                publicEncryptionKey = profile.publicEncryptionKey,
-                publicSigningKey = profile.publicSigningKey,
-                lastSigningKey = profile.lastSigningKey,
-                lastSigningKeyAlgorithm = profile.lastSigningKeyAlgorithm
-            )
+            profile.toDBNotification(id, link)
         } else {
             null
         }
@@ -569,7 +553,6 @@ suspend fun uploadMessage(
     recipients: List<PublicUserData>,
     fileUtils: FileUtils,
     currentUser: UserData,
-    currentUserPublicData: PublicUserData,
     db: AppDatabase,
     sp: SharedPreferences,
     isBroadcast: Boolean,
@@ -578,15 +561,27 @@ suspend fun uploadMessage(
     withContext(Dispatchers.IO) {
         val rootMessageId = currentUser.newMessageId()
         val sendingDate = Instant.now()
-        val accessProfiles =
-            if (isBroadcast)
+        val accessProfiles: List<PublicUserData>? =
+            if (isBroadcast) {
                 null
-            else
-                arrayListOf(currentUserPublicData).apply {
-                    addAll(
-                        recipients
-                    )
+            } else {
+                when (val call = safeApiCall { getProfilePublicData(currentUser.address) }) {
+                    is HttpResult.Error -> null
+                    is HttpResult.Success -> {
+                        call.data?.let {
+                            arrayListOf(it).apply {
+                                addAll(
+                                    recipients
+                                )
+                            }
+                        }
+                    }
                 }
+            }
+
+        if (!isBroadcast && accessProfiles == null) {
+            return@withContext
+        }
 
         val pendingRootMessage = DBPendingRootMessage(
             messageId = rootMessageId,

@@ -37,7 +37,6 @@ class SendMessageRepository(
                 recipients = draftWithRecipients.readers.map { it.toPublicUserData() },
                 fileUtils = fileUtils,
                 currentUser = sp.getUserData()!!,
-                currentUserPublicData = sp.getPublicUserData()!!,
                 db = db,
                 isBroadcast = isBroadcast,
                 replyToSubjectId = replyToSubjectId,
