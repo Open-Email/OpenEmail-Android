@@ -22,9 +22,12 @@ data class PublicUserData(
     val publicSigningKey: String,
     val lastSigningKey: String?,
     val lastSigningKeyAlgorithm: String?,
+
     val publicAccess: Boolean?,
     val away: Boolean?,
+
     val awayWarning: String?,
+
     val status: String?,
     val about: String?,
     val gender: String?,

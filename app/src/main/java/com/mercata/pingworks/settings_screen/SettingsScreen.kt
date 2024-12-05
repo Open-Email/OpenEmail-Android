@@ -3,6 +3,7 @@
 package com.mercata.pingworks.settings_screen
 
 import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -40,6 +42,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
+import com.mercata.pingworks.SETTING_LIST_ITEM_SIZE
 import com.mercata.pingworks.theme.bodyFontFamily
 
 @Composable
@@ -84,11 +87,13 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(padding)
-                .padding(MARGIN_DEFAULT)
+                .padding(vertical = MARGIN_DEFAULT)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = modifier.fillMaxWidth()
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = MARGIN_DEFAULT)
             ) {
                 Text(
                     stringResource(id = R.string.enable_autologin_feature),
@@ -104,7 +109,9 @@ fun SettingsScreen(
             if (state.biometryAvailable) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = modifier.fillMaxWidth()
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MARGIN_DEFAULT)
                 ) {
                     Text(
                         stringResource(id = R.string.enable_biometric_feature),
@@ -119,11 +126,12 @@ fun SettingsScreen(
             }
             if (state.privateSigningKey != null && state.privateEncryptionKey != null) {
                 Row(
-                    modifier = modifier.padding(vertical = MARGIN_DEFAULT),
+                    modifier = modifier
+                        .padding(vertical = MARGIN_DEFAULT)
+                        .padding(horizontal = MARGIN_DEFAULT),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = {
-
                         val keysString =
                             "${context.getString(R.string.private_encryption_key_hint)}: ${state.privateEncryptionKey}\n\n${
                                 context.getString(R.string.private_signing_key_hint)
@@ -162,6 +170,9 @@ fun SettingsScreen(
                     }
                 }
             }
+            SettingViewHolder(modifier, stringResource(R.string.personal_settings), onClick = {
+                navController.navigate("PersonalSettingsScreen")
+            })
             Spacer(modifier = modifier.weight(1f))
             TextButton(modifier = modifier.fillMaxWidth(),
                 onClick = {
@@ -180,5 +191,17 @@ fun SettingsScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun SettingViewHolder(modifier: Modifier = Modifier, title: String, onClick: () -> Unit) {
+    Row(modifier = modifier
+        .height(SETTING_LIST_ITEM_SIZE)
+        .clickable { onClick() }
+        .padding(horizontal = MARGIN_DEFAULT), verticalAlignment = Alignment.CenterVertically) {
+        Text(title)
+        Spacer(modifier.weight(1f))
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
     }
 }
