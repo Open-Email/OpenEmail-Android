@@ -1,5 +1,8 @@
 package com.mercata.pingworks.settings_screen.personal
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -13,13 +16,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,9 +44,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +60,7 @@ import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.SETTING_LIST_ITEM_SIZE
 import com.mercata.pingworks.common.InputViewHolder
+import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.common.SwitchViewHolder
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,6 +72,13 @@ fun PersonalSettingsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current
+
+    val documentChooserLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            uri?.let {
+                viewModel.setUserImage(it)
+            }
+        }
 
     Scaffold(
         topBar = {
@@ -108,6 +124,25 @@ fun PersonalSettingsScreen(
                 .imePadding()
                 .padding(vertical = MARGIN_DEFAULT)
         ) {
+            val imageModifier = modifier
+                .size(100.dp)
+                .clickable {
+                    documentChooserLauncher.launch(PickVisualMediaRequest(mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly))
+                }
+                .clip(CircleShape)
+                .align(alignment = Alignment.CenterHorizontally)
+            ProfileImage(
+                modifier = imageModifier,
+                imageUrl = state.avatarUrl ?: "",
+                onError = {
+                    Icon(
+                        modifier = imageModifier.padding(MARGIN_DEFAULT),
+                        painter = painterResource(R.drawable.frame_person),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                onLoading = { CircularProgressIndicator(imageModifier) })
             state.localData?.let {
                 Text(
                     it.name,

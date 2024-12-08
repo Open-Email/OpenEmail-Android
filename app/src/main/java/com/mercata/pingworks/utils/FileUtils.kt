@@ -1,6 +1,8 @@
 package com.mercata.pingworks.utils
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.MediaStore
 import android.provider.OpenableColumns
@@ -9,6 +11,7 @@ import androidx.core.net.toFile
 import com.mercata.pingworks.BUFFER_SIZE
 import com.mercata.pingworks.BuildConfig
 import com.mercata.pingworks.models.URLInfo
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -56,6 +59,45 @@ class FileUtils(val context: Context) {
         return null
     }
 
+    fun Uri.getBitmapFromUri(): Bitmap? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(this)
+            BitmapFactory.decodeStream(inputStream)
+        } catch (e: IOException) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    fun Bitmap.resizeImageToMaxSize(maxSize: Int): Bitmap {
+        val width = this.width
+        val height = this.height
+
+        val aspectRatio = width.toFloat() / height.toFloat()
+
+        var newWidth = width
+        var newHeight = height
+
+        if (width > height) {
+            if (width > maxSize) {
+                newWidth = maxSize
+                newHeight = (maxSize / aspectRatio).toInt()
+            }
+        } else {
+            if (height > maxSize) {
+                newHeight = maxSize
+                newWidth = (maxSize * aspectRatio).toInt()
+            }
+        }
+
+        return Bitmap.createScaledBitmap(this, newWidth, newHeight, true)
+    }
+
+    fun Bitmap.getByteArrayFromBitmap(quality: Int = 100): ByteArray {
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        this.compress(Bitmap.CompressFormat.JPEG, quality, byteArrayOutputStream)
+        return byteArrayOutputStream.toByteArray()
+    }
 
     @Throws(IOException::class)
     fun sha256fileSum(

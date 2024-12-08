@@ -1,14 +1,18 @@
 package com.mercata.pingworks.settings_screen.personal
 
+import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
+import com.mercata.pingworks.utils.getProfilePictureUrl
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
 import com.mercata.pingworks.utils.updateCall
+import com.mercata.pingworks.utils.uploadUserImage
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
@@ -38,6 +42,8 @@ class PersonalSettingsViewModel :
             updateState(currentState.copy(loading = false))
         }
     }
+
+    private val fu: FileUtils by inject()
 
     fun onStatusChange(status: String) {
         updateState(currentState.copy(tmpData = currentState.tmpData!!.copy(status = status.takeIf { it.isNotBlank() })))
@@ -130,10 +136,12 @@ class PersonalSettingsViewModel :
     fun saveData() {
         viewModelScope.launch {
             updateState(currentState.copy(loading = true))
-            when(val call = safeApiCall { updateCall(sp.getUserData()!!, currentState.tmpData!!) }) {
+            when (val call =
+                safeApiCall { updateCall(sp.getUserData()!!, currentState.tmpData!!) }) {
                 is HttpResult.Error -> {
                     println(call.message)
                 }
+
                 is HttpResult.Success -> {
                     updateState(currentState.copy(data = currentState.tmpData!!.copy()))
                 }
@@ -158,9 +166,26 @@ class PersonalSettingsViewModel :
         updateState(currentState.copy(tmpData = currentState.tmpData!!.copy(lastSeenPublic = lastSeenPublic)))
     }
 
+    fun setUserImage(uri: Uri) {
+        viewModelScope.launch {
+            updateState(currentState.copy(loading = true))
+            when (val call = safeApiCall { uploadUserImage(uri, sp, fu) }) {
+                is HttpResult.Error -> {
+                    println(call.message)
+                }
+
+                is HttpResult.Success -> {
+                    updateState(currentState.copy(avatarUrl = sp.getUserAddress()?.getProfilePictureUrl()))
+                }
+            }
+            updateState(currentState.copy(loading = false))
+        }
+    }
+
 }
 
 data class PersonalSettingsState(
+    val avatarUrl: String? = null,
     val localData: UserData? = null,
     val data: PublicUserData? = null,
     val tmpData: PublicUserData? = null,

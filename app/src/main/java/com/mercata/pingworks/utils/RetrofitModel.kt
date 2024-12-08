@@ -930,6 +930,23 @@ private suspend fun uploadRootMessage(
     }
 }
 
+suspend fun uploadUserImage(uri: Uri, sp: SharedPreferences, fileUtils: FileUtils): Response<Void> {
+    return withContext(Dispatchers.IO) {
+        val currentUser = sp.getUserData()!!
+
+        val data: ByteArray? = with(fileUtils) {
+            uri.getBitmapFromUri()?.resizeImageToMaxSize(400)?.getByteArrayFromBitmap()
+        }
+
+        getInstance("https://${currentUser.address.getMailHost()}").uploadUserImage(
+            sotnHeader = currentUser.sign(),
+            hostPart = currentUser.address.getHost(),
+            localPart = currentUser.address.getLocal(),
+            body = data!!.toRequestBody("application/octet-stream".toMediaTypeOrNull())
+        )
+    }
+}
+
 private suspend fun uploadFileMessage(
     currentUser: UserData,
     pendingAttachment: DBPendingAttachment,

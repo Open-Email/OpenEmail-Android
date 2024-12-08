@@ -66,6 +66,14 @@ interface RestApi {
         @Body body: RequestBody
     ): Response<Void>
 
+    @PUT("/home/{hostPart}/{localPart}/image")
+    suspend fun uploadUserImage(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+        @Body body: RequestBody
+    ): Response<Void>
+
     @PUT("/mail/{hostPart}/{localPart}/link/{link}/notifications")
     suspend fun notifyAddress(
         @Header("Authorization") sotnHeader: String,
