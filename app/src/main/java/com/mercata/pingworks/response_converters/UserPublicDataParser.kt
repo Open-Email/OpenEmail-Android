@@ -45,12 +45,13 @@ class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
                 it.substringBefore("=").lowercase() to it.substringAfter("=")
             } as Map
 
-        val lastSigningData: Map<String, String>? = map["Last-Signing-Key".lowercase()]?.splitToSequence("; ")
-            ?.associate {
-                it.substringBefore("=").lowercase() to it.substringAfter("=")
-            }
+        val lastSigningData: Map<String, String>? =
+            map["Last-Signing-Key".lowercase()]?.splitToSequence("; ")
+                ?.associate {
+                    it.substringBefore("=").lowercase() to it.substringAfter("=")
+                }
 
-        val rv =  PublicUserData(
+        return PublicUserData(
             address = address,
             fullName = map["Name".lowercase()] ?: "",
             lastSeenPublic = map["Last-Seen-Public".lowercase()] == "Yes",
@@ -72,7 +73,7 @@ class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
             language = map["Languages".lowercase()],
             relationshipStatus = map["Relationship-Status".lowercase()],
             education = map["Education".lowercase()],
-            pacesLived = map["Places-Lived".lowercase()],
+            placesLived = map["Places-Lived".lowercase()],
             notes = map["Notes".lowercase()],
             work = map["Work".lowercase()],
             department = map["Department".lowercase()],
@@ -88,8 +89,6 @@ class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
             location = map["Location".lowercase()],
             phone = map["Phone".lowercase()],
             streams = map["Streams".lowercase()],
-
-            )
-        return rv
+        )
     }
 }

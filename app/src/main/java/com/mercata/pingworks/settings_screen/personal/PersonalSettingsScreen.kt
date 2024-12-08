@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,7 +24,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,13 +40,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -58,6 +51,8 @@ import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.SETTING_LIST_ITEM_SIZE
+import com.mercata.pingworks.common.InputViewHolder
+import com.mercata.pingworks.common.SwitchViewHolder
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -238,7 +233,7 @@ fun PersonalSettingsScreen(
                     InputViewHolder(
                         modifier,
                         focusManager,
-                        localData.pacesLived ?: "",
+                        localData.placesLived ?: "",
                         R.string.pacesLived,
                         state.loading
                     ) { str ->
@@ -364,6 +359,46 @@ fun PersonalSettingsScreen(
 
                 }
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                Category(modifier, R.string.absence) { modifier ->
+                    SwitchViewHolder(
+                        modifier,
+                        state.tmpData?.away == true,
+                        R.string.away
+                    ) {
+                        viewModel.toggleAway(it)
+                    }
+                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                    InputViewHolder(
+                        modifier,
+                        focusManager,
+                        localData.awayWarning ?: "",
+                        R.string.away_warning,
+                        state.loading
+                    ) { str ->
+                        viewModel.onAwayWarningChange(str)
+                    }
+                }
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                Category(modifier, R.string.configuration) { modifier ->
+                    SwitchViewHolder(
+                        modifier,
+                        state.tmpData?.lastSeenPublic == true,
+                        R.string.last_seen_public
+                    ) {
+                        viewModel.toggleLastSeenPublic(it)
+                    }
+                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                    SwitchViewHolder(
+                        modifier,
+                        state.tmpData?.publicAccess == true,
+                        R.string.public_access
+                    ) {
+                        viewModel.togglePublicAccess(it)
+                    }
+                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+
+                }
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
             }
         }
     }
@@ -420,37 +455,4 @@ fun Category(
             }
         }
     }
-}
-
-
-@Composable
-fun InputViewHolder(
-    modifier: Modifier = Modifier,
-    focusManager: FocusManager,
-    value: String,
-    hint: Int,
-    isLoading: Boolean,
-    onChange: (str: String) -> Unit,
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = { str -> onChange(str) },
-        enabled = !isLoading,
-        modifier = modifier
-            .fillMaxWidth(),
-        label = {
-            Text(text = stringResource(hint))
-        },
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Unspecified,
-            imeAction = ImeAction.Done,
-            showKeyboardOnFocus = true,
-            capitalization = KeyboardCapitalization.None
-        ),
-        keyboardActions = KeyboardActions(
-            onDone = {
-                focusManager.clearFocus()
-            }
-        ),
-    )
 }

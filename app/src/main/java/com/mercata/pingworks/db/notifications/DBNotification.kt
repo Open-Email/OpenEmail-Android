@@ -5,7 +5,6 @@ import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import com.mercata.pingworks.contacts_screen.ContactItem
-import com.mercata.pingworks.db.contacts.toPublicUserData
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.utils.Address
 import java.time.Instant
@@ -39,7 +38,7 @@ data class DBNotification(
     @ColumnInfo("language") val language: String?,
     @ColumnInfo("relationship_status") val relationshipStatus: String?,
     @ColumnInfo("education") val education: String?,
-    @ColumnInfo("paces_lived") val pacesLived: String?,
+    @ColumnInfo("places_lived") val placesLived: String?,
     @ColumnInfo("notes") val notes: String?,
     @ColumnInfo("work") val work: String?,
     @ColumnInfo("department") val department: String?,
@@ -89,7 +88,7 @@ fun DBNotification.toPublicUserData(): PublicUserData {
         language = this.language,
         relationshipStatus = this.relationshipStatus,
         education = this.education,
-        pacesLived = this.pacesLived,
+        placesLived = this.placesLived,
         notes = this.notes,
         work = this.work,
         department = this.department,

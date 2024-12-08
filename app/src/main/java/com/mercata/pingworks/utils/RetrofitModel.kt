@@ -145,6 +145,104 @@ suspend fun registerCall(user: UserData): Response<Void> {
     }
 }
 
+suspend fun updateCall(user: UserData, updateData: PublicUserData): Response<Void> {
+    return withContext(Dispatchers.IO) {
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX")
+
+        val postData = arrayListOf(
+            "Name: ${user.name}",
+            "Encryption-Key: id=${user.encryptionKeys.id}; algorithm=$ANONYMOUS_ENCRYPTION_CIPHER; value=${user.encryptionKeys.pair.publicKey.asBytes.encodeToBase64()}",
+            "Signing-Key: algorithm=$SIGNING_ALGORITHM; value=${user.signingKeys.pair.publicKey.asBytes.encodeToBase64()}",
+            "Updated: ${LocalDateTime.now().atOffset(ZoneOffset.UTC).format(formatter)}",
+        )
+
+        updateData.run {
+            publicAccess?.let {
+                postData.add("Public-Access: ${if (it) "Yes" else "No"}")
+            }
+            away?.let {
+                postData.add("Away: ${if (it) "Yes" else "No"}")
+            }
+            awayWarning?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Away-Warning: $it")
+            }
+            status?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Status: $it")
+            }
+            about?.takeIf { it.isNotBlank() }?.let {
+                postData.add("About: $it")
+            }
+            gender?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Gender: $it")
+            }
+            language?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Languages: $it")
+            }
+            relationshipStatus?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Relationship-Status: $it")
+            }
+            education?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Education: $it")
+            }
+            placesLived?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Places-Lived: $it")
+            }
+            notes?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Notes: $it")
+            }
+            work?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Work: $it")
+            }
+            department?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Department: $it")
+            }
+            organization?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Organization: $it")
+            }
+            jobTitle?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Job-Title: $it")
+            }
+            interests?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Interests: $it")
+            }
+            books?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Books: $it")
+            }
+            music?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Music: $it")
+            }
+            movies?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Movies: $it")
+            }
+            sports?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Sports: $it")
+            }
+            website?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Website: $it")
+            }
+            mailingAddress?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Mailing-Address: $it")
+            }
+            location?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Location: $it")
+            }
+            phone?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Phone: $it")
+            }
+            streams?.takeIf { it.isNotBlank() }?.let {
+                postData.add("Streams: $it")
+            }
+        }
+
+        getInstance("https://${user.address.getMailHost()}").register(
+            sotnHeader = user.sign(),
+            hostPart = user.address.getHost(),
+            localPart = user.address.getLocal(),
+            body = postData.joinToString("\n").trimIndent().toRequestBody()
+        )
+    }
+}
+
 suspend fun loginCall(user: UserData): Response<Void> {
     return withContext(Dispatchers.IO) {
         getInstance("https://${user.address.getMailHost()}").login(

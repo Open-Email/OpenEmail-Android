@@ -117,4 +117,10 @@
     <string name="current">Current</string>
     <string name="personal">Personal</string>
     <string name="contacts">Contacts</string>
+    <string name="absence">Absence</string>
+    <string name="away_warning">Away warning</string>
+    <string name="configuration">Configuration</string>
+    <string name="away">Away</string>
+    <string name="last_seen_public">Last seen public</string>
+    <string name="public_access">Public access</string>
 </resources>

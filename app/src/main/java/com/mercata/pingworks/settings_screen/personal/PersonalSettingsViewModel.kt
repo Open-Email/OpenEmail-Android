@@ -8,6 +8,7 @@ import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
+import com.mercata.pingworks.utils.updateCall
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
 
@@ -63,7 +64,7 @@ class PersonalSettingsViewModel :
     }
 
     fun onPacesLivedChange(pacesLived: String) {
-        updateState(currentState.copy(tmpData = currentState.tmpData!!.copy(pacesLived = pacesLived.takeIf { it.isNotBlank() })))
+        updateState(currentState.copy(tmpData = currentState.tmpData!!.copy(placesLived = pacesLived.takeIf { it.isNotBlank() })))
     }
 
     fun onNotesChange(notes: String) {
@@ -127,7 +128,34 @@ class PersonalSettingsViewModel :
     }
 
     fun saveData() {
-        //TODO("Not yet implemented")
+        viewModelScope.launch {
+            updateState(currentState.copy(loading = true))
+            when(val call = safeApiCall { updateCall(sp.getUserData()!!, currentState.tmpData!!) }) {
+                is HttpResult.Error -> {
+                    println(call.message)
+                }
+                is HttpResult.Success -> {
+                    updateState(currentState.copy(data = currentState.tmpData!!.copy()))
+                }
+            }
+            updateState(currentState.copy(loading = false))
+        }
+    }
+
+    fun toggleAway(away: Boolean) {
+        updateState(currentState.copy(tmpData = currentState.tmpData!!.copy(away = away)))
+    }
+
+    fun togglePublicAccess(publicAccess: Boolean) {
+        updateState(currentState.copy(tmpData = currentState.tmpData!!.copy(publicAccess = publicAccess)))
+    }
+
+    fun onAwayWarningChange(awayWarning: String) {
+        updateState(currentState.copy(tmpData = currentState.tmpData!!.copy(awayWarning = awayWarning.takeIf { it.isNotBlank() })))
+    }
+
+    fun toggleLastSeenPublic(lastSeenPublic: Boolean) {
+        updateState(currentState.copy(tmpData = currentState.tmpData!!.copy(lastSeenPublic = lastSeenPublic)))
     }
 
 }

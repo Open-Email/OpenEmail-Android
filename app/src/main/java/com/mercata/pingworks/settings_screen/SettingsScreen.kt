@@ -24,7 +24,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -43,6 +42,7 @@ import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.SETTING_LIST_ITEM_SIZE
+import com.mercata.pingworks.common.SwitchViewHolder
 import com.mercata.pingworks.theme.bodyFontFamily
 
 @Composable
@@ -89,39 +89,13 @@ fun SettingsScreen(
                 .padding(padding)
                 .padding(vertical = MARGIN_DEFAULT)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = MARGIN_DEFAULT)
-            ) {
-                Text(
-                    stringResource(id = R.string.enable_autologin_feature),
-                    fontFamily = bodyFontFamily,
-                    softWrap = true
-                )
-                Spacer(modifier = modifier.weight(1f))
-                Switch(
-                    checked = state.autologinEnabled,
-                    onCheckedChange = { viewModel.toggleAutologin(it) })
+            SwitchViewHolder(modifier, state.autologinEnabled, R.string.enable_autologin_feature) {
+                viewModel.toggleAutologin(it)
             }
 
             if (state.biometryAvailable) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MARGIN_DEFAULT)
-                ) {
-                    Text(
-                        stringResource(id = R.string.enable_biometric_feature),
-                        fontFamily = bodyFontFamily,
-                        softWrap = true
-                    )
-                    Spacer(modifier = modifier.weight(1f))
-                    Switch(
-                        checked = state.biometryEnabled,
-                        onCheckedChange = { viewModel.toggleBiometry(it) })
+                SwitchViewHolder(modifier, state.biometryEnabled, R.string.enable_biometric_feature) {
+                    viewModel.toggleBiometry(it)
                 }
             }
             if (state.privateSigningKey != null && state.privateEncryptionKey != null) {

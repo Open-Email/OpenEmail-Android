@@ -34,7 +34,7 @@ interface RestApi {
         @Path("localPart") localPart: String
     ): Response<Void>
 
-    @POST("/account/{hostPart}/{localPart}")
+    @PUT("/home/{hostPart}/{localPart}/profile")
     suspend fun register(
         @Header("Authorization") sotnHeader: String,
         @Path("hostPart") hostPart: String,
