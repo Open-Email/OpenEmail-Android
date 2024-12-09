@@ -11,11 +11,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.FloatingActionButton
@@ -32,15 +33,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.theme.bodyFontFamily
 import com.mercata.pingworks.utils.getProfilePictureUrl
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 @Composable
 fun SharedTransitionScope.ContactDetailsScreen(
@@ -77,7 +83,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
             }
         }
     ) { padding ->
-        Column {
+        Column(modifier.verticalScroll(rememberScrollState())) {
             Box(
                 contentAlignment = Alignment.BottomCenter,
                 modifier = modifier
@@ -151,7 +157,135 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     checked = state.contact?.receiveBroadcasts ?: false,
                     onCheckedChange = { viewModel.toggleBroadcast() })
             }
-
+            state.contact?.run {
+                Column (modifier.padding(MARGIN_DEFAULT)){
+                    lastSeen?.let {
+                        Text(
+                            "${stringResource(R.string.last_seen)}: ${
+                                ZonedDateTime.ofInstant(
+                                    Instant.parse(it), ZoneId.systemDefault()
+                                ).format(DEFAULT_DATE_TIME_FORMAT)
+                            }",
+                        )
+                    }
+                    if (!status.isNullOrBlank() || !about.isNullOrBlank()) {
+                        Text(
+                            stringResource(R.string.current),
+                            modifier = modifier.padding(
+                                top = MARGIN_DEFAULT,
+                                bottom = MARGIN_DEFAULT / 2
+                            ),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    if (!status.isNullOrBlank()) {
+                        Text("${stringResource(R.string.status)}: $status")
+                    }
+                    if (!about.isNullOrBlank()) {
+                        Text("${stringResource(R.string.about)}: $about")
+                    }
+                    if (!work.isNullOrBlank() || !organization.isNullOrBlank() || !department.isNullOrBlank() || !jobTitle.isNullOrBlank()) {
+                        Text(
+                            stringResource(R.string.work),
+                            modifier = modifier.padding(
+                                top = MARGIN_DEFAULT,
+                                bottom = MARGIN_DEFAULT / 2
+                            ),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    if (!work.isNullOrBlank()) {
+                        Text("${stringResource(R.string.work)}: $work")
+                    }
+                    if (!organization.isNullOrBlank()) {
+                        Text("${stringResource(R.string.organization)}: $organization")
+                    }
+                    if (!department.isNullOrBlank()) {
+                        Text("${stringResource(R.string.department)}: $department")
+                    }
+                    if (!jobTitle.isNullOrBlank()) {
+                        Text("${stringResource(R.string.jobTitle)}: $jobTitle")
+                    }
+                    if (!gender.isNullOrBlank() || !relationshipStatus.isNullOrBlank() || !education.isNullOrBlank() || !language.isNullOrBlank() || !placesLived.isNullOrBlank() || !notes.isNullOrBlank()) {
+                        Text(
+                            stringResource(R.string.personal),
+                            modifier = modifier.padding(
+                                top = MARGIN_DEFAULT,
+                                bottom = MARGIN_DEFAULT / 2
+                            ),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    if (!gender.isNullOrBlank()) {
+                        Text("${stringResource(R.string.gender)}: $gender")
+                    }
+                    if (!relationshipStatus.isNullOrBlank()) {
+                        Text("${stringResource(R.string.relationshipStatus)}: $relationshipStatus")
+                    }
+                    if (!education.isNullOrBlank()) {
+                        Text("${stringResource(R.string.education)}: $education")
+                    }
+                    if (!language.isNullOrBlank()) {
+                        Text("${stringResource(R.string.language)}: $language")
+                    }
+                    if (!placesLived.isNullOrBlank()) {
+                        Text("${stringResource(R.string.placesLived)}: $placesLived")
+                    }
+                    if (!notes.isNullOrBlank()) {
+                        Text("${stringResource(R.string.notes)}: $notes")
+                    }
+                    if (!interests.isNullOrBlank() || !books.isNullOrBlank() || !music.isNullOrBlank() || !movies.isNullOrBlank() || !sports.isNullOrBlank()) {
+                        Text(
+                            stringResource(R.string.interests),
+                            modifier = modifier.padding(
+                                top = MARGIN_DEFAULT,
+                                bottom = MARGIN_DEFAULT / 2
+                            ),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    if (!interests.isNullOrBlank()) {
+                        Text("${stringResource(R.string.interests)}: $interests")
+                    }
+                    if (!books.isNullOrBlank()) {
+                        Text("${stringResource(R.string.books)}: $books")
+                    }
+                    if (!movies.isNullOrBlank()) {
+                        Text("${stringResource(R.string.movies)}: $movies")
+                    }
+                    if (!music.isNullOrBlank()) {
+                        Text("${stringResource(R.string.music)}: $music")
+                    }
+                    if (!sports.isNullOrBlank()) {
+                        Text("${stringResource(R.string.sports)}: $sports")
+                    }
+                    if (!website.isNullOrBlank() || !location.isNullOrBlank() || !mailingAddress.isNullOrBlank() || !phone.isNullOrBlank() || !streams.isNullOrBlank()) {
+                        Text(
+                            stringResource(R.string.contacts),
+                            modifier = modifier.padding(
+                                top = MARGIN_DEFAULT,
+                                bottom = MARGIN_DEFAULT / 2
+                            ),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    if (!website.isNullOrBlank()) {
+                        Text("${stringResource(R.string.website)}: $website")
+                    }
+                    if (!location.isNullOrBlank()) {
+                        Text("${stringResource(R.string.location)}: $location")
+                    }
+                    if (!mailingAddress.isNullOrBlank()) {
+                        Text("${stringResource(R.string.mailingAddress)}: $mailingAddress")
+                    }
+                    if (!phone.isNullOrBlank()) {
+                        Text("${stringResource(R.string.phone)}: $phone")
+                    }
+                    if (!streams.isNullOrBlank()) {
+                        Text("${stringResource(R.string.streams)}: $streams")
+                    }
+                }
+            }
             Spacer(modifier = modifier.height(padding.calculateBottomPadding()))
         }
     }
