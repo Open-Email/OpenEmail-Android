@@ -22,6 +22,7 @@ import com.mercata.pingworks.repository.SendMessageRepository
 import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.SharedPreferences
+import com.mercata.pingworks.utils.revokeMarkedOutboxMessages
 import com.mercata.pingworks.utils.syncAllMessages
 import com.mercata.pingworks.utils.syncContacts
 import com.mercata.pingworks.utils.syncNotifications
@@ -36,6 +37,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
     private val dl: DownloadRepository by inject()
     private val fu: FileUtils by inject()
+    private val sendMessageRepository: SendMessageRepository by inject()
     private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
     private val pendingMessages: ArrayList<DBPendingMessage> = arrayListOf()
     private val draftMessages: ArrayList<DBDraftWithReaders> = arrayListOf()
@@ -60,7 +62,8 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         viewModelScope.launch(Dispatchers.IO) {
             db.messagesDao().getAllAsFlowWithAttachments().collect { dbEntities ->
                 allMessages.clear()
-                allMessages.addAll(dbEntities)
+                allMessages.addAll(dbEntities.filterNot { it.message.message.markedToDelete }
+                    .toList())
                 var unreadBroadcasts = 0
                 var unreadMessages = 0
                 dbEntities.forEach {
@@ -127,7 +130,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     }
 
     fun refresh() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(refreshing = true))
 
             val currentUser = sp.getUserData()!!
@@ -141,7 +144,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 launch {
                     uploadPendingMessages(currentUser, db, fu, sp)
                 },
-                launch(Dispatchers.IO) {
+                launch {
+                    revokeMarkedOutboxMessages(sp.getUserData()!!, db.messagesDao())
+                },
+                launch {
                     dl.getCachedAttachments()
                 }
             ).joinAll()
@@ -212,6 +218,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 is DBDraftWithReaders -> {
                     undoSnackbarResId = R.string.draft_deleted
                 }
+
+                is DBMessageWithDBAttachments -> {
+                    undoSnackbarResId = R.string.message_deleted
+                }
             }
             updateState(currentState.copy(undoDelete = undoSnackbarResId!!))
         }
@@ -234,6 +244,15 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 db.draftDao()
                     .delete((currentState.itemToDelete as DBDraftWithReaders).draft.draftId)
             }
+
+            is DBMessageWithDBAttachments -> {
+                db.messagesDao().update(
+                    (currentState.itemToDelete as DBMessageWithDBAttachments).message.message.copy(
+                        markedToDelete = true
+                    )
+                )
+                sendMessageRepository.revokeMarkedMessages()
+            }
         }
         updateState(currentState.copy(itemToDelete = null))
     }
@@ -243,15 +262,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             when (currentState.itemToDelete) {
                 is CachedAttachment -> {
                     dl.getCachedAttachments()
-                }
-
-                is DBDraftWithReaders -> {
-                    db.draftDao().getAll().let { drafts ->
-                        draftMessages.clear()
-                        draftMessages.addAll(drafts)
-                        currentState.unread[HomeScreen.Drafts] = draftMessages.size
-                        updateList()
-                    }
                 }
             }
             updateState(
@@ -271,14 +281,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     }
 
     fun toggleSelectItem(item: HomeItem) {
-        when (item) {
-            is CachedAttachment -> {
-                if (currentState.selectedItems.contains(item)) {
-                    currentState.selectedItems.remove(item)
-                } else {
-                    currentState.selectedItems.add(item)
-                }
-            }
+        if (currentState.selectedItems.contains(item)) {
+            currentState.selectedItems.remove(item)
+        } else {
+            currentState.selectedItems.add(item)
         }
     }
 

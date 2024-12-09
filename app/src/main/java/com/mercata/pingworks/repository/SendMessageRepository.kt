@@ -6,6 +6,7 @@ import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.SoundPlayer
+import com.mercata.pingworks.utils.revokeMarkedOutboxMessages
 import com.mercata.pingworks.utils.syncAllMessages
 import com.mercata.pingworks.utils.uploadMessage
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -45,6 +46,13 @@ class SendMessageRepository(
             db.draftDao().delete(draftId)
             _sendingState.value = false
             syncAllMessages(db, sp, dl)
+        }
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
+    fun revokeMarkedMessages() {
+        GlobalScope.launch(Dispatchers.IO) {
+            revokeMarkedOutboxMessages(sp.getUserData()!!, db.messagesDao())
         }
     }
 }

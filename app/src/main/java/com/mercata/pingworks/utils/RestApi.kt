@@ -153,6 +153,16 @@ interface RestApi {
         @Body file: RequestBody
     ): Response<Void>
 
+    @DELETE("/home/{hostPart}/{localPart}/messages/{messageId}")
+    @Headers("Content-Type: application/octet-stream")
+    suspend fun revokeMessage(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+        @Path("messageId") messageId: String,
+    ): Response<Void>
+
+
     @GET("/home/{hostPart}/{localPart}/notifications")
     @Headers("Content-Type: application/octet-stream")
     suspend fun getNotifications(

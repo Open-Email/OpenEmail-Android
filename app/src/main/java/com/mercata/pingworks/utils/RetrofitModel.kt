@@ -1058,7 +1058,8 @@ suspend fun saveMessagesToDb(
                     isBroadcast = it.first.isBroadcast(),
                     timestamp = it.first.contentHeaders.date.toEpochMilli(),
                     readerAddresses = it.first.contentHeaders.readersAddresses?.joinToString(","),
-                    isUnread = !sp.isFirstTime() && sp.getUserAddress() != it.first.contact.address
+                    isUnread = !sp.isFirstTime() && sp.getUserAddress() != it.first.contact.address,
+                    markedToDelete = false
                 )
             })
         attachmentsDao.insertAll(attachments)
@@ -1143,6 +1144,34 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
                 }
             }
         }
+    }
+}
+
+suspend fun revokeMarkedOutboxMessages(currentUser: UserData, dao: MessagesDao) {
+    withContext(Dispatchers.IO) {
+        val successfullyRevokedMessages: List<DBMessage> =
+            dao.getAll().filter { it.markedToDelete }.map { message ->
+                async {
+                    when (safeApiCall { removeSentMessage(currentUser, message) }) {
+                        is HttpResult.Error -> null
+                        is HttpResult.Success -> message
+                    }
+                }
+            }.awaitAll().filterNotNull()
+
+        dao.deleteList(successfullyRevokedMessages)
+    }
+
+}
+
+suspend fun removeSentMessage(currentUser: UserData, message: DBMessage): Response<Void> {
+    return withContext(Dispatchers.IO) {
+        getInstance("https://${currentUser.address.getMailHost()}").revokeMessage(
+            sotnHeader = currentUser.sign(),
+            hostPart = currentUser.address.getHost(),
+            localPart = currentUser.address.getLocal(),
+            messageId = message.messageId
+        )
     }
 }
 

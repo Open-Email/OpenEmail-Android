@@ -344,7 +344,18 @@ fun SharedTransitionScope.HomeScreen(
                         SwipeContainer(modifier = modifier.animateItem(),
                             item = item,
                             onDelete = when (item) {
-                                is CachedAttachment, is DBDraftWithReaders -> {
+                                is DBMessageWithDBAttachments -> {
+                                    if (state.screen == HomeScreen.Outbox) {
+                                        {
+                                            viewModel.deleteItem(item)
+                                        }
+                                    } else {
+                                        null
+                                    }
+                                }
+
+                                is CachedAttachment,
+                                is DBDraftWithReaders -> {
                                     {
                                         viewModel.deleteItem(item)
                                     }
