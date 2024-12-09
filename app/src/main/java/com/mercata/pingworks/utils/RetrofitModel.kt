@@ -234,7 +234,7 @@ suspend fun updateCall(user: UserData, updateData: PublicUserData): Response<Voi
             }
         }
 
-        getInstance("https://${user.address.getMailHost()}").register(
+        getInstance("https://${user.address.getMailHost()}").updateUser(
             sotnHeader = user.sign(),
             hostPart = user.address.getHost(),
             localPart = user.address.getLocal(),

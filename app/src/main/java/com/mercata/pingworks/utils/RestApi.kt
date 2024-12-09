@@ -34,8 +34,16 @@ interface RestApi {
         @Path("localPart") localPart: String
     ): Response<Void>
 
-    @PUT("/home/{hostPart}/{localPart}/profile")
+    @POST("/account/{hostPart}/{localPart}")
     suspend fun register(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+        @Body body: RequestBody
+    ): Response<Void>
+
+    @PUT("/home/{hostPart}/{localPart}/profile")
+    suspend fun updateUser(
         @Header("Authorization") sotnHeader: String,
         @Path("hostPart") hostPart: String,
         @Path("localPart") localPart: String,
