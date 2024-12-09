@@ -179,6 +179,12 @@ fun SharedTransitionScope.ComposingScreen(
         }
     }
 
+    LaunchedEffect(state.intentAttachments) {
+        state.intentAttachments?.let {
+            viewModel.consumeIntentAttachments()
+        }
+    }
+
     Box {
         Scaffold(
             snackbarHost = {

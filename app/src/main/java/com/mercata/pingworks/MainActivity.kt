@@ -2,6 +2,9 @@
 
 package com.mercata.pingworks
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -13,6 +16,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,8 +33,13 @@ import com.mercata.pingworks.settings_screen.SettingsScreen
 import com.mercata.pingworks.settings_screen.personal.PersonalSettingsScreen
 import com.mercata.pingworks.sign_in.SignInScreen
 import com.mercata.pingworks.theme.AppTheme
+import com.mercata.pingworks.utils.getMimeType
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var navController: NavHostController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +47,7 @@ class MainActivity : AppCompatActivity() {
         setContent {
             AppTheme {
                 SharedTransitionLayout {
-                    val navController = rememberNavController()
+                    navController = rememberNavController()
                     NavHost(
                         enterTransition = {
                             slideIntoContainer(
@@ -139,7 +148,7 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                         composable(
-                            route = "ComposingScreen/{contactAddress}/{replyMessageId}/{draftId}",
+                            route = "ComposingScreen/{contactAddress}/{replyMessageId}/{draftId}/{attachmentUri}",
                             arguments = listOf(
                                 navArgument("contactAddress") {
                                     type = NavType.StringType
@@ -150,6 +159,10 @@ class MainActivity : AppCompatActivity() {
                                     nullable = true
                                 },
                                 navArgument("draftId") {
+                                    type = NavType.StringType
+                                    nullable = true
+                                },
+                                navArgument("attachmentUri") {
                                     type = NavType.StringType
                                     nullable = true
                                 },
@@ -167,6 +180,40 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+            processNewIntent()
         }
+    }
+
+    private fun processNewIntent() {
+        val uris: ArrayList<Uri> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent?.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            intent?.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+        } ?: arrayListOf()
+
+        if (uris.isEmpty()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent?.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)?.let {
+                    uris.add(it)
+                }
+            } else {
+                intent?.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)?.let {
+                    uris.add(it)
+                }
+            }
+        }
+
+        val fileUris =
+            uris.filter { it.getMimeType(this) != null }.takeIf { it.isNotEmpty() } ?: return
+        navController.navigate(
+            "ComposingScreen/null/null/null/${
+                fileUris.joinToString(",") {
+                    URLEncoder.encode(
+                        it.toString(),
+                        StandardCharsets.UTF_8.toString()
+                    )
+                }
+            }"
+        )
     }
 }

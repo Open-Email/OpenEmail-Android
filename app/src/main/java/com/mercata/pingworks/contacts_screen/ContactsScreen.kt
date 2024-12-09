@@ -153,7 +153,7 @@ fun SharedTransitionScope.ContactsScreen(
             state.selectedContacts.joinToString(
                 ","
             ) { it.address }
-        }/null/null")
+        }/null/null/null")
     }
 
     Box {

@@ -320,7 +320,7 @@ fun SharedTransitionScope.HomeScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     onClick = {
-                        navController.navigate("ComposingScreen/null/null/null")
+                        navController.navigate("ComposingScreen/null/null/null/null")
                     }) {
                     Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
                 }
@@ -398,7 +398,7 @@ fun SharedTransitionScope.HomeScreen(
                                         }
 
                                         is DBDraftWithReaders -> navController.navigate(
-                                            "ComposingScreen/null/${state.screen.outbox}/${message.draft.draftId}",
+                                            "ComposingScreen/null/${state.screen.outbox}/${message.draft.draftId}/null",
                                         )
 
                                         else -> navController.navigate(

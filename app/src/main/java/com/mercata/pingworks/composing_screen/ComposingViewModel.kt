@@ -32,11 +32,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import java.util.UUID
 
 class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     AbstractViewModel<ComposingState>(
-        ComposingState()
+        ComposingState(intentAttachments = savedStateHandle.get<String>("attachmentUri"))
     ) {
 
     init {
@@ -79,7 +81,9 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             launch { consumeReplyMessage() }
             launch {
                 currentState.contacts.clear()
-                currentState.contacts.addAll(db.userDao().getAll().filterNot { it.address == sp.getUserAddress() }.toList())
+                currentState.contacts.addAll(
+                    db.userDao().getAll().filterNot { it.address == sp.getUserAddress() }.toList()
+                )
             }
         }
     }
@@ -206,7 +210,9 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                 syncContacts(sp, db.userDao())
                 if (getNonSyncedContacts().isEmpty()) {
                     sendMessageRepository.send(
-                        draftId, currentState.broadcast, savedStateHandle.get<String>("replyMessageId")
+                        draftId,
+                        currentState.broadcast,
+                        savedStateHandle.get<String>("replyMessageId")
                     )
                     updateState(currentState.copy(sent = true))
                 } else {
@@ -360,6 +366,17 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     fun clearAddressField() {
         updateState(currentState.copy(addressFieldText = ""))
     }
+
+    fun consumeIntentAttachments() {
+        val intentUris = URLDecoder.decode(
+            currentState.intentAttachments ?: "",
+            StandardCharsets.UTF_8.toString()
+        ).split(",").map { Uri.parse(it) }
+        addAttachments(intentUris)
+        updateState(
+            currentState.copy(intentAttachments = null)
+        )
+    }
 }
 
 data class ComposingState(
@@ -369,6 +386,7 @@ data class ComposingState(
     val openedAddressDetails: PublicUserData? = null,
     val replyMessage: MessageWithAuthor? = null,
     val body: String = "",
+    val intentAttachments: String? = null,
     val addressFieldText: Address = "",
     val recipients: SnapshotStateList<PublicUserData> = mutableStateListOf(),
     val contacts: SnapshotStateList<DBContact> = mutableStateListOf(),
