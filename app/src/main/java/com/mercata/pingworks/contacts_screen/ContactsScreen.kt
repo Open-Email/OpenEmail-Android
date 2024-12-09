@@ -26,9 +26,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -75,6 +77,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -87,6 +90,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.CONTACT_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
+import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
+import com.mercata.pingworks.DEFAULT_LIST_ITEM_STATUS_ICON_SIZE
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
@@ -97,6 +102,8 @@ import com.mercata.pingworks.home_screen.SwipeContainer
 import com.mercata.pingworks.utils.getProfilePictureUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 @Composable
 fun SharedTransitionScope.ContactsScreen(
@@ -244,12 +251,13 @@ fun SharedTransitionScope.ContactsScreen(
                                 },
                                 onClick = { person ->
                                     if (state.selectedContacts.isEmpty()) {
-                                        when(person) {
+                                        when (person) {
                                             is DBContact -> {
                                                 navController.navigate(
                                                     "ContactDetailsScreen/${person.address}"
                                                 )
                                             }
+
                                             is DBNotification -> {
                                                 viewModel.openNotificationDetails(person)
                                             }
@@ -286,19 +294,25 @@ fun SharedTransitionScope.ContactsScreen(
                             .clip(CircleShape)
                             .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                     ) {
-                        ProfileImage(modifier = modifier, imageUrl = it.address.getProfilePictureUrl(), onError = {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = stringResource(id = R.string.profile_image)
-                            )
-                        })
+                        ProfileImage(
+                            modifier = modifier,
+                            imageUrl = it.address.getProfilePictureUrl(),
+                            onError = {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = stringResource(id = R.string.profile_image)
+                                )
+                            })
                     }
                 },
                 title = {
                     Text(text = it.name)
                 },
                 text = {
-                    Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        modifier = modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
                             text = it.address,
                             textAlign = TextAlign.Center
@@ -522,17 +536,18 @@ fun AddContactDialog(
     AlertDialog(
         icon = {
             if (state.loading) {
-                CircularProgressIndicator(modifier = modifier.size(24.0.dp))
+                CircularProgressIndicator(modifier = modifier.size(
+                    MESSAGE_LIST_ITEM_IMAGE_SIZE))
             } else {
                 ProfileImage(
                     modifier
                         .clip(CircleShape)
-                        .size(24.0.dp),
+                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
                     state.existingContactFound?.address?.getProfilePictureUrl() ?: "",
                     onError = { modifier ->
                         Icon(
                             Icons.Default.Person,
-                            modifier = modifier.size(24.0.dp),
+                            modifier = modifier.size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
                             contentDescription = stringResource(id = R.string.add_new_contact)
                         )
                     })
@@ -572,11 +587,142 @@ fun AddContactDialog(
                 )
             } else {
                 Column(
-                    modifier = modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = modifier
+                        .verticalScroll(rememberScrollState())
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    Text(state.existingContactFound.fullName)
-                    Text(state.existingContactFound.address)
+                    with(state.existingContactFound) {
+                        Text(fullName, modifier.align(alignment = Alignment.CenterHorizontally))
+                        Text(address, modifier.align(alignment = Alignment.CenterHorizontally))
+                        lastSeen?.let {
+
+                            Text(
+                                "${stringResource(R.string.last_seen)}: ${
+                                    ZonedDateTime.ofInstant(
+                                        it, ZoneId.systemDefault()
+                                    ).format(DEFAULT_DATE_TIME_FORMAT)
+                                }",
+                                modifier.align(alignment = Alignment.CenterHorizontally)
+                            )
+                        }
+                        if (!status.isNullOrBlank() || !about.isNullOrBlank()) {
+                            Text(
+                                stringResource(R.string.current),
+                                modifier = modifier.padding(
+                                    top = MARGIN_DEFAULT,
+                                    bottom = MARGIN_DEFAULT / 2
+                                ),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (!status.isNullOrBlank()) {
+                            Text("${stringResource(R.string.status)}: $status")
+                        }
+                        if (!about.isNullOrBlank()) {
+                            Text("${stringResource(R.string.about)}: $about")
+                        }
+                        if (!work.isNullOrBlank() || !organization.isNullOrBlank() || !department.isNullOrBlank() || !jobTitle.isNullOrBlank()) {
+                            Text(
+                                stringResource(R.string.work),
+                                modifier = modifier.padding(
+                                    top = MARGIN_DEFAULT,
+                                    bottom = MARGIN_DEFAULT / 2
+                                ),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (!work.isNullOrBlank()) {
+                            Text("${stringResource(R.string.work)}: $work")
+                        }
+                        if (!organization.isNullOrBlank()) {
+                            Text("${stringResource(R.string.organization)}: $organization")
+                        }
+                        if (!department.isNullOrBlank()) {
+                            Text("${stringResource(R.string.department)}: $department")
+                        }
+                        if (!jobTitle.isNullOrBlank()) {
+                            Text("${stringResource(R.string.jobTitle)}: $jobTitle")
+                        }
+                        if (!gender.isNullOrBlank() || !relationshipStatus.isNullOrBlank() || !education.isNullOrBlank() || !language.isNullOrBlank() || !placesLived.isNullOrBlank() || !notes.isNullOrBlank()) {
+                            Text(
+                                stringResource(R.string.personal),
+                                modifier = modifier.padding(
+                                    top = MARGIN_DEFAULT,
+                                    bottom = MARGIN_DEFAULT / 2
+                                ),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (!gender.isNullOrBlank()) {
+                            Text("${stringResource(R.string.gender)}: $gender")
+                        }
+                        if (!relationshipStatus.isNullOrBlank()) {
+                            Text("${stringResource(R.string.relationshipStatus)}: $relationshipStatus")
+                        }
+                        if (!education.isNullOrBlank()) {
+                            Text("${stringResource(R.string.education)}: $education")
+                        }
+                        if (!language.isNullOrBlank()) {
+                            Text("${stringResource(R.string.language)}: $language")
+                        }
+                        if (!placesLived.isNullOrBlank()) {
+                            Text("${stringResource(R.string.placesLived)}: $placesLived")
+                        }
+                        if (!notes.isNullOrBlank()) {
+                            Text("${stringResource(R.string.notes)}: $notes")
+                        }
+                        if (!interests.isNullOrBlank() || !books.isNullOrBlank() || !music.isNullOrBlank() || !movies.isNullOrBlank() || !sports.isNullOrBlank()) {
+                            Text(
+                                stringResource(R.string.interests),
+                                modifier = modifier.padding(
+                                    top = MARGIN_DEFAULT,
+                                    bottom = MARGIN_DEFAULT / 2
+                                ),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (!interests.isNullOrBlank()) {
+                            Text("${stringResource(R.string.interests)}: $interests")
+                        }
+                        if (!books.isNullOrBlank()) {
+                            Text("${stringResource(R.string.books)}: $books")
+                        }
+                        if (!movies.isNullOrBlank()) {
+                            Text("${stringResource(R.string.movies)}: $movies")
+                        }
+                        if (!music.isNullOrBlank()) {
+                            Text("${stringResource(R.string.music)}: $music")
+                        }
+                        if (!sports.isNullOrBlank()) {
+                            Text("${stringResource(R.string.sports)}: $sports")
+                        }
+                        if (!website.isNullOrBlank() || !location.isNullOrBlank() || !mailingAddress.isNullOrBlank() || !phone.isNullOrBlank() || !streams.isNullOrBlank()) {
+                            Text(
+                                stringResource(R.string.contacts),
+                                modifier = modifier.padding(
+                                    top = MARGIN_DEFAULT,
+                                    bottom = MARGIN_DEFAULT / 2
+                                ),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (!website.isNullOrBlank()) {
+                            Text("${stringResource(R.string.website)}: $website")
+                        }
+                        if (!location.isNullOrBlank()) {
+                            Text("${stringResource(R.string.location)}: $location")
+                        }
+                        if (!mailingAddress.isNullOrBlank()) {
+                            Text("${stringResource(R.string.mailingAddress)}: $mailingAddress")
+                        }
+                        if (!phone.isNullOrBlank()) {
+                            Text("${stringResource(R.string.phone)}: $phone")
+                        }
+                        if (!streams.isNullOrBlank()) {
+                            Text("${stringResource(R.string.streams)}: $streams")
+                        }
+                    }
                 }
             }
         },

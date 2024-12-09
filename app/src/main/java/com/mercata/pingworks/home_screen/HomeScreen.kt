@@ -362,7 +362,6 @@ fun SharedTransitionScope.HomeScreen(
                                 else -> null
                             }) {
                             MessageViewHolder(item = item,
-                                isDrawerOpen = drawerState.isOpen || drawerState.isAnimationRunning,
                                 currentUser = state.currentUser!!,
                                 animatedVisibilityScope = animatedVisibilityScope,
                                 onMessageSelected = when (item) {
@@ -422,7 +421,6 @@ fun SharedTransitionScope.HomeScreen(
 @Composable
 fun SharedTransitionScope.MessageViewHolder(
     currentUser: UserData,
-    isDrawerOpen: Boolean,
     item: HomeItem,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
@@ -461,12 +459,6 @@ fun SharedTransitionScope.MessageViewHolder(
         ) {
             Box(
                 contentAlignment = Alignment.Center, modifier = modifier
-                    .sharedBounds(
-                        sharedContentState = rememberSharedContentState(
-                            key = "message_image/${item.getMessageId()}"
-                        ),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                    )
                     .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
                     .clickable {
                         onMessageSelected?.invoke(item)
@@ -502,17 +494,7 @@ fun SharedTransitionScope.MessageViewHolder(
 
                         else -> {
                             ProfileImage(
-                                modifier
-                                    .let {
-                                        if (!isDrawerOpen) {
-                                            it.sharedBounds(
-                                                sharedContentState = rememberSharedContentState(
-                                                    key = "message_image/${item.getMessageId()}"
-                                                ),
-                                                animatedVisibilityScope = animatedVisibilityScope,
-                                            )
-                                        } else it
-                                    }.size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                modifier.size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                                     .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
                                 item.getContacts().firstOrNull()?.address?.getProfilePictureUrl() ?: "",
                                 onError = { _ ->

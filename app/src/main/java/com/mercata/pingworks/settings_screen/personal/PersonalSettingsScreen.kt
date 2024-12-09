@@ -269,7 +269,7 @@ fun PersonalSettingsScreen(
                         modifier,
                         focusManager,
                         localData.placesLived ?: "",
-                        R.string.pacesLived,
+                        R.string.placesLived,
                         state.loading
                     ) { str ->
                         viewModel.onPacesLivedChange(str)

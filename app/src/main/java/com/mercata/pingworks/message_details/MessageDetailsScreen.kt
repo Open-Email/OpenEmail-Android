@@ -217,12 +217,6 @@ fun SharedTransitionScope.MessageDetailsScreen(
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = modifier
-                            .sharedBounds(
-                                sharedContentState = rememberSharedContentState(
-                                    key = "message_image/${state.messageId}"
-                                ),
-                                animatedVisibilityScope = animatedVisibilityScope,
-                            )
                             .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
                             .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                             .background(MaterialTheme.colorScheme.primary)
