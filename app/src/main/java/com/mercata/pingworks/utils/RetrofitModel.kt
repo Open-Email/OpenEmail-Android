@@ -1016,7 +1016,7 @@ suspend fun saveMessagesToDb(
 
         messagesDao.deleteList(removed)
 
-        val envelopesPair = newResults.partition { envelope -> envelope.isRootMessage() }
+        val envelopesPair = results.partition { envelope -> envelope.isRootMessage() }
 
         val rootEnvelopes = envelopesPair.first
         val attachmentEnvelopes = envelopesPair.second
@@ -1026,7 +1026,8 @@ suspend fun saveMessagesToDb(
         val attachments: List<DBAttachment> = rootMessages.map { root ->
             val headers = root.first.contentHeaders
             headers.fileParts?.filter { fileInfo ->
-                attachmentEnvelopes.firstOrNull { it.messageId == fileInfo.messageId }?.accessKey != null
+                attachmentEnvelopes.firstOrNull { it.messageId == fileInfo.messageId }
+                    ?.takeIf { it.isBroadcast() || it.accessKey != null } != null
             }?.map { fileInfo ->
                 DBAttachment(
                     attachmentMessageId = fileInfo.messageId,

@@ -60,6 +60,7 @@ fun Uri.getMimeType(context: Context): String? {
         "file" -> MimeTypeMap.getSingleton().getMimeTypeFromExtension(
             MimeTypeMap.getFileExtensionFromUrl(this.toString())
         )
+
         else -> null
     }
 }
@@ -82,10 +83,11 @@ fun ContentHeaders.seal(
     isBroadcast: Boolean
 ): Map<String, String> {
 
-    val contentHeaderBytes = encrypt_xchacha20poly1305(
-        this.contentHeadersText.toByteArray(),
-        accessKey
-    )!!
+    val contentHeaderBytes =
+        if (isBroadcast) this.contentHeadersText.toByteArray() else encrypt_xchacha20poly1305(
+            this.contentHeadersText.toByteArray(),
+            accessKey
+        )!!
     val envelopeHeadersMap = hashMapOf(
         HEADER_MESSAGE_ID to messageId
     )
