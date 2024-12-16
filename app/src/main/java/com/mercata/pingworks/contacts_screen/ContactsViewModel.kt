@@ -61,12 +61,8 @@ class ContactsViewModel : AbstractViewModel<ContactsState>(ContactsState()) {
     private val downloadRepository: DownloadRepository by inject()
 
     fun onNewContactAddressInput(str: String) {
-        updateState(
-            currentState.copy(
-                newContactAddressInput = str,
-                searchButtonActive = emailValid()
-            )
-        )
+        updateState(currentState.copy(newContactAddressInput = str))
+        updateState(currentState.copy(searchButtonActive = emailValid()))
     }
 
     fun searchNewContact() {

@@ -234,7 +234,7 @@ fun SharedTransitionScope.ComposingScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
-                        IconButton(enabled = (!state.loading && state.recipients.isNotEmpty()) || state.broadcast,
+                        IconButton(enabled = !state.loading,
                             onClick = {
                                 focusManager.clearFocus()
                                 viewModel.send()
@@ -245,10 +245,7 @@ fun SharedTransitionScope.ComposingScreen(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Send,
                                     contentDescription = stringResource(id = R.string.send),
-                                    tint = if (state.recipients.isNotEmpty())
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        MaterialTheme.colorScheme.primaryContainer
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }

@@ -91,7 +91,6 @@ import androidx.navigation.NavController
 import com.mercata.pingworks.CONTACT_LIST_ITEM_HEIGHT
 import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
-import com.mercata.pingworks.DEFAULT_LIST_ITEM_STATUS_ICON_SIZE
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
