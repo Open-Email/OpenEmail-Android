@@ -8,6 +8,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,21 +19,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,20 +39,20 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -62,8 +60,8 @@ import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.animationDuration
+import com.mercata.pingworks.common.Logo
 import com.mercata.pingworks.theme.roboto
-import com.mercata.pingworks.theme.displayFontFamily
 import kotlinx.coroutines.delay
 
 @Composable
@@ -86,6 +84,15 @@ fun SignInScreen(
         }
     }
 
+    LaunchedEffect(key1 = state.keysInputOpen) {
+        focusManager.clearFocus()
+        if (state.keysInputOpen) {
+            delay(animationDuration.toLong())
+            viewModel.openInputKeys()
+            encryptionFocusRequester.requestFocus()
+        }
+    }
+
     BiometryEffect(
         isShown = state.biometryShown,
         onPassed = { viewModel.biometryPassed() },
@@ -99,64 +106,56 @@ fun SignInScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = modifier
                     .fillMaxSize()
-                    .padding(horizontal = MARGIN_DEFAULT)
                     .imePadding()
                     .verticalScroll(rememberScrollState())
 
             ) {
-                Spacer(
-                    modifier = modifier
-                        .weight(0.3f)
-                        .defaultMinSize(minHeight = padding.calculateTopPadding() + MARGIN_DEFAULT)
-                )
-                Icon(
-                    Icons.Default.Email,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = modifier.size(100.dp),
-                    contentDescription = null
-                )
-                Text(
-                    stringResource(id = R.string.app_name),
-                    fontFamily = displayFontFamily,
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.displayMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                Text(
-                    stringResource(id = R.string.onboarding_title),
-                    fontFamily = roboto,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    stringResource(id = R.string.onboarding_text),
-                    textAlign = TextAlign.Center,
-                    fontFamily = roboto,
-                )
-                Spacer(modifier = modifier.weight(0.3f))
-
-                LaunchedEffect(key1 = state.keysInputOpen) {
-                    focusManager.clearFocus()
-                    if (state.keysInputOpen) {
-                        delay(animationDuration.toLong())
-                        viewModel.openInputKeys()
-                        encryptionFocusRequester.requestFocus()
-                    }
+                Box(
+                    modifier
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                    Color.Transparent,
+                                )
+                            )
+                        )
+                        .fillMaxWidth()
+                        .weight(1.5f)
+                        .defaultMinSize(minHeight = padding.calculateTopPadding() + MARGIN_DEFAULT),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Logo(
+                        modifier
+                            .padding(top = padding.calculateTopPadding())
+                    )
                 }
 
+                Text(
+                    stringResource(id = R.string.login_title),
+                    modifier
+                        .padding(horizontal = MARGIN_DEFAULT)
+                        .align(AbsoluteAlignment.Left),
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT / 2))
+                Text(
+                    stringResource(id = R.string.onboarding_text),
+                    modifier
+                        .padding(horizontal = MARGIN_DEFAULT)
+                        .align(AbsoluteAlignment.Left),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT * 2))
                 OutlinedTextField(
                     value = state.emailInput,
                     onValueChange = { str -> viewModel.onEmailChange(str) },
                     singleLine = true,
                     isError = state.emailErrorResId != null,
                     enabled = !state.loading,
-                    shape = RoundedCornerShape(50.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedContainerColor = Color.Red
-                    ),
+                    shape = CircleShape,
                     modifier = modifier
+                        .padding(horizontal = MARGIN_DEFAULT)
                         .fillMaxWidth()
                         .focusRequester(addressFocusRequester),
                     supportingText = {
@@ -185,9 +184,8 @@ fun SignInScreen(
                         onNext = {
                             viewModel.signInClicked()
                         }
-                    ),
-
                     )
+                )
                 AnimatedVisibility(
                     visible = !state.keysInputOpen,
                     enter = fadeIn(animationSpec = tween(durationMillis = animationDuration)) + expandVertically(
@@ -197,9 +195,11 @@ fun SignInScreen(
                         animationSpec = tween(durationMillis = animationDuration)
                     )
                 ) {
-
                     Button(
-                        modifier = modifier.padding(top = MARGIN_DEFAULT),
+                        modifier = modifier
+                            .padding(horizontal = MARGIN_DEFAULT)
+                            .padding(top = MARGIN_DEFAULT)
+                            .fillMaxWidth(),
                         onClick = { viewModel.signInClicked() },
                         enabled = !state.loading && state.signInButtonActive
                     ) {
@@ -209,7 +209,6 @@ fun SignInScreen(
                         )
                     }
                 }
-                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                 AnimatedVisibility(
                     visible = state.keysInputOpen,
                     enter = fadeIn(animationSpec = tween(durationMillis = animationDuration)) + expandVertically(
@@ -227,9 +226,11 @@ fun SignInScreen(
                             value = state.privateEncryptionKeyInput,
                             onValueChange = { str -> viewModel.onPrivateEncryptionKeyInput(str) },
                             singleLine = true,
+                            shape = CircleShape,
                             enabled = !state.loading,
                             modifier = modifier
                                 .fillMaxWidth()
+                                .padding(horizontal = MARGIN_DEFAULT)
                                 .focusRequester(encryptionFocusRequester),
                             label = {
                                 Text(
@@ -254,8 +255,10 @@ fun SignInScreen(
                             value = state.privateSigningKeyInput,
                             onValueChange = { str -> viewModel.onPrivateSigningKeyInput(str) },
                             singleLine = true,
+                            shape = CircleShape,
                             enabled = !state.loading,
                             modifier = modifier
+                                .padding(horizontal = MARGIN_DEFAULT)
                                 .fillMaxWidth()
                                 .focusRequester(signingFocusRequester),
                             label = {
@@ -278,12 +281,14 @@ fun SignInScreen(
                         )
                         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                         Button(
+                            modifier = modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = MARGIN_DEFAULT),
                             onClick = { viewModel.authenticateWithKeys() },
                             enabled = !state.loading && state.authenticateButtonEnabled
                         ) {
                             Text(
                                 stringResource(id = R.string.sign_in_button),
-                                fontFamily = roboto
                             )
                         }
                         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
@@ -295,19 +300,29 @@ fun SignInScreen(
                         CircularProgressIndicator()
                 }
                 Text(
+
                     String.format(
                         stringResource(id = R.string.no_account_question),
                         stringResource(id = R.string.app_name)
                     ),
-                    textAlign = TextAlign.Center,
-                    fontFamily = roboto,
+                    modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                TextButton(onClick = {
-                    navController.navigate("RegistrationScreen")
-                }, enabled = !state.loading) {
+                Spacer(modifier.height(MARGIN_DEFAULT))
+                Button(
+                    modifier = modifier.fillMaxWidth().padding(horizontal = MARGIN_DEFAULT),
+                    colors = ButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        disabledContainerColor = Color.Transparent,
+                        disabledContentColor = MaterialTheme.colorScheme.surfaceVariant
+                    ), onClick = {
+                        navController.navigate("RegistrationScreen")
+                    }, enabled = !state.loading
+                ) {
                     Text(
                         stringResource(id = R.string.registration_button),
-                        fontFamily = roboto
                     )
                 }
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT + padding.calculateBottomPadding()))

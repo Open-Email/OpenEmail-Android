@@ -125,4 +125,5 @@
     <string name="public_access">Public access</string>
     <string name="last_seen">Last seen</string>
     <string name="message_deleted">Message deleted</string>
+    <string name="login_title">Let’s make the future today</string>
 </resources>

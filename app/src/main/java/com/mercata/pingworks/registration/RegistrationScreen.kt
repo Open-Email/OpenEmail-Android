@@ -53,7 +53,6 @@ import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.sign_in.RequestErrorDialog
 import com.mercata.pingworks.theme.roboto
-import com.mercata.pingworks.theme.displayFontFamily
 
 @Composable
 fun RegistrationScreen(
@@ -96,7 +95,6 @@ fun RegistrationScreen(
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                 Text(
                     stringResource(id = R.string.registration_title),
-                    fontFamily = displayFontFamily,
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold

@@ -1,5 +1,6 @@
 package com.mercata.pingworks.theme
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -17,6 +18,13 @@ val provider = GoogleFont.Provider(
 val roboto = FontFamily(
     Font(
         googleFont = GoogleFont("Roboto"),
+        fontProvider = provider,
+    )
+)
+
+val lexend = FontFamily(
+    Font(
+        googleFont = GoogleFont("Lexend"),
         fontProvider = provider,
     )
 )

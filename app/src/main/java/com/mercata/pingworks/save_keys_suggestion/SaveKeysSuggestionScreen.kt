@@ -48,7 +48,6 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.animationDuration
 import com.mercata.pingworks.sign_in.BiometryEffect
 import com.mercata.pingworks.theme.roboto
-import com.mercata.pingworks.theme.displayFontFamily
 
 @Composable
 fun SaveKeysSuggestionScreen(
@@ -95,7 +94,6 @@ fun SaveKeysSuggestionScreen(
 
             Text(
                 stringResource(id = R.string.registered_title),
-                fontFamily = displayFontFamily,
                 style = MaterialTheme.typography.displayMedium,
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold

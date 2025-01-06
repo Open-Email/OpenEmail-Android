@@ -112,7 +112,6 @@ import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.theme.roboto
-import com.mercata.pingworks.theme.displayFontFamily
 import com.mercata.pingworks.utils.getProfilePictureUrl
 import kotlinx.coroutines.launch
 
@@ -689,7 +688,6 @@ fun EmptyPlaceholder(modifier: Modifier = Modifier, screen: HomeScreen) {
         }
         Text(
             stringResource(id = screen.titleResId),
-            fontFamily = displayFontFamily,
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.displayMedium,
             fontWeight = FontWeight.Bold
