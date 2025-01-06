@@ -100,7 +100,7 @@ import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.contacts_screen.ContactViewHolder
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.models.PublicUserData
-import com.mercata.pingworks.theme.bodyFontFamily
+import com.mercata.pingworks.theme.roboto
 import com.mercata.pingworks.utils.getMimeType
 import com.mercata.pingworks.utils.getNameFromURI
 import com.mercata.pingworks.utils.getProfilePictureUrl
@@ -302,7 +302,7 @@ fun SharedTransitionScope.ComposingScreen(
                         Spacer(modifier = modifier.width(MARGIN_DEFAULT))
                         Text(
                             stringResource(id = R.string.broadcast_title),
-                            fontFamily = bodyFontFamily,
+                            fontFamily = roboto,
                             softWrap = true
                         )
                         Spacer(modifier = modifier.weight(1f))

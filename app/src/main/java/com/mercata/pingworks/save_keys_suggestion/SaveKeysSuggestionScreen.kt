@@ -47,7 +47,7 @@ import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.animationDuration
 import com.mercata.pingworks.sign_in.BiometryEffect
-import com.mercata.pingworks.theme.bodyFontFamily
+import com.mercata.pingworks.theme.roboto
 import com.mercata.pingworks.theme.displayFontFamily
 
 @Composable
@@ -105,7 +105,7 @@ fun SaveKeysSuggestionScreen(
 
             Text(
                 stringResource(id = R.string.review_login_settings),
-                fontFamily = bodyFontFamily,
+                fontFamily = roboto,
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold,
                 softWrap = true
@@ -118,7 +118,7 @@ fun SaveKeysSuggestionScreen(
             ) {
                 Text(
                     stringResource(id = R.string.enable_autologin_feature),
-                    fontFamily = bodyFontFamily,
+                    fontFamily = roboto,
                     softWrap = true
                 )
                 Spacer(modifier = modifier.weight(1f))
@@ -134,7 +134,7 @@ fun SaveKeysSuggestionScreen(
                 ) {
                     Text(
                         stringResource(id = R.string.enable_biometric_feature),
-                        fontFamily = bodyFontFamily,
+                        fontFamily = roboto,
                         softWrap = true
                     )
                     Spacer(modifier = modifier.weight(1f))
@@ -201,7 +201,7 @@ fun SaveKeysSuggestionScreen(
                     Text(
                         stringResource(id = R.string.consider_saving_warning),
                         textAlign = TextAlign.Center,
-                        fontFamily = bodyFontFamily,
+                        fontFamily = roboto,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         softWrap = true
@@ -219,7 +219,7 @@ fun SaveKeysSuggestionScreen(
             ) {
                 Text(
                     stringResource(id = R.string.save_button),
-                    fontFamily = bodyFontFamily
+                    fontFamily = roboto
                 )
             }
 

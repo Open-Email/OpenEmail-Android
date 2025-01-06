@@ -43,7 +43,7 @@ import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.SETTING_LIST_ITEM_SIZE
 import com.mercata.pingworks.common.SwitchViewHolder
-import com.mercata.pingworks.theme.bodyFontFamily
+import com.mercata.pingworks.theme.roboto
 
 @Composable
 fun SettingsScreen(
@@ -159,7 +159,7 @@ fun SettingsScreen(
                 Text(
                     text = stringResource(id = R.string.logout_button),
                     color = MaterialTheme.colorScheme.error,
-                    fontFamily = bodyFontFamily,
+                    fontFamily = roboto,
                     fontWeight = FontWeight.Bold,
                     softWrap = true
                 )

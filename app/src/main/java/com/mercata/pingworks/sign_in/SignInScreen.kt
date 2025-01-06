@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -31,6 +32,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -59,7 +62,7 @@ import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.animationDuration
-import com.mercata.pingworks.theme.bodyFontFamily
+import com.mercata.pingworks.theme.roboto
 import com.mercata.pingworks.theme.displayFontFamily
 import kotlinx.coroutines.delay
 
@@ -122,14 +125,14 @@ fun SignInScreen(
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                 Text(
                     stringResource(id = R.string.onboarding_title),
-                    fontFamily = bodyFontFamily,
+                    fontFamily = roboto,
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     stringResource(id = R.string.onboarding_text),
                     textAlign = TextAlign.Center,
-                    fontFamily = bodyFontFamily,
+                    fontFamily = roboto,
                 )
                 Spacer(modifier = modifier.weight(0.3f))
 
@@ -148,6 +151,11 @@ fun SignInScreen(
                     singleLine = true,
                     isError = state.emailErrorResId != null,
                     enabled = !state.loading,
+                    shape = RoundedCornerShape(50.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = Color.Red
+                    ),
                     modifier = modifier
                         .fillMaxWidth()
                         .focusRequester(addressFocusRequester),
@@ -197,7 +205,7 @@ fun SignInScreen(
                     ) {
                         Text(
                             stringResource(id = R.string.sign_in_button),
-                            fontFamily = bodyFontFamily
+                            fontFamily = roboto
                         )
                     }
                 }
@@ -275,7 +283,7 @@ fun SignInScreen(
                         ) {
                             Text(
                                 stringResource(id = R.string.sign_in_button),
-                                fontFamily = bodyFontFamily
+                                fontFamily = roboto
                             )
                         }
                         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
@@ -292,14 +300,14 @@ fun SignInScreen(
                         stringResource(id = R.string.app_name)
                     ),
                     textAlign = TextAlign.Center,
-                    fontFamily = bodyFontFamily,
+                    fontFamily = roboto,
                 )
                 TextButton(onClick = {
                     navController.navigate("RegistrationScreen")
                 }, enabled = !state.loading) {
                     Text(
                         stringResource(id = R.string.registration_button),
-                        fontFamily = bodyFontFamily
+                        fontFamily = roboto
                     )
                 }
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT + padding.calculateBottomPadding()))

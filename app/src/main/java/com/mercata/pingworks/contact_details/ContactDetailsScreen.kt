@@ -42,7 +42,7 @@ import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
-import com.mercata.pingworks.theme.bodyFontFamily
+import com.mercata.pingworks.theme.roboto
 import com.mercata.pingworks.utils.getProfilePictureUrl
 import java.time.Instant
 import java.time.ZoneId
@@ -149,7 +149,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                 Spacer(modifier = modifier.width(MARGIN_DEFAULT))
                 Text(
                     stringResource(id = R.string.receive_broadcasts),
-                    fontFamily = bodyFontFamily,
+                    fontFamily = roboto,
                     softWrap = true
                 )
                 Spacer(modifier = modifier.weight(1f))

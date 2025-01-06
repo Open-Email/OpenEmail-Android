@@ -11,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.mercata.pingworks.MARGIN_DEFAULT
-import com.mercata.pingworks.theme.bodyFontFamily
+import com.mercata.pingworks.theme.roboto
 
 @Composable
 fun SwitchViewHolder(
@@ -28,7 +28,7 @@ fun SwitchViewHolder(
     ) {
         Text(
             stringResource(id = title),
-            fontFamily = bodyFontFamily,
+            fontFamily = roboto,
             softWrap = true
         )
         Spacer(modifier = modifier.weight(1f))

@@ -52,7 +52,7 @@ import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.sign_in.RequestErrorDialog
-import com.mercata.pingworks.theme.bodyFontFamily
+import com.mercata.pingworks.theme.roboto
 import com.mercata.pingworks.theme.displayFontFamily
 
 @Composable
@@ -104,7 +104,7 @@ fun RegistrationScreen(
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                 Text(
                     stringResource(id = R.string.registration_description),
-                    fontFamily = bodyFontFamily,
+                    fontFamily = roboto,
                     textAlign = TextAlign.Center,
                 )
 
@@ -224,7 +224,7 @@ fun RegistrationScreen(
                 ) {
                     Text(
                         stringResource(id = R.string.authenticate_button),
-                        fontFamily = bodyFontFamily
+                        fontFamily = roboto
                     )
                 }
                 Box(contentAlignment = Alignment.Center, modifier = modifier.weight(1f)) {
@@ -235,13 +235,13 @@ fun RegistrationScreen(
                     stringResource(id = R.string.terms_of_service_title),
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = bodyFontFamily,
+                    fontFamily = roboto,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
                     stringResource(id = R.string.terms_of_service_description),
                     textAlign = TextAlign.Center,
-                    fontFamily = bodyFontFamily,
+                    fontFamily = roboto,
                     style = MaterialTheme.typography.bodySmall
                 )
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT + padding.calculateBottomPadding()))
