@@ -4,7 +4,7 @@
     <string name="onboarding_text">Spam-free, phishing-free, private &amp; secure by design.</string>
     <string name="address_input_hint">%s address</string>
     <string name="sign_in_button">Sign In</string>
-    <string name="authenticate_button">Register Account</string>
+    <string name="authenticate_button">Sign Up</string>
     <string name="no_account_question">Don\'t have an %s address yet?</string>
     <string name="registration_button">Get one for free instantly</string>
     <string name="invalid_email">Invalid address. Please, check input and try again.</string>
@@ -12,12 +12,12 @@
     <string name="private_encryption_key_hint">Private Encryption Key</string>
     <string name="no_account_error">No account associated with this address. Please check your input and try again.</string>
     <string name="registration_title">Up &amp; Running in Seconds</string>
-    <string name="registration_description">Get a free email address on one of our domains:</string>
+    <string name="registration_description">Get a free email address on one of our domains</string>
     <string name="user_name_hint">user.name</string>
     <string name="full_name_hint">Full name</string>
     <string name="complete_later_label">You can complete your profile later.</string>
     <string name="register_button">Register</string>
-    <string name="terms_of_service_title">Terms of Service</string>
+    <string name="terms_of_service_title">By continuing you agree to the Terms of Service</string>
     <string name="user_name_existing_error">Too bad! That name is not available.</string>
     <string name="full_name_empty_error">Please add your full name.</string>
     <string name="something_went_wrong_title">Something went wrong</string>

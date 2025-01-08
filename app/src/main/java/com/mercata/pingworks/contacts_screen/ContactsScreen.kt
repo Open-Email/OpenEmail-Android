@@ -76,6 +76,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -225,8 +226,8 @@ fun SharedTransitionScope.ContactsScreen(
                 LazyColumn(
                     contentPadding = PaddingValues(
                         top = padding.calculateTopPadding() + (MARGIN_DEFAULT.value / 2).dp,
-                        start = padding.calculateLeftPadding(LayoutDirection.Ltr),
-                        end = padding.calculateRightPadding(LayoutDirection.Ltr),
+                        start = padding.calculateLeftPadding(LocalLayoutDirection.current),
+                        end = padding.calculateRightPadding(LocalLayoutDirection.current),
                         bottom = padding.calculateBottomPadding() + (MARGIN_DEFAULT.value * 1.5).dp + 52.dp
                     ),
                     modifier = modifier.fillMaxSize()

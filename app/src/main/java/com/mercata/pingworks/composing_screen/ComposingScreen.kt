@@ -76,6 +76,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -272,8 +273,8 @@ fun SharedTransitionScope.ComposingScreen(
             Column(
                 modifier = modifier
                     .padding(
-                        start = padding.calculateLeftPadding(LayoutDirection.Ltr),
-                        end = padding.calculateRightPadding(LayoutDirection.Ltr),
+                        start = padding.calculateLeftPadding(LocalLayoutDirection.current),
+                        end = padding.calculateRightPadding(LocalLayoutDirection.current),
                         top = padding.calculateTopPadding()
                     )
                     .imePadding()
