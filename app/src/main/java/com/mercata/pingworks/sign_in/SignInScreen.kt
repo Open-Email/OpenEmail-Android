@@ -28,7 +28,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -48,11 +48,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -228,6 +228,13 @@ fun SignInScreen(
                             singleLine = true,
                             shape = CircleShape,
                             enabled = !state.loading,
+                            leadingIcon = {
+                                Icon(
+                                    painterResource(R.drawable.key),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                )
+                            },
                             modifier = modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = MARGIN_DEFAULT)
@@ -257,6 +264,13 @@ fun SignInScreen(
                             singleLine = true,
                             shape = CircleShape,
                             enabled = !state.loading,
+                            leadingIcon = {
+                                Icon(
+                                    painterResource(R.drawable.key),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                )
+                            },
                             modifier = modifier
                                 .padding(horizontal = MARGIN_DEFAULT)
                                 .fillMaxWidth()
@@ -311,7 +325,9 @@ fun SignInScreen(
                 )
                 Spacer(modifier.height(MARGIN_DEFAULT))
                 Button(
-                    modifier = modifier.fillMaxWidth().padding(horizontal = MARGIN_DEFAULT),
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MARGIN_DEFAULT),
                     colors = ButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = MaterialTheme.colorScheme.primary,
