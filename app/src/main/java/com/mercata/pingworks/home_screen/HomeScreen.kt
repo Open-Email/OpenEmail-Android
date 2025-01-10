@@ -10,9 +10,11 @@ import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -38,6 +40,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -49,7 +52,6 @@ import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
@@ -57,7 +59,6 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -87,6 +88,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -118,6 +120,7 @@ import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.theme.roboto
 import com.mercata.pingworks.utils.getProfilePictureUrl
+import com.mercata.pingworks.utils.measureTextWidth
 import kotlinx.coroutines.launch
 
 @Composable
@@ -130,6 +133,7 @@ fun SharedTransitionScope.HomeScreen(
 
     val coroutineScope = rememberCoroutineScope()
     val topAppBarState = rememberTopAppBarState()
+    val listState = rememberLazyListState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val focusManager = LocalFocusManager.current
@@ -141,6 +145,13 @@ fun SharedTransitionScope.HomeScreen(
     ) {
         //ignore
     }
+
+    val fabWidth by animateDpAsState(
+        targetValue = if (listState.isScrollInProgress) 56.dp else 56.dp + MARGIN_DEFAULT + measureTextWidth(
+            stringResource(R.string.create_message),
+            MaterialTheme.typography.labelLarge
+        )
+    )
 
     val state by viewModel.state.collectAsState()
 
@@ -259,10 +270,10 @@ fun SharedTransitionScope.HomeScreen(
                     },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         backgroundColor = if (state.selectedItems.isEmpty())
-                            MaterialTheme.colorScheme.surfaceVariant
+                            colorScheme.surfaceVariant
                         else
-                            MaterialTheme.colorScheme.onPrimary,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            colorScheme.onPrimary,
+                        focusedBorderColor = colorScheme.primary,
                         unfocusedBorderColor = Color.Transparent,
                         errorBorderColor = Color.Transparent,
                         disabledBorderColor = Color.Transparent
@@ -291,14 +302,15 @@ fun SharedTransitionScope.HomeScreen(
                                         .clickable {
                                             navController.navigate("SettingsScreen")
                                         },
-                                    imageUrl = state.currentUser?.address?.getProfilePictureUrl() ?: "",
+                                    imageUrl = state.currentUser?.address?.getProfilePictureUrl()
+                                        ?: "",
                                     onError = { modifier ->
                                         Box(
                                             modifier
                                                 .background(color = colorScheme.surface)
                                                 .border(
                                                     width = 1.dp,
-                                                    color = MaterialTheme.colorScheme.outline,
+                                                    color = colorScheme.outline,
                                                     shape = CircleShape
                                                 ),
                                             contentAlignment = Alignment.Center
@@ -332,29 +344,57 @@ fun SharedTransitionScope.HomeScreen(
                     style = MaterialTheme.typography.labelLarge.copy(
                         color =
                         if (state.selectedItems.isEmpty())
-                            MaterialTheme.colorScheme.onSurface
+                            colorScheme.onSurface
                         else
-                            MaterialTheme.colorScheme.onPrimary
+                            colorScheme.onPrimary
                     ),
                     modifier = modifier.padding(
                         vertical = MARGIN_DEFAULT / 2, horizontal = MARGIN_DEFAULT
                     )
                 )
-                Divider(color = MaterialTheme.colorScheme.outline)
+                Divider(color = colorScheme.outline)
             }
         }, floatingActionButton = {
-            FloatingActionButton(modifier = modifier.sharedBounds(
-                rememberSharedContentState(
-                    key = "composing_bounds"
-                ), animatedVisibilityScope
-            ),
-                containerColor = colorScheme.primary,
-                contentColor = colorScheme.onPrimary,
-                onClick = {
-                    navController.navigate("ComposingScreen/null/null/null")
-                }) {
-                Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
+
+            Row(
+                modifier = modifier
+                    .height(56.dp)
+                    .width(fabWidth)
+                    .shadow(elevation = 4.dp, shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+
+                    .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                    .background(color = MaterialTheme.colorScheme.primary)
+
+                    .clickable {
+                        navController.navigate("ComposingScreen/null/null/null")
+                    }
+                    .sharedBounds(
+                        rememberSharedContentState(
+                            key = "composing_bounds"
+                        ), animatedVisibilityScope
+                    ),
+
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Absolute.Center
+            ) {
+                Icon(
+                    painterResource(R.drawable.edit),
+                    null,
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+                AnimatedVisibility(visible = !listState.isScrollInProgress) {
+                    Row {
+                        Spacer(modifier.width(MARGIN_DEFAULT / 2))
+                        Text(
+                            stringResource(R.string.create_message),
+                            maxLines = 1,
+                            overflow = TextOverflow.Clip,
+                            style = MaterialTheme.typography.labelLarge.copy(color = colorScheme.onPrimary)
+                        )
+                    }
+                }
             }
+
         }) { padding ->
             Box(
                 modifier = modifier.pullRefresh(
@@ -362,6 +402,7 @@ fun SharedTransitionScope.HomeScreen(
                 )
             ) {
                 LazyColumn(
+                    state = listState,
                     contentPadding = PaddingValues(
                         top = padding.calculateTopPadding() + (MARGIN_DEFAULT.value / 2).dp,
                         start = padding.calculateLeftPadding(LocalLayoutDirection.current),

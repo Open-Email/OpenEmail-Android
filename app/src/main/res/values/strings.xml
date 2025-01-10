@@ -24,6 +24,7 @@
     <string name="cancel_button">Cancel</string>
     <string name="terms_of_service_description">Users are prohibited from engaging in abusive behavior or any illegal activities while using our service, because while we\'re all for freedom, we draw the line at breaking the law or being a jerk.</string>
     <string name="create_new_message">Create new message</string>
+    <string name="create_message">Create Message</string>
     <string name="search">Search</string>
     <string name="navigation_menu_title">Navigation menu</string>
     <string name="inbox_title">Inbox</string>
