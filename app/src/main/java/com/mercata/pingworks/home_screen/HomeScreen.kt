@@ -10,13 +10,13 @@ import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,26 +25,32 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -54,8 +60,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
@@ -84,7 +90,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -94,7 +99,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -188,7 +192,8 @@ fun SharedTransitionScope.HomeScreen(
         }
     }
 
-    ModalNavigationDrawer(drawerState = drawerState,
+    ModalNavigationDrawer(
+        drawerState = drawerState,
         gesturesEnabled = drawerState.isOpen,
         drawerContent = {
             ModalDrawerSheet {
@@ -206,26 +211,37 @@ fun SharedTransitionScope.HomeScreen(
                 )
             }
         }) {
-        Scaffold(modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            snackbarHost = {
-                SnackbarHost(hostState = snackbarHostState)
-            },
-            topBar = {
-                LargeTopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        scrolledContainerColor = if (state.selectedItems.isNotEmpty()) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary,
-                        containerColor = if (state.selectedItems.isNotEmpty()) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary,
-                        titleContentColor = if (state.selectedItems.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
-                        navigationIconContentColor = if (state.selectedItems.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
-                        actionIconContentColor = if (state.selectedItems.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+        Scaffold(snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }, topBar = {
+            Column(
+                modifier = modifier.background(if (state.selectedItems.isEmpty()) colorScheme.surface else colorScheme.primary)
+
+            ) {
+                println("collapsedFraction: ${scrollBehavior.state.collapsedFraction}")
+
+                Spacer(
+                    modifier = modifier.height(
+                        WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                    )
+                )
+                OutlinedTextField(
+                    value = state.query,
+                    shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS / 2),
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Search,
+                        showKeyboardOnFocus = true,
                     ),
-                    title = {
-                        Text(
-                            stringResource(id = state.screen.titleResId),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }, navigationIcon = {
+                    keyboardActions = KeyboardActions(onSearch = {
+                        focusManager.clearFocus()
+                    }),
+                    singleLine = true,
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .padding(MARGIN_DEFAULT)
+                        .focusRequester(searchFocusRequester),
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    leadingIcon = {
                         IconButton(onClick = {
                             coroutineScope.launch {
                                 if (drawerState.isOpen) {
@@ -240,91 +256,106 @@ fun SharedTransitionScope.HomeScreen(
                                 contentDescription = stringResource(id = R.string.navigation_menu_title)
                             )
                         }
-                    }, actions = {
-                        if (state.selectedItems.isEmpty()) {
-                            Row {
-                                AnimatedVisibility(
-                                    visible = state.searchOpened, modifier = modifier.weight(1f)
-                                ) {
-                                    Row(modifier = modifier.fillMaxWidth()) {
-                                        Spacer(modifier = modifier.width(MARGIN_DEFAULT + 42.dp))
-                                        Box(
-                                            modifier = modifier.fillMaxWidth(),
-                                            contentAlignment = Alignment.CenterEnd
-                                        ) {
-                                            BasicTextField(keyboardOptions = KeyboardOptions(
-                                                imeAction = ImeAction.Search,
-                                                showKeyboardOnFocus = true,
-                                            ),
-                                                singleLine = true,
-                                                modifier = modifier
-                                                    .fillMaxWidth()
-                                                    .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
-                                                    .background(MaterialTheme.colorScheme.surface)
-                                                    .padding(
-                                                        start = MARGIN_DEFAULT,
-                                                        top = MARGIN_DEFAULT,
-                                                        bottom = MARGIN_DEFAULT,
-                                                        end = 48.dp
-                                                    )
-                                                    .focusRequester(searchFocusRequester),
-                                                textStyle = MaterialTheme.typography.bodySmall,
-                                                value = state.query,
-                                                onValueChange = {
-                                                    viewModel.onSearchQuery(it)
-                                                })
-                                            IconButton(onClick = {
-                                                if (state.query.isEmpty()) {
-                                                    viewModel.toggleSearch()
-                                                } else {
-                                                    viewModel.onSearchQuery("")
-                                                }
-                                            }) {
-                                                Icon(
-                                                    Icons.Rounded.Clear,
-                                                    stringResource(id = R.string.clear_button),
-                                                    tint = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
-                                        }
-                                        Spacer(modifier = modifier.width(8.dp))
-                                    }
-                                }
-                                IconButton(onClick = { viewModel.toggleSearch() }) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Search,
-                                        contentDescription = stringResource(id = R.string.search)
-                                    )
-                                }
-                            }
-                        } else {
+                    },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        backgroundColor = if (state.selectedItems.isEmpty())
+                            MaterialTheme.colorScheme.surfaceVariant
+                        else
+                            MaterialTheme.colorScheme.onPrimary,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = Color.Transparent,
+                        errorBorderColor = Color.Transparent,
+                        disabledBorderColor = Color.Transparent
+                    ),
+                    trailingIcon = {
+                        if (state.query.isNotEmpty()) {
                             IconButton(onClick = {
-                                viewModel.deleteSelected()
+                                if (state.query.isEmpty()) {
+                                    viewModel.toggleSearch()
+                                } else {
+                                    viewModel.onSearchQuery("")
+                                }
                             }) {
                                 Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = stringResource(R.string.delete),
-                                    tint = MaterialTheme.colorScheme.error
+                                    Icons.Rounded.Clear,
+                                    stringResource(id = R.string.clear_button),
+                                    tint = colorScheme.onSurface
                                 )
                             }
+                        } else {
+                            Box(modifier.padding(end = MARGIN_DEFAULT)) {
+                                ProfileImage(
+                                    modifier
+                                        .clip(CircleShape)
+                                        .size(43.dp)
+                                        .clickable {
+                                            navController.navigate("SettingsScreen")
+                                        },
+                                    imageUrl = state.currentUser?.address?.getProfilePictureUrl() ?: "",
+                                    onError = { modifier ->
+                                        Box(
+                                            modifier
+                                                .background(color = colorScheme.surface)
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = MaterialTheme.colorScheme.outline,
+                                                    shape = CircleShape
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                "${state.currentUser?.name?.firstOrNull() ?: ""}${
+                                                    state.currentUser?.name?.getOrNull(
+                                                        1
+                                                    ) ?: ""
+                                                }",
+                                                style = MaterialTheme.typography.titleSmall
+                                            )
+                                        }
+                                    })
+                            }
+
                         }
-                    }, scrollBehavior = scrollBehavior
+                    },
+
+                    placeholder = {
+                        Text(
+                            stringResource(R.string.search),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    },
+                    onValueChange = {
+                        viewModel.onSearchQuery(it)
+                    })
+                Text(
+                    stringResource(state.screen.titleResId),
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        color =
+                        if (state.selectedItems.isEmpty())
+                            MaterialTheme.colorScheme.onSurface
+                        else
+                            MaterialTheme.colorScheme.onPrimary
+                    ),
+                    modifier = modifier.padding(
+                        vertical = MARGIN_DEFAULT / 2, horizontal = MARGIN_DEFAULT
+                    )
                 )
-            },
-            floatingActionButton = {
-                FloatingActionButton(modifier = modifier.sharedBounds(
-                    rememberSharedContentState(
-                        key = "composing_bounds"
-                    ), animatedVisibilityScope
-                ),
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    onClick = {
-                        navController.navigate("ComposingScreen/null/null/null")
-                    }) {
-                    Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
-                }
-            }) { padding ->
+                Divider(color = MaterialTheme.colorScheme.outline)
+            }
+        }, floatingActionButton = {
+            FloatingActionButton(modifier = modifier.sharedBounds(
+                rememberSharedContentState(
+                    key = "composing_bounds"
+                ), animatedVisibilityScope
+            ),
+                containerColor = colorScheme.primary,
+                contentColor = colorScheme.onPrimary,
+                onClick = {
+                    navController.navigate("ComposingScreen/null/null/null")
+                }) {
+                Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
+            }
+        }) { padding ->
             Box(
                 modifier = modifier.pullRefresh(
                     state = refreshState, enabled = topAppBarState.collapsedFraction == 0F
@@ -338,8 +369,7 @@ fun SharedTransitionScope.HomeScreen(
                         bottom = padding.calculateBottomPadding() + (MARGIN_DEFAULT.value * 1.5).dp + 52.dp
                     ), modifier = Modifier.fillMaxSize()
                 ) {
-                    items(
-                        items = state.items.filter { it != state.itemToDelete },
+                    items(items = state.items.filter { it != state.itemToDelete },
                         key = { it.getMessageId() }) { item ->
                         SwipeContainer(modifier = modifier.animateItem(),
                             item = item,
@@ -354,8 +384,7 @@ fun SharedTransitionScope.HomeScreen(
                                     }
                                 }
 
-                                is CachedAttachment,
-                                is DBDraftWithReaders -> {
+                                is CachedAttachment, is DBDraftWithReaders -> {
                                     {
                                         viewModel.deleteItem(item)
                                     }
@@ -376,6 +405,17 @@ fun SharedTransitionScope.HomeScreen(
                                 currentUser = state.currentUser!!,
                                 animatedVisibilityScope = animatedVisibilityScope,
                                 onMessageSelected = when (item) {
+                                    is DBMessageWithDBAttachments -> {
+                                        when (state.screen) {
+                                            HomeScreen.Outbox -> { attachment ->
+                                                viewModel.toggleSelectItem(attachment)
+                                            }
+
+                                            else -> null
+                                        }
+
+                                    }
+
                                     is CachedAttachment -> { attachment ->
                                         viewModel.toggleSelectItem(attachment)
                                     }
@@ -411,8 +451,7 @@ fun SharedTransitionScope.HomeScreen(
                 }
                 if (state.items.isEmpty()) {
                     EmptyPlaceholder(
-                        modifier = modifier.align(Alignment.Center),
-                        screen = state.screen
+                        modifier = modifier.align(Alignment.Center), screen = state.screen
                     )
                 }
 
@@ -439,49 +478,47 @@ fun SharedTransitionScope.MessageViewHolder(
     onMessageClicked: (message: HomeItem) -> Unit,
     onMessageSelected: ((message: HomeItem) -> Unit)?
 ) {
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val primaryColor = colorScheme.primary
 
     Box {
-        Row(
-            verticalAlignment = Alignment.CenterVertically, modifier = modifier
-                .sharedBounds(
-                    sharedContentState = rememberSharedContentState(
-                        key = "message_bounds/${item.getMessageId()}"
-                    ),
-                    animatedVisibilityScope = animatedVisibilityScope,
-                )
-                .background(color = MaterialTheme.colorScheme.surface)
-                .height(MESSAGE_LIST_ITEM_HEIGHT)
-                .fillMaxWidth()
-                .combinedClickable(
-                    onClick = {
-                        onMessageClicked(item)
-                    },
-                    onLongClick = if (onMessageSelected == null) {
-                        null
-                    } else {
-                        {
-                            onMessageSelected(item)
-                        }
-                    },
-                )
-                .padding(horizontal = MARGIN_DEFAULT)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier
+            .sharedBounds(
+                sharedContentState = rememberSharedContentState(
+                    key = "message_bounds/${item.getMessageId()}"
+                ),
+                animatedVisibilityScope = animatedVisibilityScope,
+            )
+            .background(color = colorScheme.surface)
+            .height(MESSAGE_LIST_ITEM_HEIGHT)
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = {
+                    onMessageClicked(item)
+                },
+                onLongClick = if (onMessageSelected == null) {
+                    null
+                } else {
+                    {
+                        onMessageSelected(item)
+                    }
+                },
+            )
+            .padding(horizontal = MARGIN_DEFAULT)
 
         ) {
-            Box(
-                contentAlignment = Alignment.Center, modifier = modifier
+            Box(contentAlignment = Alignment.Center,
+                modifier = modifier
                     .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
                     .clickable {
                         onMessageSelected?.invoke(item)
                     }
                     .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                    .background(if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary)
-            ) {
+                    .background(if (isSelected) colorScheme.secondary else colorScheme.primary)) {
                 if (isSelected) {
                     Icon(
                         Icons.Filled.CheckCircle,
                         stringResource(id = R.string.selected_label),
-                        tint = MaterialTheme.colorScheme.onSecondary
+                        tint = colorScheme.onSecondary
                     )
                 } else {
                     when (item) {
@@ -499,15 +536,17 @@ fun SharedTransitionScope.MessageViewHolder(
                             Icon(
                                 painter = painterResource(resId),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary
+                                tint = colorScheme.onPrimary
                             )
                         }
 
                         else -> {
                             ProfileImage(
-                                modifier.size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                modifier
+                                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                                     .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS)),
-                                item.getContacts().firstOrNull()?.address?.getProfilePictureUrl() ?: "",
+                                item.getContacts().firstOrNull()?.address?.getProfilePictureUrl()
+                                    ?: "",
                                 onError = { _ ->
                                     Text(
                                         text = "${
@@ -520,7 +559,7 @@ fun SharedTransitionScope.MessageViewHolder(
                                             }
                                         }",
                                         style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onPrimary
+                                        color = colorScheme.onPrimary
                                     )
                                 })
                         }
@@ -570,7 +609,7 @@ fun SharedTransitionScope.MessageViewHolder(
                     Icon(
                         modifier = modifier.requiredSize(DEFAULT_LIST_ITEM_STATUS_ICON_SIZE),
                         painter = painterResource(R.drawable.attach),
-                        tint = MaterialTheme.colorScheme.onSurface,
+                        tint = colorScheme.onSurface,
                         contentDescription = null
                     )
                 }
@@ -645,8 +684,8 @@ fun SwipeBackground(
     val deleteSwipe = swipeValue == SwipeToDismissBoxValue.EndToStart
 
     val color = when (swipeValue) {
-        SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary
-        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
+        SwipeToDismissBoxValue.StartToEnd -> colorScheme.primary
+        SwipeToDismissBoxValue.EndToStart -> colorScheme.error
         SwipeToDismissBoxValue.Settled -> Color.Transparent
     }
 
@@ -660,7 +699,7 @@ fun SwipeBackground(
         Icon(
             imageVector = if (deleteSwipe) Icons.Default.Delete else Icons.Default.CheckCircle,
             contentDescription = null,
-            tint = if (deleteSwipe) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onPrimary,
+            tint = if (deleteSwipe) colorScheme.onError else colorScheme.onPrimary,
         )
     }
 }
@@ -675,14 +714,14 @@ fun EmptyPlaceholder(modifier: Modifier = Modifier, screen: HomeScreen) {
         if (screen.icon != null) {
             Icon(
                 imageVector = screen.icon,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = colorScheme.primary,
                 modifier = modifier.size(100.dp),
                 contentDescription = null
             )
         } else if (screen.iconResId != null) {
             Icon(
                 painter = painterResource(id = screen.iconResId),
-                tint = MaterialTheme.colorScheme.primary,
+                tint = colorScheme.primary,
                 modifier = modifier.size(100.dp),
                 contentDescription = null
             )

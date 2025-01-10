@@ -88,6 +88,7 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.tools.core)
     annotationProcessor(libs.room.compiler)
     ksp(libs.room.compiler)
     implementation(libs.androidx.room.ktx)

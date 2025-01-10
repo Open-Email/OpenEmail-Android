@@ -23,6 +23,7 @@ navigationCompose = "2.8.4"
 retrofit = "2.9.0"
 room = "2.6.1"
 securityCrypto = "1.0.0"
+toolsCore = "1.0.0-alpha10"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
@@ -59,6 +60,7 @@ retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
 converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "retrofit" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+androidx-tools-core = { group = "androidx.privacysandbox.tools", name = "tools-core", version.ref = "toolsCore" }
 
 
 [plugins]
