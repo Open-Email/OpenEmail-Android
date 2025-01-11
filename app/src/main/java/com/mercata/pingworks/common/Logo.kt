@@ -3,6 +3,8 @@ package com.mercata.pingworks.common
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,24 +22,34 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.theme.lexend
 
 @Composable
-fun Logo(modifier: Modifier = Modifier) {
+fun Logo(modifier: Modifier = Modifier, size: LogoSize = LogoSize.Medium) {
     Row(
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
+            modifier = Modifier.size(size.iconSize.dp),
             painter = painterResource(R.drawable.monochrome_logo),
             contentDescription = null,
             colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
         )
-        Spacer(modifier.width(8.dp))
+        Spacer(Modifier.width(8.dp))
         Text(
             stringResource(R.string.app_name),
             style = TextStyle(
                 fontFamily = lexend,
-                fontSize = 24.0.sp,
+                fontSize = size.fontSize.sp,
                 fontWeight = FontWeight.W400,
                 color = MaterialTheme.colorScheme.onSurface
             )
         )
     }
+}
+
+enum class LogoSize(
+    val fontSize: Float,
+    val iconSize: Float
+) {
+    Medium(24.0f, 39.0f),
+    Small(18.0f, 28.0f)
 }

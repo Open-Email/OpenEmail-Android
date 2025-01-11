@@ -2,29 +2,26 @@ package com.mercata.pingworks.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
@@ -41,63 +38,43 @@ fun NavigationDrawerBody(
     selected: HomeScreen,
     unread: Map<HomeScreen, Int>
 ) {
-    Column(modifier = modifier.padding(12.dp)) {
-        Text(
-            text = stringResource(id = R.string.app_name),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = modifier.padding(MARGIN_DEFAULT),
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
+    Column(modifier = modifier
+        .padding(MARGIN_DEFAULT).background(MaterialTheme.colorScheme.surface)) {
+        Logo(modifier = modifier.padding(horizontal = MARGIN_DEFAULT), size = LogoSize.Small)
+        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
         HomeScreen.entries.forEach { screen ->
             NavigationItem(
+                modifier = modifier,
                 onClick = {
                     onItemClick(screen)
                 },
                 isSelected = selected == screen,
-                imageVector = screen.icon,
-                painter = screen.iconResId?.let { painterResource(id = it) },
+                painter = painterResource(id = screen.iconResId),
                 titleResId = screen.titleResId,
                 count = unread[screen]?.takeIf { it > 0 }
             )
         }
-        Spacer(modifier = modifier.weight(1f))
-        TextButton(onClick = { navController.navigate("ContactsScreen") }) {
-            Row(
-                modifier = modifier.fillMaxWidth()
-
-            ) {
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = stringResource(id = R.string.contacts_title)
-                )
-                Spacer(modifier = modifier.width(MARGIN_SMALLER))
-                Text(
-                    text = stringResource(id = R.string.contacts_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = modifier.width(2.dp))
-            }
-        }
-        TextButton(onClick = { navController.navigate("SettingsScreen") }) {
-            Row(
-                modifier = modifier.fillMaxWidth()
-
-            ) {
-                Icon(
-                    Icons.Default.Settings,
-                    contentDescription = stringResource(id = R.string.settings_title)
-                )
-                Spacer(modifier = modifier.width(MARGIN_SMALLER))
-                Text(
-                    text = stringResource(id = R.string.settings_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = modifier.width(2.dp))
-            }
-        }
+        Divider(modifier = modifier.fillMaxWidth().padding(vertical = MARGIN_DEFAULT), color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+        NavigationItem(
+            modifier = modifier,
+            onClick = {
+                navController.navigate("ContactsScreen")
+            },
+            isSelected = false,
+            painter = painterResource(id = R.drawable.contacts),
+            titleResId = R.string.contacts_title,
+            count = null
+        )
+        NavigationItem(
+            modifier = modifier,
+            onClick = {
+                navController.navigate("SettingsScreen")
+            },
+            isSelected = false,
+            painter = painterResource(id = R.drawable.settings),
+            titleResId = R.string.settings_title,
+            count = null
+        )
     }
 }
 
@@ -105,46 +82,39 @@ fun NavigationDrawerBody(
 fun NavigationItem(
     modifier: Modifier = Modifier,
     isSelected: Boolean,
-    imageVector: ImageVector? = null,
-    painter: Painter? = null,
+    painter: Painter,
     titleResId: Int,
     count: Int?,
     onClick: () -> Unit
 ) {
     val color =
-        if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-    Row(
-        modifier = modifier
-            .clip(shape = CircleShape)
-            .clickable { onClick() }
-            .background(color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-            .fillMaxWidth()
-            .padding(MARGIN_DEFAULT)
+        if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant
+    Box(modifier.padding(vertical = MARGIN_DEFAULT / 4)) {
+        Row(
+            modifier = modifier
+                .clip(shape = CircleShape)
+                .clickable { onClick() }
+                .background(color = if (isSelected) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent)
+                .fillMaxWidth()
+                .padding(MARGIN_DEFAULT)
 
-    ) {
-        if (imageVector != null) {
-            Icon(
-                imageVector = imageVector,
-                tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
-                contentDescription = stringResource(id = titleResId)
-            )
-        } else if (painter != null) {
+        ) {
             Icon(
                 painter = painter,
-                tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                tint = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant,
                 contentDescription = stringResource(id = titleResId)
             )
-        }
-        Spacer(modifier = modifier.width(MARGIN_SMALLER))
-        Text(
-            text = stringResource(id = titleResId),
-            style = MaterialTheme.typography.titleMedium,
-            color = color
-        )
-        if (count != null) {
-            Spacer(modifier = modifier.weight(1f))
-            Text(count.toString(), style = MaterialTheme.typography.titleMedium, color = color)
-            Spacer(modifier = modifier.width(2.dp))
+            Spacer(modifier = modifier.width(MARGIN_SMALLER))
+            Text(
+                text = stringResource(id = titleResId),
+                style = MaterialTheme.typography.labelLarge,
+                color = color
+            )
+            if (count != null) {
+                Spacer(modifier = modifier.weight(1f))
+                Text(count.toString(), style = MaterialTheme.typography.titleMedium, color = color)
+                Spacer(modifier = modifier.width(2.dp))
+            }
         }
     }
 }

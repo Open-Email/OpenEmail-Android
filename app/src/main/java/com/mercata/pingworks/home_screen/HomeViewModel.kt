@@ -318,8 +318,7 @@ enum class HomeScreen(
     val titleResId: Int,
     val outbox: Boolean,
     val placeholderDescriptionResId: Int,
-    val icon: ImageVector? = null,
-    val iconResId: Int? = null,
+    val iconResId: Int,
 ) {
     Broadcast(
         R.string.broadcast_title,
@@ -329,13 +328,13 @@ enum class HomeScreen(
     ),
     Inbox(
         R.string.inbox_title,
-        icon = Icons.Default.KeyboardArrowDown,
+        iconResId = R.drawable.inbox,
         outbox = false,
         placeholderDescriptionResId = R.string.inbox_placeholder
     ),
     Outbox(
         R.string.outbox_title,
-        icon = Icons.Default.KeyboardArrowUp,
+        iconResId = R.drawable.outbox,
         outbox = true,
         placeholderDescriptionResId = R.string.outbox_placeholder
     ),

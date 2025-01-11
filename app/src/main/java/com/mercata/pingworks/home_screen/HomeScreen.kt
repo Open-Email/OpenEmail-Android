@@ -90,13 +90,13 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -116,7 +116,6 @@ import com.mercata.pingworks.db.drafts.DBDraftWithReaders
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.registration.UserData
-import com.mercata.pingworks.theme.roboto
 import com.mercata.pingworks.utils.getProfilePictureUrl
 import com.mercata.pingworks.utils.measureTextWidth
 import kotlinx.coroutines.launch
@@ -208,7 +207,11 @@ fun SharedTransitionScope.HomeScreen(
         drawerState = drawerState,
         gesturesEnabled = drawerState.isOpen,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(
+                drawerContainerColor = colorScheme.surface,
+                drawerTonalElevation = 0.dp,
+                drawerShape = RectangleShape
+            ) {
                 NavigationDrawerBody(
                     modifier = modifier,
                     navController = navController,
@@ -871,33 +874,17 @@ fun EmptyPlaceholder(modifier: Modifier = Modifier, screen: HomeScreen) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (screen.icon != null) {
-            Icon(
-                imageVector = screen.icon,
-                tint = colorScheme.primary,
-                modifier = modifier.size(100.dp),
-                contentDescription = null
-            )
-        } else if (screen.iconResId != null) {
-            Icon(
-                painter = painterResource(id = screen.iconResId),
-                tint = colorScheme.primary,
-                modifier = modifier.size(100.dp),
-                contentDescription = null
-            )
-        }
-        Text(
-            stringResource(id = screen.titleResId),
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.displayMedium,
-            fontWeight = FontWeight.Bold
+        Icon(
+            painter = painterResource(id = screen.iconResId),
+            tint = colorScheme.outlineVariant,
+            modifier = modifier.size(40.dp),
+            contentDescription = null
         )
-        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+        Spacer(modifier = modifier.height(MARGIN_DEFAULT * 0.75f))
         Text(
             stringResource(id = screen.placeholderDescriptionResId),
-            fontFamily = roboto,
             textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.labelLarge.copy(color = colorScheme.outlineVariant)
         )
     }
 }
