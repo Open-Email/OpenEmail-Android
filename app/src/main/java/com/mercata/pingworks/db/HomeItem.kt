@@ -7,6 +7,7 @@ interface HomeItem {
     fun getSubject(): String
     fun getTextBody(): String
     fun getMessageId(): String
-    fun hasAttachments(): Boolean
+    fun getAttachmentsAmount(): Int?
     fun isUnread(): Boolean
+    fun getTimestamp(): Long?
 }

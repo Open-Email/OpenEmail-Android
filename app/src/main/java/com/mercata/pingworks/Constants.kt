@@ -3,11 +3,11 @@ package com.mercata.pingworks
 import androidx.compose.ui.unit.dp
 import java.time.format.DateTimeFormatter
 
-val MESSAGE_LIST_ITEM_HEIGHT = 88.dp
+val MESSAGE_LIST_ITEM_HEIGHT = 152.dp
 val CONTACT_LIST_ITEM_HEIGHT = 72.dp
 val ATTACHMENT_LIST_ITEM_HEIGHT = 72.dp
 val CONTACT_LIST_ITEM_IMAGE_SIZE = 40.dp
-val MESSAGE_LIST_ITEM_IMAGE_SIZE = 56.dp
+val MESSAGE_LIST_ITEM_IMAGE_SIZE = 48.dp
 val SETTING_LIST_ITEM_SIZE = 56.dp
 val MARGIN_DEFAULT = 16.dp
 val DEFAULT_LIST_ITEM_STATUS_ICON_SIZE = 16.dp

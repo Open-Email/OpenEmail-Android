@@ -23,8 +23,9 @@ data class DBDraftWithReaders(
 
     override fun getMessageId(): String = draft.draftId
 
-    override fun hasAttachments(): Boolean =
-        draft.attachmentUriList?.split(",").isNullOrEmpty().not()
+    override fun getAttachmentsAmount(): Int? = draft.attachmentUriList?.split(",")?.size
 
     override fun isUnread(): Boolean = false
+
+    override fun getTimestamp(): Long = draft.timestamp
 }
