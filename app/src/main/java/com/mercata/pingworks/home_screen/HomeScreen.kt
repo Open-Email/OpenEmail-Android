@@ -51,8 +51,8 @@ import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -265,7 +265,8 @@ fun SharedTransitionScope.HomeScreen(
                             }
                         }) {
                             Icon(
-                                imageVector = Icons.Filled.Menu,
+                                imageVector = Icons.Rounded.Menu,
+                                tint = colorScheme.onSurfaceVariant,
                                 contentDescription = stringResource(id = R.string.navigation_menu_title)
                             )
                         }
@@ -561,82 +562,73 @@ fun SharedTransitionScope.MessageViewHolder(
             .padding(MARGIN_DEFAULT)
 
         ) {
-            Box(contentAlignment = Alignment.Center,
-                modifier = modifier
-                    .clip(CircleShape)
-                    .clickable {
-                        onMessageSelected?.invoke(item)
-                    }
-                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                    .background(if (isSelected) colorScheme.secondary else colorScheme.primary)) {
-                if (isSelected) {
-                    Icon(
-                        Icons.Filled.CheckCircle,
-                        stringResource(id = R.string.selected_label),
-                        tint = colorScheme.onSecondary
-                    )
-                } else {
-                    when (item) {
-                        is CachedAttachment -> {
-                            val resId = if (item.type?.contains("image") == true) {
-                                R.drawable.image
-                            } else if (item.type?.contains("video") == true) {
-                                R.drawable.video
-                            } else if (item.type?.contains("audio") == true) {
-                                R.drawable.sound
-                            } else {
-                                R.drawable.file
+            Box(contentAlignment = Alignment.TopStart) {
+                Box(contentAlignment = Alignment.Center,
+                    modifier = modifier
+                        .clip(CircleShape)
+                        .clickable {
+                            onMessageSelected?.invoke(item)
+                        }
+                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                        .background(if (isSelected) colorScheme.secondary else colorScheme.primary)) {
+                    if (isSelected) {
+                        Icon(
+                            Icons.Filled.CheckCircle,
+                            stringResource(id = R.string.selected_label),
+                            tint = colorScheme.onSecondary
+                        )
+                    } else {
+                        when (item) {
+                            is CachedAttachment -> {
+                                val resId = if (item.type?.contains("image") == true) {
+                                    R.drawable.image
+                                } else if (item.type?.contains("video") == true) {
+                                    R.drawable.video
+                                } else if (item.type?.contains("audio") == true) {
+                                    R.drawable.sound
+                                } else {
+                                    R.drawable.file
+                                }
+
+                                Icon(
+                                    painter = painterResource(resId),
+                                    contentDescription = null,
+                                    tint = colorScheme.onPrimary
+                                )
                             }
 
-                            Icon(
-                                painter = painterResource(resId),
-                                contentDescription = null,
-                                tint = colorScheme.onPrimary
-                            )
-                        }
+                            is DBDraftWithReaders -> {
+                                ProfileImage(
+                                    modifier
+                                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                        .clip(CircleShape),
+                                    currentUser.address.getProfilePictureUrl(),
+                                    onError = { _ ->
+                                        Box(
+                                            modifier
+                                                .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                                .background(color = colorScheme.surface)
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = colorScheme.outline,
+                                                    shape = CircleShape
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "${currentUser.name.firstOrNull() ?: ""}${
+                                                    currentUser.name.getOrNull(
+                                                        1
+                                                    ) ?: ""
+                                                }",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = colorScheme.onSurface,
+                                            )
+                                        }
+                                    })
+                            }
 
-                        is DBDraftWithReaders -> {
-                            ProfileImage(
-                                modifier
-                                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                                    .clip(CircleShape),
-                                currentUser.address.getProfilePictureUrl(),
-                                onError = { _ ->
-                                    Box(
-                                        modifier
-                                            .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                                            .background(color = colorScheme.surface)
-                                            .border(
-                                                width = 1.dp,
-                                                color = colorScheme.outline,
-                                                shape = CircleShape
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "${currentUser.name.firstOrNull() ?: ""}${
-                                                currentUser.name.getOrNull(
-                                                    1
-                                                ) ?: ""
-                                            }",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = colorScheme.onSurface,
-                                        )
-                                    }
-                                })
-                        }
-
-                        else -> {
-                            Box {
-                                if (item.isUnread()) {
-                                    Canvas(
-                                        modifier = modifier.requiredSize(
-                                            DEFAULT_LIST_ITEM_STATUS_ICON_SIZE
-                                        )
-                                    ) {
-                                        drawCircle(primaryColor, radius = 12.dp.toPx())
-                                    }
-                                }
+                            else -> {
                                 ProfileImage(
                                     modifier
                                         .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
@@ -679,6 +671,15 @@ fun SharedTransitionScope.MessageViewHolder(
                                     })
                             }
                         }
+                    }
+                }
+                if (item.isUnread()) {
+                    Canvas(
+                        modifier = modifier.requiredSize(
+                            DEFAULT_LIST_ITEM_STATUS_ICON_SIZE
+                        )
+                    ) {
+                        drawCircle(primaryColor, radius = 6.dp.toPx())
                     }
                 }
             }
