@@ -58,16 +58,6 @@ fun NavigationDrawerBody(
         NavigationItem(
             modifier = modifier,
             onClick = {
-                navController.navigate("ContactsScreen")
-            },
-            isSelected = false,
-            painter = painterResource(id = R.drawable.contacts),
-            titleResId = R.string.contacts_title,
-            count = null
-        )
-        NavigationItem(
-            modifier = modifier,
-            onClick = {
                 navController.navigate("SettingsScreen")
             },
             isSelected = false,

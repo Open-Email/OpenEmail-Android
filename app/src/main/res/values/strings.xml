@@ -127,4 +127,5 @@
     <string name="last_seen">Last seen</string>
     <string name="message_deleted">Message deleted</string>
     <string name="login_title">Let’s make the future today</string>
+    <string name="contacts_placeholder">Your contacts list is empty.</string>
 </resources>

@@ -1,20 +1,18 @@
 package com.mercata.pingworks.home_screen
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
+import com.mercata.pingworks.contacts_screen.ContactItem
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.db.drafts.DBDraftWithReaders
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
+import com.mercata.pingworks.db.notifications.DBNotification
 import com.mercata.pingworks.db.pending.DBPendingMessage
 import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.registration.UserData
@@ -41,6 +39,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
     private val pendingMessages: ArrayList<DBPendingMessage> = arrayListOf()
     private val draftMessages: ArrayList<DBDraftWithReaders> = arrayListOf()
+    private val contacts: ArrayList<ContactItem> = arrayListOf()
     private val cachedAttachments: ArrayList<CachedAttachment> = arrayListOf()
 
     init {
@@ -93,6 +92,15 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 draftMessages.clear()
                 draftMessages.addAll(drafts)
                 currentState.unread[HomeScreen.Drafts] = draftMessages.size
+                updateList()
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            db.userDao().getAllAsFlow().collect { dbContacts ->
+                contacts.clear()
+                contacts.addAll(dbContacts)
+                currentState.unread[HomeScreen.Contacts] =
+                    contacts.filterIsInstance<DBNotification>().size
                 updateList()
             }
         }
@@ -190,12 +198,16 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
             HomeScreen.DownloadedAttachments -> currentState.items.addAll(cachedAttachments.filter { it.searchMatched() }
                 .toList())
+
+            HomeScreen.Contacts -> currentState.items.addAll(contacts.filter { it.searchMatched() })
         }
     }
 
     private fun HomeItem.searchMatched(): Boolean =
-        this.getSubject().lowercase().contains(currentState.query.lowercase()) ||
-                this.getTextBody().lowercase().contains(currentState.query.lowercase())
+        this.getSubtitle()?.lowercase()?.contains(currentState.query.lowercase()) ?: false ||
+                this.getTextBody().lowercase()
+                    .contains(currentState.query.lowercase()) || this.getTitle().lowercase()
+            .contains(currentState.query.lowercase())
 
 
     fun deleteItem(item: HomeItem) {
@@ -355,5 +367,12 @@ enum class HomeScreen(
         iconResId = R.drawable.download,
         outbox = false,
         placeholderDescriptionResId = R.string.downloaded_attachemnts_placeholder
-    )
+    ),
+    Contacts(
+        R.string.contacts,
+        iconResId = R.drawable.contacts,
+        outbox = false,
+        placeholderDescriptionResId = R.string.contacts_placeholder
+    ),
 }
+

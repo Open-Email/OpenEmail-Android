@@ -602,7 +602,7 @@ fun SharedTransitionScope.MessageViewHolder(
                                     modifier
                                         .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                                         .clip(CircleShape),
-                                    currentUser.address.getProfilePictureUrl(),
+                                    item.getAddressValue()?.getProfilePictureUrl() ?: "",
                                     onError = { _ ->
                                         Box(
                                             modifier
@@ -633,9 +633,7 @@ fun SharedTransitionScope.MessageViewHolder(
                                     modifier
                                         .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                                         .clip(CircleShape),
-                                    item.getContacts()
-                                        .firstOrNull()?.address?.getProfilePictureUrl()
-                                        ?: "",
+                                    item.getAddressValue()?.getProfilePictureUrl() ?: "",
                                     onError = { _ ->
                                         Box(
                                             modifier
@@ -686,9 +684,9 @@ fun SharedTransitionScope.MessageViewHolder(
             Spacer(modifier = modifier.width(MARGIN_DEFAULT))
             Column {
                 Row {
-                    if (item.getContacts().isNotEmpty()) {
+                    if (item.getTitle().isNotEmpty()) {
                         Text(
-                            text = item.getContacts().first().fullName,
+                            text = item.getTitle(),
                             modifier = modifier.weight(1f),
                             overflow = TextOverflow.Ellipsis,
                             maxLines = 1,
@@ -718,18 +716,20 @@ fun SharedTransitionScope.MessageViewHolder(
                 }
 
                 Spacer(modifier.height(MARGIN_DEFAULT / 2))
-                Text(
-                    modifier = modifier.sharedBounds(
-                        sharedContentState = rememberSharedContentState(
-                            key = "message_subject/${item.getMessageId()}"
+                item.getSubtitle()?.let { subject ->
+                    Text(
+                        modifier = modifier.sharedBounds(
+                            sharedContentState = rememberSharedContentState(
+                                key = "message_subject/${item.getMessageId()}"
+                            ),
+                            animatedVisibilityScope = animatedVisibilityScope,
                         ),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                    ),
-                    text = item.getSubject(),
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 1,
-                    style = MaterialTheme.typography.titleSmall,
-                )
+                        text = subject,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1,
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                }
                 Text(
                     modifier = modifier.sharedBounds(
                         sharedContentState = rememberSharedContentState(

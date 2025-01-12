@@ -17,7 +17,11 @@ data class DBDraftWithReaders(
 ) : HomeItem {
     override fun getContacts(): List<PublicUserData> = readers.map { it.toPublicUserData() }
 
-    override fun getSubject(): String = draft.subject
+    override fun getTitle(): String = getContacts().first().fullName
+
+    override fun getAddressValue(): String? = draft.readerAddresses?.split(",")?.firstOrNull()
+
+    override fun getSubtitle(): String = draft.subject
 
     override fun getTextBody(): String = draft.textBody
 

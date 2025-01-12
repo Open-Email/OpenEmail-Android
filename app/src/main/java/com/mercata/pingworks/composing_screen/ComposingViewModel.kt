@@ -50,7 +50,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                 db.draftDao().getById(draftId)?.let { draft ->
                     updateState(
                         currentState.copy(
-                            subject = draft.getSubject(),
+                            subject = draft.getSubtitle(),
                             body = draft.getTextBody(),
                             broadcast = draft.draft.isBroadcast
                         )

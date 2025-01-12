@@ -26,7 +26,9 @@ data class DBPendingMessage(
     val readers: List<DBPendingReaderPublicData>
 ) : HomeItem {
     override fun getContacts() = readers.map { it.toPublicUserData() }
-    override fun getSubject() = message.subject
+    override fun getTitle(): String = readers.first().fullName
+    override fun getAddressValue(): String = message.authorAddress
+    override fun getSubtitle() = message.subject
     override fun getTextBody(): String = message.textBody
     override fun getMessageId() = message.messageId
     override fun getAttachmentsAmount(): Int = fileParts.size

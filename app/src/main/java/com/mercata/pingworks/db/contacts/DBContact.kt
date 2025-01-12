@@ -54,6 +54,23 @@ data class DBContact(
 
     @Ignore
     override val key: String = address
+    override fun getContacts(): List<PublicUserData> = listOf()
+
+    override fun getAddressValue(): String = address
+
+    override fun getTitle(): String = name ?: ""
+
+    override fun getSubtitle(): String? = null
+
+    override fun getTextBody(): String = address
+
+    override fun getMessageId(): String = address
+
+    override fun getAttachmentsAmount(): Int? = null
+
+    override fun isUnread(): Boolean = false
+
+    override fun getTimestamp(): Long? = null
 }
 
 fun DBContact.toPublicUserData(): PublicUserData =

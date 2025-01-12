@@ -63,6 +63,24 @@ data class DBNotification(
         val currentTimestamp = System.currentTimeMillis()
         return currentTimestamp - SEVEN_DAYS_MILLIS > receivedOnTimestamp
     }
+
+    override fun getContacts(): List<PublicUserData> = listOf()
+
+    override fun getTitle(): String = name
+
+    override fun getAddressValue(): String = address
+
+    override fun getSubtitle(): String? = null
+
+    override fun getTextBody(): String = address
+
+    override fun getMessageId(): String = notificationId
+
+    override fun getAttachmentsAmount(): Int? = null
+
+    override fun isUnread(): Boolean = false
+
+    override fun getTimestamp(): Long? = null
 }
 
 fun DBNotification.toPublicUserData(): PublicUserData {

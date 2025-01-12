@@ -15,7 +15,9 @@ data class DBMessageWithDBAttachments(
     val attachmentParts: List<DBAttachment>
 ) : HomeItem {
     override fun getContacts() = message.author?.toPublicUserData()?.let { listOf(it) } ?: listOf()
-    override fun getSubject() = message.message.subject
+    override fun getTitle(): String = getContacts().first().fullName
+    override fun getAddressValue(): String? = message.author?.address
+    override fun getSubtitle() = message.message.subject
     override fun getTextBody() = message.message.textBody
     override fun getMessageId() = message.message.messageId
     override fun getAttachmentsAmount(): Int = attachmentParts.size

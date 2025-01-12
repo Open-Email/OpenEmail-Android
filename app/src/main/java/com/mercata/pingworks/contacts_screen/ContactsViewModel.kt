@@ -5,6 +5,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.db.AppDatabase
+import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.db.notifications.DBNotification
 import com.mercata.pingworks.db.notifications.toPublicUserData
@@ -262,7 +263,7 @@ data class ContactsState(
     val newContactSearchDialogShown: Boolean = false,
 )
 
-interface ContactItem {
+interface ContactItem : HomeItem {
     val name: String?
     val address: String
     val key: String
