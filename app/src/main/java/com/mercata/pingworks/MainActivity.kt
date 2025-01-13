@@ -20,7 +20,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mercata.pingworks.composing_screen.ComposingScreen
 import com.mercata.pingworks.contact_details.ContactDetailsScreen
-import com.mercata.pingworks.contacts_screen.ContactsScreen
 import com.mercata.pingworks.home_screen.HomeScreen
 import com.mercata.pingworks.message_details.MessageDetailsScreen
 import com.mercata.pingworks.registration.RegistrationScreen
@@ -84,9 +83,6 @@ class MainActivity : AppCompatActivity() {
                                 navController,
                                 this
                             )
-                        }
-                        composable(route = "ContactsScreen") {
-                            ContactsScreen(navController = navController, this)
                         }
                         composable(route = "SettingsScreen") {
                             SettingsScreen(navController = navController)

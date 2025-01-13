@@ -51,12 +51,16 @@ import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,6 +68,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -72,6 +77,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.rememberTopAppBarState
@@ -112,12 +118,16 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.common.NavigationDrawerBody
 import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.db.HomeItem
+import com.mercata.pingworks.db.contacts.ContactItem
+import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.db.drafts.DBDraftWithReaders
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
+import com.mercata.pingworks.db.notifications.DBNotification
 import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.registration.UserData
 import com.mercata.pingworks.utils.getProfilePictureUrl
 import com.mercata.pingworks.utils.measureTextWidth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDateTime
@@ -132,6 +142,7 @@ fun SharedTransitionScope.HomeScreen(
     viewModel: HomeViewModel = viewModel(),
 ) {
 
+    val state by viewModel.state.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     val topAppBarState = rememberTopAppBarState()
     val listState = rememberLazyListState()
@@ -146,14 +157,20 @@ fun SharedTransitionScope.HomeScreen(
         //ignore
     }
 
+    fun openComposingScreen() {
+        navController.navigate(
+            "ComposingScreen/${
+                state.selectedItems.mapNotNull { it.getAddressValue() }.joinToString(",")
+            }/null/null"
+        )
+    }
+
     val fabWidth by animateDpAsState(
         targetValue = if (listState.isScrollInProgress) 56.dp else 56.dp + MARGIN_DEFAULT + measureTextWidth(
-            stringResource(R.string.create_message),
+            stringResource(if (state.selectedItems.isEmpty()) state.screen.fabTitleRes else R.string.create_message),
             MaterialTheme.typography.labelLarge
         )
     )
-
-    val state by viewModel.state.collectAsState()
 
     val refreshState = rememberPullRefreshState(state.refreshing, onRefresh = {
         viewModel.refresh()
@@ -357,7 +374,6 @@ fun SharedTransitionScope.HomeScreen(
                 Divider(color = colorScheme.outline)
             }
         }, floatingActionButton = {
-
             Row(
                 modifier = modifier
                     .height(56.dp)
@@ -368,7 +384,21 @@ fun SharedTransitionScope.HomeScreen(
                     .background(color = colorScheme.primary)
 
                     .clickable {
-                        navController.navigate("ComposingScreen/null/null/null")
+                        if (state.screen == HomeScreen.Contacts) {
+                            if (state.selectedItems.isEmpty()) {
+                                viewModel.toggleSearchAddressDialog(true)
+                            } else {
+                                val unapprovedRequests =
+                                    state.selectedItems.filterIsInstance<DBNotification>()
+                                if (unapprovedRequests.isEmpty()) {
+                                    openComposingScreen()
+                                } else {
+                                    viewModel.showRequestApprovingConfirmationDialog()
+                                }
+                            }
+                        } else {
+                            navController.navigate("ComposingScreen/null/null/null")
+                        }
                     }
                     .sharedBounds(
                         rememberSharedContentState(
@@ -380,7 +410,7 @@ fun SharedTransitionScope.HomeScreen(
                 horizontalArrangement = Arrangement.Absolute.Center
             ) {
                 Icon(
-                    painterResource(R.drawable.edit),
+                    painterResource(if (state.selectedItems.isEmpty()) state.screen.fabIcon else R.drawable.edit),
                     null,
                     tint = colorScheme.onPrimary
                 )
@@ -388,7 +418,7 @@ fun SharedTransitionScope.HomeScreen(
                     Row {
                         Spacer(modifier.width(MARGIN_DEFAULT / 2))
                         Text(
-                            stringResource(R.string.create_message),
+                            stringResource(if (state.selectedItems.isEmpty()) state.screen.fabTitleRes else R.string.create_message),
                             maxLines = 1,
                             overflow = TextOverflow.Clip,
                             style = MaterialTheme.typography.labelLarge.copy(color = colorScheme.onPrimary)
@@ -414,100 +444,248 @@ fun SharedTransitionScope.HomeScreen(
                 ) {
                     itemsIndexed(items = state.items.filter { it != state.itemToDelete },
                         key = { _, item -> item.getMessageId() }) { index, item ->
-                        Column {
-                            SwipeContainer(modifier = modifier.animateItem(),
-                                item = item,
-                                onDelete = when (item) {
-                                    is DBMessageWithDBAttachments -> {
-                                        if (state.screen == HomeScreen.Outbox) {
+                        if (item is Separator) {
+                            Text(
+                                item.getSeparatorTitle(context),
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = modifier.padding(
+                                    top = MARGIN_DEFAULT,
+                                    bottom = MARGIN_DEFAULT / 2,
+                                    start = MARGIN_DEFAULT,
+                                    end = MARGIN_DEFAULT
+                                )
+                            )
+                        } else {
+                            Column {
+                                SwipeContainer(modifier = modifier.animateItem(),
+                                    item = item,
+                                    onDelete = when (item) {
+                                        is DBMessageWithDBAttachments -> {
+                                            if (state.screen == HomeScreen.Outbox) {
+                                                {
+                                                    viewModel.deleteItem(item)
+                                                }
+                                            } else {
+                                                null
+                                            }
+                                        }
+
+                                        is CachedAttachment, is DBDraftWithReaders, is ContactItem -> {
                                             {
                                                 viewModel.deleteItem(item)
                                             }
-                                        } else {
-                                            null
-                                        }
-                                    }
-
-                                    is CachedAttachment, is DBDraftWithReaders -> {
-                                        {
-                                            viewModel.deleteItem(item)
-                                        }
-                                    }
-
-                                    else -> null
-                                },
-                                onUpdateReadState = when (state.screen) {
-                                    HomeScreen.Inbox, HomeScreen.Broadcast -> {
-                                        { message ->
-                                            viewModel.updateRead(message as DBMessageWithDBAttachments)
-                                        }
-                                    }
-
-                                    else -> null
-                                }) {
-                                MessageViewHolder(item = item,
-                                    currentUser = state.currentUser!!,
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                    onMessageSelected = when (item) {
-                                        is DBMessageWithDBAttachments -> {
-                                            when (state.screen) {
-                                                HomeScreen.Outbox -> { attachment ->
-                                                    viewModel.toggleSelectItem(attachment)
-                                                }
-
-                                                else -> null
-                                            }
-
-                                        }
-
-                                        is CachedAttachment -> { attachment ->
-                                            viewModel.toggleSelectItem(attachment)
                                         }
 
                                         else -> null
                                     },
-                                    isSelected = state.selectedItems.contains(item),
-                                    onMessageClicked = { message ->
-                                        when (message) {
-                                            is CachedAttachment -> {
-                                                val attachment = item as CachedAttachment
-                                                val intent: Intent = Intent().apply {
-                                                    action = Intent.ACTION_SEND
-                                                    putExtra(Intent.EXTRA_STREAM, attachment.uri)
-                                                    type = attachment.type
-                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    onUpdateReadState = when (state.screen) {
+                                        HomeScreen.Inbox, HomeScreen.Broadcast -> {
+                                            { message ->
+                                                viewModel.updateRead(message as DBMessageWithDBAttachments)
+                                            }
+                                        }
+
+                                        else -> null
+                                    }) {
+                                    MessageViewHolder(item = item,
+                                        currentUser = state.currentUser!!,
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        onMessageSelected = when (item) {
+                                            is DBMessageWithDBAttachments -> {
+                                                when (state.screen) {
+                                                    HomeScreen.Outbox -> { attachment ->
+                                                        viewModel.toggleSelectItem(attachment)
+                                                    }
+
+                                                    else -> null
                                                 }
-                                                val shareIntent = Intent.createChooser(intent, null)
-                                                launcher.launch(shareIntent)
+
                                             }
 
-                                            is DBDraftWithReaders -> navController.navigate(
-                                                "ComposingScreen/null/${state.screen.outbox}/${message.draft.draftId}",
-                                            )
+                                            is CachedAttachment, is ContactItem -> { attachment ->
+                                                viewModel.toggleSelectItem(attachment)
+                                            }
 
-                                            else -> navController.navigate(
-                                                "MessageDetailsScreen/${message.getMessageId()}/${state.screen.outbox}",
-                                            )
-                                        }
-                                    })
-                            }
-                            if (index != state.items.size - 1) {
-                                //ignoring bottom list divider
-                                Divider(
-                                    modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp),
-                                    color = colorScheme.outline,
-                                    thickness = 1.dp
-                                )
-                            }
+                                            else -> null
+                                        },
+                                        isSelected = state.selectedItems.contains(item),
+                                        onMessageClicked = { message ->
+                                            when (message) {
+                                                is CachedAttachment -> {
+                                                    val attachment = item as CachedAttachment
+                                                    val intent: Intent = Intent().apply {
+                                                        action = Intent.ACTION_SEND
+                                                        putExtra(
+                                                            Intent.EXTRA_STREAM,
+                                                            attachment.uri
+                                                        )
+                                                        type = attachment.type
+                                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                    }
+                                                    val shareIntent =
+                                                        Intent.createChooser(intent, null)
+                                                    launcher.launch(shareIntent)
+                                                }
 
+                                                is DBDraftWithReaders -> navController.navigate(
+                                                    "ComposingScreen/null/${state.screen.outbox}/${message.draft.draftId}",
+                                                )
+
+                                                is DBContact -> {
+                                                    navController.navigate(
+                                                        "ContactDetailsScreen/${item.getAddressValue()}"
+                                                    )
+                                                }
+
+                                                is DBNotification -> {
+                                                    viewModel.openNotificationDetails(item as DBNotification)
+                                                }
+
+                                                else -> navController.navigate(
+                                                    "MessageDetailsScreen/${message.getMessageId()}/${state.screen.outbox}",
+                                                )
+                                            }
+                                        })
+                                }
+                                if (index != state.items.size - 1) {
+                                    //ignoring bottom list divider
+                                    Divider(
+                                        modifier
+                                            .fillMaxWidth()
+                                            .height(1.dp),
+                                        color = colorScheme.outline,
+                                        thickness = 1.dp
+                                    )
+                                }
+
+                            }
                         }
                     }
                 }
                 if (state.items.isEmpty()) {
                     EmptyPlaceholder(
                         modifier = modifier.align(Alignment.Center), screen = state.screen
+                    )
+                }
+
+                if (state.newContactSearchDialogShown) {
+                    AddContactDialog(modifier = modifier, state = state, viewModel = viewModel)
+                }
+
+                state.requestDetails?.let {
+                    AlertDialog(
+                        icon = {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = modifier
+                                    .clip(CircleShape)
+                                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                            ) {
+                                ProfileImage(
+                                    modifier = modifier,
+                                    imageUrl = it.address.getProfilePictureUrl(),
+                                    onError = {
+                                        Icon(
+                                            Icons.Default.Person,
+                                            contentDescription = stringResource(id = R.string.profile_image)
+                                        )
+                                    })
+                            }
+                        },
+                        title = {
+                            Text(text = it.name)
+                        },
+                        text = {
+                            Column(
+                                modifier = modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = it.address,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        },
+                        onDismissRequest = { viewModel.closeNotificationDetails() },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    viewModel.approveRequest()
+                                }
+                            ) {
+                                Text(stringResource(id = R.string.add_new_contact))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
+                                    viewModel.closeNotificationDetails()
+                                }
+                            ) {
+                                Text(stringResource(id = R.string.cancel_button))
+                            }
+                        }
+                    )
+                }
+
+                if (state.addRequestsToContactsDialogShown) {
+                    AlertDialog(
+                        icon = {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = stringResource(id = R.string.warning)
+                            )
+                        },
+                        title = {
+                            Text(text = stringResource(R.string.warning))
+                        },
+                        text = {
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.add_selected_requests_warning),
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                                ElevatedButton(modifier = modifier.fillMaxWidth(), onClick = {
+                                    coroutineScope.launch(Dispatchers.Main) {
+                                        viewModel.addSelectedNotificationsToContacts()
+                                    }.invokeOnCompletion {
+                                        viewModel.syncWithServer()
+                                        openComposingScreen()
+                                    }
+                                }) {
+                                    Text(
+                                        stringResource(id = R.string.add_contacts_and_proceed),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+
+                                if (state.selectedItems.filterIsInstance<DBContact>()
+                                        .isNotEmpty()
+                                ) {
+                                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                                    OutlinedButton(modifier = modifier.fillMaxWidth(), onClick = {
+                                        viewModel.clearSelection()
+                                        openComposingScreen()
+                                    }) {
+                                        Text(
+                                            stringResource(id = R.string.proceed_with_existing_contacts_only),
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        onDismissRequest = { viewModel.hideRequestApprovingConfirmationDialog() },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    viewModel.hideRequestApprovingConfirmationDialog()
+                                }
+                            ) {
+                                Text(stringResource(id = R.string.cancel_button))
+                            }
+                        },
                     )
                 }
 

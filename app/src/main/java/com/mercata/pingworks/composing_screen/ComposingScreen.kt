@@ -97,8 +97,8 @@ import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
-import com.mercata.pingworks.contacts_screen.ContactViewHolder
 import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.home_screen.MessageViewHolder
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.theme.roboto
 import com.mercata.pingworks.utils.getMimeType
@@ -492,18 +492,18 @@ fun SharedTransitionScope.ComposingScreen(
                                 true
                             ) == true || it.address.contains(state.addressFieldText, true)
                         }.forEach { contact ->
-                            ContactViewHolder(
+                            MessageViewHolder(
                                 modifier = modifier,
                                 animatedVisibilityScope = animatedVisibilityScope,
-                                person = contact,
-                                uploading = false,
+                                item = contact,
                                 isSelected = false,
-                                onSelect = null,
-                                onClick = { person ->
+                                onMessageClicked = { person ->
                                     viewModel.addContactSuggestion(person as DBContact)
                                     viewModel.clearAddressField()
                                     focusManager.clearFocus()
-                                }
+                                },
+                                onMessageSelected = null,
+                                currentUser = state.currentUser!!
                             )
                         }
                     }

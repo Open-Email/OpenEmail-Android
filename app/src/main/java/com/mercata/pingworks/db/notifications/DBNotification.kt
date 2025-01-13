@@ -4,7 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
-import com.mercata.pingworks.contacts_screen.ContactItem
+import com.mercata.pingworks.db.contacts.ContactItem
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.utils.Address
 import java.time.Instant

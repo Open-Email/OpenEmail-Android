@@ -128,4 +128,8 @@
     <string name="message_deleted">Message deleted</string>
     <string name="login_title">Let’s make the future today</string>
     <string name="contacts_placeholder">Your contacts list is empty.</string>
+    <string name="add_contact">Add Contact</string>
+    <string name="contact_request_dismissed">Contact request dismissed</string>
+    <string name="contact_requests">Contact requests (%d)</string>
+    <string name="address_book">Address Book (%d)</string>
 </resources>

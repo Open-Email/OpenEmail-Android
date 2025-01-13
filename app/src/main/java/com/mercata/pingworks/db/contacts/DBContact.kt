@@ -4,7 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
-import com.mercata.pingworks.contacts_screen.ContactItem
+import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.models.PublicUserData
 import java.time.Instant
 
@@ -113,3 +113,9 @@ fun DBContact.toPublicUserData(): PublicUserData =
         phone = this.phone,
         streams = this.streams
     )
+
+interface ContactItem : HomeItem {
+    val name: String?
+    val address: String
+    val key: String
+}
