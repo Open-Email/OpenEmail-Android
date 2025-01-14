@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,6 +34,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
@@ -76,34 +80,15 @@ fun AddContactDialog(
     }
 
     AlertDialog(
-        icon = {
-            if (state.loading) {
-                CircularProgressIndicator(
-                    modifier = modifier.size(
-                        MESSAGE_LIST_ITEM_IMAGE_SIZE
-                    )
-                )
-            } else {
-                ProfileImage(
-                    modifier
-                        .clip(CircleShape)
-                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
-                    state.existingContactFound?.address?.getProfilePictureUrl() ?: "",
-                    onError = {
-                        Icon(
-                            Icons.Default.Person,
-                            modifier = modifier.size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
-                            contentDescription = stringResource(id = R.string.add_new_contact)
-                        )
-                    })
-            }
-        },
+        tonalElevation = 0.dp,
+        shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
         title = {
-            Text(text = stringResource(id = titleResId), textAlign = TextAlign.Center)
+            Text(text = stringResource(id = titleResId), textAlign = TextAlign.Start, style = MaterialTheme.typography.titleMedium)
         },
         text = {
             if (state.existingContactFound == null) {
                 OutlinedTextField(
+                    shape = CircleShape,
                     value = state.newContactAddressInput,
                     onValueChange = { str -> viewModel.onNewContactAddressInput(str) },
                     singleLine = true,

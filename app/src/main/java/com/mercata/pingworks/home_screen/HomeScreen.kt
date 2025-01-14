@@ -534,12 +534,14 @@ fun SharedTransitionScope.HomeScreen(
 
                                                 is DBContact -> {
                                                     navController.navigate(
-                                                        "ContactDetailsScreen/${item.getAddressValue()}"
+                                                        "ContactDetailsScreen/${item.getAddressValue()}/${false}"
                                                     )
                                                 }
 
                                                 is DBNotification -> {
-                                                    viewModel.openNotificationDetails(item as DBNotification)
+                                                    navController.navigate(
+                                                        "ContactDetailsScreen/${item.getAddressValue()}/${true}"
+                                                    )
                                                 }
 
                                                 else -> navController.navigate(
@@ -571,62 +573,6 @@ fun SharedTransitionScope.HomeScreen(
 
                 if (state.newContactSearchDialogShown) {
                     AddContactDialog(modifier = modifier, state = state, viewModel = viewModel)
-                }
-
-                state.requestDetails?.let {
-                    AlertDialog(
-                        icon = {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = modifier
-                                    .clip(CircleShape)
-                                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                            ) {
-                                ProfileImage(
-                                    modifier = modifier,
-                                    imageUrl = it.address.getProfilePictureUrl(),
-                                    onError = {
-                                        Icon(
-                                            Icons.Default.Person,
-                                            contentDescription = stringResource(id = R.string.profile_image)
-                                        )
-                                    })
-                            }
-                        },
-                        title = {
-                            Text(text = it.name)
-                        },
-                        text = {
-                            Column(
-                                modifier = modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = it.address,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        },
-                        onDismissRequest = { viewModel.closeNotificationDetails() },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    viewModel.approveRequest()
-                                }
-                            ) {
-                                Text(stringResource(id = R.string.add_new_contact))
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(
-                                onClick = {
-                                    viewModel.closeNotificationDetails()
-                                }
-                            ) {
-                                Text(stringResource(id = R.string.cancel_button))
-                            }
-                        }
-                    )
                 }
 
                 if (state.addRequestsToContactsDialogShown) {

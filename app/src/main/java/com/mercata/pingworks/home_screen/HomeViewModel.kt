@@ -360,31 +360,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
-    fun approveRequest() {
-        viewModelScope.launch(Dispatchers.IO) {
-            updateState(currentState.copy(existingContactFound = currentState.requestDetails!!.toPublicUserData()))
-            addContact()
-            db.notificationsDao().update(currentState.requestDetails!!.copy(dismissed = true))
-            closeNotificationDetails()
-        }.invokeOnCompletion {
-            GlobalScope.launch(Dispatchers.IO) {
-                val db: AppDatabase by inject()
-                val sp: SharedPreferences by inject()
-                val dl: DownloadRepository by inject()
-                syncAllMessages(db, sp, dl)
-            }
-        }
-    }
-
-    fun openNotificationDetails(person: DBNotification) {
-        updateState(currentState.copy(requestDetails = person))
-    }
-
-    fun closeNotificationDetails() {
-        updateState(currentState.copy(requestDetails = null))
-    }
-
     suspend fun addSelectedNotificationsToContacts() {
         withContext(Dispatchers.IO) {
             val selectedRequests = currentState.selectedItems.filterIsInstance<DBNotification>()
@@ -503,7 +478,6 @@ data class HomeState(
     val query: String = "",
     val refreshing: Boolean = false,
     val undoDelete: Int? = null,
-    val requestDetails: DBNotification? = null,
     val existingContactFound: PublicUserData? = null,
     val screen: HomeScreen = HomeScreen.Broadcast,
     val items: SnapshotStateList<HomeItem> = mutableStateListOf(),
