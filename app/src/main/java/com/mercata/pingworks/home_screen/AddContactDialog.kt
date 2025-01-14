@@ -89,7 +89,7 @@ fun AddContactDialog(
                         .clip(CircleShape)
                         .size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
                     state.existingContactFound?.address?.getProfilePictureUrl() ?: "",
-                    onError = { modifier ->
+                    onError = {
                         Icon(
                             Icons.Default.Person,
                             modifier = modifier.size(MESSAGE_LIST_ITEM_IMAGE_SIZE),

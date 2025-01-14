@@ -7,7 +7,6 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.models.PublicUserData
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 abstract class Separator: HomeItem {
     abstract fun getSeparatorTitle(context: Context): String
@@ -22,7 +21,7 @@ abstract class Separator: HomeItem {
 
     override fun getTextBody(): String = ""
 
-    override fun getMessageId(): String = Uuid.random().toString()
+    override fun getMessageId(): String = (hashCode() * 42).toString()
 
     override fun getAttachmentsAmount(): Int? = null
 

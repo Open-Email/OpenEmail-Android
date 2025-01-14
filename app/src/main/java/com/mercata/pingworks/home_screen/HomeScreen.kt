@@ -66,6 +66,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedButton
@@ -168,7 +169,7 @@ fun SharedTransitionScope.HomeScreen(
     val fabWidth by animateDpAsState(
         targetValue = if (listState.isScrollInProgress) 56.dp else 56.dp + MARGIN_DEFAULT + measureTextWidth(
             stringResource(if (state.selectedItems.isEmpty()) state.screen.fabTitleRes else R.string.create_message),
-            MaterialTheme.typography.labelLarge
+            typography.labelLarge
         )
     )
 
@@ -270,7 +271,7 @@ fun SharedTransitionScope.HomeScreen(
                         .fillMaxWidth()
                         .padding(MARGIN_DEFAULT)
                         .focusRequester(searchFocusRequester),
-                    textStyle = MaterialTheme.typography.bodyLarge,
+                    textStyle = typography.bodyLarge,
                     leadingIcon = {
                         IconButton(onClick = {
                             coroutineScope.launch {
@@ -324,7 +325,7 @@ fun SharedTransitionScope.HomeScreen(
                                         },
                                     imageUrl = state.currentUser?.address?.getProfilePictureUrl()
                                         ?: "",
-                                    onError = { modifier ->
+                                    onError = {
                                         Box(
                                             modifier
                                                 .background(color = colorScheme.surface)
@@ -341,7 +342,7 @@ fun SharedTransitionScope.HomeScreen(
                                                         1
                                                     ) ?: ""
                                                 }",
-                                                style = MaterialTheme.typography.titleSmall
+                                                style = typography.titleSmall
                                             )
                                         }
                                     })
@@ -352,7 +353,7 @@ fun SharedTransitionScope.HomeScreen(
                     placeholder = {
                         Text(
                             stringResource(R.string.search),
-                            style = MaterialTheme.typography.bodyLarge
+                            style = typography.bodyLarge
                         )
                     },
                     onValueChange = {
@@ -360,7 +361,7 @@ fun SharedTransitionScope.HomeScreen(
                     })
                 Text(
                     stringResource(state.screen.titleResId),
-                    style = MaterialTheme.typography.labelLarge.copy(
+                    style = typography.labelLarge.copy(
                         color =
                         if (state.selectedItems.isEmpty())
                             colorScheme.onSurface
@@ -421,7 +422,7 @@ fun SharedTransitionScope.HomeScreen(
                             stringResource(if (state.selectedItems.isEmpty()) state.screen.fabTitleRes else R.string.create_message),
                             maxLines = 1,
                             overflow = TextOverflow.Clip,
-                            style = MaterialTheme.typography.labelLarge.copy(color = colorScheme.onPrimary)
+                            style = typography.labelLarge.copy(color = colorScheme.onPrimary)
                         )
                     }
                 }
@@ -447,7 +448,7 @@ fun SharedTransitionScope.HomeScreen(
                         if (item is Separator) {
                             Text(
                                 item.getSeparatorTitle(context),
-                                style = MaterialTheme.typography.labelLarge,
+                                style = typography.labelLarge,
                                 modifier = modifier.padding(
                                     top = MARGIN_DEFAULT,
                                     bottom = MARGIN_DEFAULT / 2,
@@ -775,7 +776,7 @@ fun SharedTransitionScope.MessageViewHolder(
                                 )
                             }
 
-                            is DBDraftWithReaders -> {
+                            /*is DBDraftWithReaders -> {
                                 ProfileImage(
                                     modifier
                                         .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
@@ -799,20 +800,26 @@ fun SharedTransitionScope.MessageViewHolder(
                                                         1
                                                     ) ?: ""
                                                 }",
-                                                style = MaterialTheme.typography.titleMedium,
+                                                style = typography.titleMedium,
                                                 color = colorScheme.onSurface,
                                             )
                                         }
                                     })
-                            }
+                            }*/
 
                             else -> {
                                 ProfileImage(
                                     modifier
+                                        .sharedBounds(
+                                            sharedContentState = rememberSharedContentState(
+                                                key = "message_image/${item.getMessageId()}"
+                                            ),
+                                            animatedVisibilityScope = animatedVisibilityScope,
+                                        )
                                         .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                                         .clip(CircleShape),
                                     item.getAddressValue()?.getProfilePictureUrl() ?: "",
-                                    onError = { _ ->
+                                    onError = {
                                         Box(
                                             modifier
                                                 .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
@@ -840,7 +847,7 @@ fun SharedTransitionScope.MessageViewHolder(
                                                             .first().fullName.getOrNull(1) ?: ""
                                                     }"
                                                 },
-                                                style = MaterialTheme.typography.titleMedium,
+                                                style = typography.titleMedium,
                                                 color = colorScheme.onSurface
                                             )
                                         }
@@ -868,7 +875,7 @@ fun SharedTransitionScope.MessageViewHolder(
                             modifier = modifier.weight(1f),
                             overflow = TextOverflow.Ellipsis,
                             maxLines = 1,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = typography.titleMedium,
                         )
                     } else {
                         Spacer(modifier = modifier.weight(1f))
@@ -888,7 +895,7 @@ fun SharedTransitionScope.MessageViewHolder(
                         Text(
                             formatter.format(localDateTime),
                             modifier = modifier.padding(start = MARGIN_DEFAULT),
-                            style = MaterialTheme.typography.titleSmall.copy(color = if (item.isUnread()) colorScheme.onSurface else colorScheme.outlineVariant)
+                            style = typography.titleSmall.copy(color = if (item.isUnread()) colorScheme.onSurface else colorScheme.outlineVariant)
                         )
                     }
                 }
@@ -905,7 +912,7 @@ fun SharedTransitionScope.MessageViewHolder(
                         text = subject,
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = typography.titleSmall,
                     )
                 }
                 Text(
@@ -917,7 +924,7 @@ fun SharedTransitionScope.MessageViewHolder(
                     ),
                     text = item.getTextBody(),
                     maxLines = 2,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = typography.bodyMedium,
                     overflow = TextOverflow.Ellipsis,
                 )
                 item.getAttachmentsAmount()?.takeIf { it > 0 }?.let { attachmentsAmount ->
@@ -951,7 +958,7 @@ fun SharedTransitionScope.MessageViewHolder(
                                     attachmentsAmount
                                 ), attachmentsAmount
                             ),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = typography.bodyMedium
                         )
                     }
                 }
@@ -1063,7 +1070,7 @@ fun EmptyPlaceholder(modifier: Modifier = Modifier, screen: HomeScreen) {
         Text(
             stringResource(id = screen.placeholderDescriptionResId),
             textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.labelLarge.copy(color = colorScheme.outlineVariant)
+            style = typography.labelLarge.copy(color = colorScheme.outlineVariant)
         )
     }
 }

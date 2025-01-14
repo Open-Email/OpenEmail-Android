@@ -225,7 +225,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         ProfileImage(
                             modifier = modifier,
                             imageUrl =  messageWithAuthor?.author?.address?.getProfilePictureUrl() ?: "",
-                            onError = { _ ->
+                            onError = {
                                 Text(
                                     text = "${
                                         messageWithAuthor?.author?.name?.firstOrNull() ?: messageWithAuthor?.author?.address?.first()

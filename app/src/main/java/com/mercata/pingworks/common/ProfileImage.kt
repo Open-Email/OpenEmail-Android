@@ -21,8 +21,8 @@ import com.mercata.pingworks.R
 fun ProfileImage(
     modifier: Modifier = Modifier,
     imageUrl: String,
-    onError: @Composable (modifier: Modifier) -> Unit,
-    onLoading: @Composable (modifier: Modifier) -> Unit = {
+    onError: @Composable () -> Unit,
+    onLoading: @Composable () -> Unit = {
         CircularProgressIndicator(
             modifier = modifier.size(24.0.dp)
         )
@@ -31,11 +31,11 @@ fun ProfileImage(
     var imageState by remember { mutableStateOf(ImageLoadingState.Success) }
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         if (imageState == ImageLoadingState.Loading) {
-            onLoading(modifier)
+            onLoading()
         }
 
         if (imageState == ImageLoadingState.Error) {
-            onError(modifier)
+            onError()
         }
 
         AsyncImage(

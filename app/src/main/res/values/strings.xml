@@ -132,4 +132,5 @@
     <string name="contact_request_dismissed">Contact request dismissed</string>
     <string name="contact_requests">Contact requests (%d)</string>
     <string name="address_book">Address Book (%d)</string>
+    <string name="profile">Profile</string>
 </resources>

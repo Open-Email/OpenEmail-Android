@@ -534,7 +534,7 @@ fun SharedTransitionScope.ComposingScreen(
                         ProfileImage(
                             modifier = modifier,
                             imageUrl = state.openedAddressDetails?.address?.getProfilePictureUrl() ?: "",
-                            onError = { _ ->
+                            onError = {
                                 Icon(
                                     Icons.Default.AccountCircle,
                                     contentDescription = stringResource(id = R.string.profile_image)
@@ -633,7 +633,7 @@ fun AddressChip(
                     ProfileImage(
                         modifier,
                         user.address.getProfilePictureUrl(),
-                        onError = { modifier ->
+                        onError = {
                             Icon(
                                 Icons.Default.AccountCircle,
                                 modifier = modifier,

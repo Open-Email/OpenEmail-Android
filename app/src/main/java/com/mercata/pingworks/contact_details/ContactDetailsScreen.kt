@@ -1,30 +1,34 @@
-@file:OptIn(ExperimentalSharedTransitionApi::class)
+@file:OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 
 package com.mercata.pingworks.contact_details
 
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -34,7 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -42,7 +46,6 @@ import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
-import com.mercata.pingworks.theme.roboto
 import com.mercata.pingworks.utils.getProfilePictureUrl
 import java.time.Instant
 import java.time.ZoneId
@@ -62,94 +65,107 @@ fun SharedTransitionScope.ContactDetailsScreen(
     Scaffold(
         modifier = modifier.sharedBounds(
             rememberSharedContentState(
-                key = "contact_bounds/${state.address}"
+                key = "message_bounds/${state.address}"
             ),
             animatedVisibilityScope,
         ),
+        topBar = {
+            TopAppBar(title = {
+                Text(stringResource(R.string.profile))
+            },
+                navigationIcon = {
+                    IconButton(content = {
+                        Icon(
+                            painterResource(R.drawable.back),
+                            contentDescription = stringResource(R.string.back_button)
+                        )
+                    }, onClick = {
+                        navController.popBackStack()
+                    })
+                },
+                actions = {
+
+                })
+        },
         floatingActionButton = {
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 modifier = modifier.sharedBounds(
                     rememberSharedContentState(
                         key = "composing_bounds"
                     ),
                     animatedVisibilityScope
                 ),
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
+                containerColor = colorScheme.primary,
+                contentColor = colorScheme.onPrimary,
                 onClick = {
                     navController.navigate("ComposingScreen/${state.address}/null/null")
                 }) {
-                Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
-            }
-        }
-    ) { padding ->
-        Column(modifier.verticalScroll(rememberScrollState())) {
-            Box(
-                contentAlignment = Alignment.BottomCenter,
-                modifier = modifier
-                    .sharedBounds(
-                        sharedContentState = rememberSharedContentState(
-                            key = "contact_image/${state.address}"
-                        ),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                    )
-                    .height(imageSize)
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.primary)
-            ) {
-                ProfileImage(
-                    modifier,
-                    state.contact?.address?.getProfilePictureUrl() ?: "",
-                    onError = { modifier ->
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = modifier
-                                .height(imageSize)
-                                .padding(horizontal = MARGIN_DEFAULT)
-                                .fillMaxWidth()
-
-                        ) {
-                            Text(
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                text = state.contact?.name ?: state.address,
-                                style = MaterialTheme.typography.displayLarge
-                            )
-                        }
-                    })
-
-                state.contact?.address?.let {
+                Row {
+                    Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
+                    Spacer(modifier.width(MARGIN_DEFAULT / 2))
                     Text(
-                        text = it,
-                        modifier = modifier.padding(MARGIN_DEFAULT),
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        stringResource(R.string.create_message),
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip,
+                        style = typography.labelLarge.copy(color = colorScheme.onPrimary)
                     )
                 }
             }
+        }
+    ) { padding ->
+        Column(
+            modifier
+                .padding(top = padding.calculateTopPadding())
+                .verticalScroll(rememberScrollState())
+        ) {
+            ProfileImage(
+                modifier
+                    .height(imageSize)
+                    .sharedBounds(
+                        sharedContentState = rememberSharedContentState(
+                            key = "message_image/${state.address}"
+                        ),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    ),
+                state.contact?.address?.getProfilePictureUrl() ?: "",
+                onError = {
+                    Icon(
+                        painterResource(R.drawable.contacts),
+                        modifier = Modifier.size(100.dp),
+                        contentDescription = null,
+                        tint = colorScheme.outline
+                    )
+                })
 
+            Spacer(modifier.height(MARGIN_DEFAULT * 2))
+            state.contact?.name?.let { name ->
+                Text(
+                    name,
+                    modifier.padding(horizontal = MARGIN_DEFAULT),
+                    style = typography.titleMedium
+                )
+            }
+            Spacer(modifier.height(MARGIN_DEFAULT / 4))
+            Text(
+                state.address,
+                modifier.padding(horizontal = MARGIN_DEFAULT),
+                style = typography.bodyMedium.copy(color = colorScheme.outlineVariant),
+            )
+            Spacer(modifier.height(MARGIN_DEFAULT))
+            ContactDivider(modifier.padding(horizontal = MARGIN_DEFAULT))
+            Spacer(modifier.height(MARGIN_DEFAULT / 2))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = modifier
                     .fillMaxWidth()
                     .clickable { viewModel.toggleBroadcast() }
                     .padding(
-                        top = MARGIN_DEFAULT,
-                        start = MARGIN_DEFAULT,
-                        end = MARGIN_DEFAULT,
-                        bottom = MARGIN_DEFAULT / 2
+                        horizontal = MARGIN_DEFAULT,
                     )
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.cast),
-                    contentDescription = stringResource(
-                        id = R.string.receive_broadcasts
-                    ),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = modifier.width(MARGIN_DEFAULT))
                 Text(
                     stringResource(id = R.string.receive_broadcasts),
-                    fontFamily = roboto,
+                    style = typography.titleMedium,
                     softWrap = true
                 )
                 Spacer(modifier = modifier.weight(1f))
@@ -157,16 +173,18 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     checked = state.contact?.receiveBroadcasts ?: false,
                     onCheckedChange = { viewModel.toggleBroadcast() })
             }
+            Spacer(modifier.height(MARGIN_DEFAULT / 2))
+            ContactDivider(modifier.padding(horizontal = MARGIN_DEFAULT))
             state.contact?.run {
-                Column (modifier.padding(MARGIN_DEFAULT)){
+                Column(modifier.padding(MARGIN_DEFAULT)) {
                     lastSeen?.let {
-                        Text(
-                            "${stringResource(R.string.last_seen)}: ${
-                                ZonedDateTime.ofInstant(
-                                    Instant.parse(it), ZoneId.systemDefault()
-                                ).format(DEFAULT_DATE_TIME_FORMAT)
-                            }",
+                        DataRow(
+                            title = stringResource(R.string.last_seen),
+                            description = ZonedDateTime.ofInstant(
+                                Instant.parse(it), ZoneId.systemDefault()
+                            ).format(DEFAULT_DATE_TIME_FORMAT)
                         )
+                        ContactDivider(modifier.padding(top = MARGIN_DEFAULT))
                     }
                     if (!status.isNullOrBlank() || !about.isNullOrBlank()) {
                         Text(
@@ -286,7 +304,32 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     }
                 }
             }
-            Spacer(modifier = modifier.height(padding.calculateBottomPadding()))
+            Spacer(modifier = modifier.height(padding.calculateBottomPadding() + 72.dp))
         }
     }
+}
+
+@Composable
+fun DataRow(modifier: Modifier = Modifier, title: String, description: String) {
+    Row {
+        Text(
+            title,
+            style = typography.titleMedium
+        )
+        Spacer(modifier.weight(1f))
+        Text(
+            description, style = typography.bodyMedium
+        )
+    }
+}
+
+@Composable
+fun ContactDivider(modifier: Modifier = Modifier) {
+    Divider(
+        modifier
+            .fillMaxWidth()
+            .height(1.dp),
+        thickness = 1.dp,
+        color = colorScheme.outline
+    )
 }
