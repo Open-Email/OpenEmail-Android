@@ -37,6 +37,7 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -47,22 +48,27 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     private val dl: DownloadRepository by inject()
     private val fu: FileUtils by inject()
     private val sendMessageRepository: SendMessageRepository by inject()
-    private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
-    private val pendingMessages: ArrayList<DBPendingMessage> = arrayListOf()
-    private val draftMessages: ArrayList<DBDraftWithReaders> = arrayListOf()
-    private val contacts: ArrayList<DBContact> = arrayListOf()
-    private val notifications: LinkedHashSet<DBNotification> = LinkedHashSet()
-    private val cachedAttachments: ArrayList<CachedAttachment> = arrayListOf()
+    private var listUpdateState: HomeListUpdateState? = null
 
     val items: SnapshotStateList<HomeItem> = mutableStateListOf()
     val selectedItems: SnapshotStateList<HomeItem> = mutableStateListOf()
     val unread: SnapshotStateMap<HomeScreen, Int> = mutableStateMapOf()
+
+    data class HomeListUpdateState(
+        val dbMessages: List<DBMessageWithDBAttachments>,
+        val dbPendingMessages: List<DBPendingMessage>,
+        val dbDrafts: List<DBDraftWithReaders>,
+        val dbContacts: List<DBContact>,
+        val dbNotifications: List<DBNotification>,
+        val attachments: ArrayList<CachedAttachment> = arrayListOf()
+    )
 
     init {
         val sp: SharedPreferences by inject()
         val db: AppDatabase by inject()
         val dl: DownloadRepository by inject()
         val sendMessageRepository: SendMessageRepository by inject()
+
         viewModelScope.launch {
             sendMessageRepository.sendingState.collect { isSending ->
                 updateState(currentState.copy(sendingSnackBar = isSending))
@@ -74,14 +80,33 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 screen = sp.getSelectedNavigationScreen()
             )
         )
+
         viewModelScope.launch(Dispatchers.IO) {
-            db.messagesDao().getAllAsFlowWithAttachments().collect { dbEntities ->
-                allMessages.clear()
-                allMessages.addAll(dbEntities.filterNot { it.message.message.markedToDelete }
-                    .toList())
+            combine(
+                db.messagesDao().getAllAsFlowWithAttachments(),
+                db.pendingMessagesDao().getAllAsFlowWithAttachments(),
+                db.draftDao().getAllFlow(),
+                db.userDao().getAllAsFlow(),
+                db.notificationsDao().getAllAsFlow(),
+            ) { dbMessages, dbPendingMessages, dbDrafts, dbContacts, dbNotifications ->
+                HomeListUpdateState(
+                    dbMessages.filterNot { it.message.message.markedToDelete }.toList(),
+                    dbPendingMessages,
+                    dbDrafts,
+                    dbContacts,
+                    dbNotifications.filterNot {
+                        it.address == sp.getUserAddress() || it.isExpired() || it.dismissed
+                    })
+            }.combine(dl.downloadedAttachmentsState) { listUpdateState, newAttachments ->
+                listUpdateState.apply {
+                    attachments.clear()
+                    attachments.addAll(newAttachments)
+                }
+            }.collect { listUpdateState ->
+
                 var unreadBroadcasts = 0
                 var unreadMessages = 0
-                dbEntities.forEach {
+                listUpdateState.dbMessages.forEach {
                     if (it.isUnread()) {
                         if (it.message.message.isBroadcast) {
                             unreadBroadcasts++
@@ -92,47 +117,13 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 }
                 unread[HomeScreen.Inbox] = unreadMessages
                 unread[HomeScreen.Broadcast] = unreadBroadcasts
-                updateList()
-            }
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            db.pendingMessagesDao().getAllAsFlowWithAttachments().collect { pending ->
-                pendingMessages.clear()
-                pendingMessages.addAll(pending)
-                unread[HomeScreen.Pending] = pendingMessages.size
-                updateList()
-            }
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            db.draftDao().getAllFlow().collect { drafts ->
-                draftMessages.clear()
-                draftMessages.addAll(drafts)
-                unread[HomeScreen.Drafts] = draftMessages.size
-                updateList()
-            }
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            db.userDao().getAllAsFlow().collect { dbContacts ->
-                contacts.clear()
-                contacts.addAll(dbContacts)
-                unread[HomeScreen.Contacts] =
-                    contacts.filterIsInstance<DBNotification>().size
-                updateList()
-            }
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            db.notificationsDao().getAllAsFlow().collect { dbEntities ->
-                notifications.clear()
-                notifications.addAll(dbEntities.filterNot {
-                    it.address == sp.getUserAddress() || it.isExpired() || it.dismissed
-                }.toList())
-                updateList()
-            }
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            dl.downloadedAttachmentsState.collect { attachmentsList ->
-                cachedAttachments.clear()
-                cachedAttachments.addAll(attachmentsList)
+                unread[HomeScreen.Pending] = listUpdateState.dbPendingMessages.size
+                unread[HomeScreen.Drafts] = listUpdateState.dbDrafts.size
+
+                //unread[HomeScreen.Contacts] = listUpdateState.dbContacts.filterIsInstance<DBNotification>().size
+
+                this@HomeViewModel.listUpdateState = listUpdateState
+
                 updateList()
             }
         }
@@ -144,19 +135,23 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     }
 
     fun contactPresented(contactAddress: Address): Boolean {
-        return contacts.any { it.address == contactAddress }
+        return listUpdateState?.dbContacts?.any { it.address == contactAddress } ?: false
     }
 
     fun onSearchQuery(query: String) {
-        updateState(currentState.copy(query = query))
-        updateList()
+        viewModelScope.launch {
+            updateState(currentState.copy(query = query))
+            updateList()
+        }
     }
 
     fun selectScreen(screen: HomeScreen) {
-        updateState(currentState.copy(screen = screen))
-        updateList()
-        sp.saveSelectedNavigationScreen(screen)
-        selectedItems.clear()
+        viewModelScope.launch {
+            updateState(currentState.copy(screen = screen))
+            updateList()
+            sp.saveSelectedNavigationScreen(screen)
+            selectedItems.clear()
+        }
     }
 
     fun refresh() {
@@ -186,60 +181,64 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
-    private fun updateList() {
-        val currentUserAddress = sp.getUserAddress()
-        items.clear()
+    private suspend fun updateList() {
+        withContext(Dispatchers.Main) {
+            val currentUserAddress = sp.getUserAddress()
+            items.clear()
 
-        when (currentState.screen) {
-            HomeScreen.Drafts -> {
-                items.addAll(draftMessages.filter { it.searchMatched() }.toList())
-            }
+            listUpdateState?.run {
+                when (currentState.screen) {
+                    HomeScreen.Drafts -> {
+                        items.addAll(dbDrafts.filter { it.searchMatched() }.toList())
+                    }
 
-            HomeScreen.Pending -> {
-                items.addAll(pendingMessages.filter { it.searchMatched() }.toList())
-            }
+                    HomeScreen.Pending -> {
+                        items.addAll(dbPendingMessages.filter { it.searchMatched() }.toList())
+                    }
 
-            HomeScreen.Broadcast -> items.addAll(allMessages.filter {
-                it.message.message.isBroadcast
-                        && it.message.author?.address != currentUserAddress
-                        && it.searchMatched()
-            }.toList())
+                    HomeScreen.Broadcast -> items.addAll(dbMessages.filter {
+                        it.message.message.isBroadcast
+                                && it.message.author?.address != currentUserAddress
+                                && it.searchMatched()
+                    }.toList())
 
-            HomeScreen.Outbox -> {
-                items.addAll(allMessages.filter {
-                    it.message.author?.address == currentUserAddress && it.searchMatched()
-                }.toList())
-            }
+                    HomeScreen.Outbox -> {
+                        items.addAll(dbMessages.filter {
+                            it.message.author?.address == currentUserAddress && it.searchMatched()
+                        }.toList())
+                    }
 
-            HomeScreen.Inbox -> {
-                items.addAll(allMessages.filter {
-                    it.message.message.isBroadcast.not() &&
-                            it.message.author?.address != currentUserAddress && it.searchMatched()
-                }.toList())
-            }
+                    HomeScreen.Inbox -> {
+                        items.addAll(dbMessages.filter {
+                            it.message.message.isBroadcast.not() &&
+                                    it.message.author?.address != currentUserAddress && it.searchMatched()
+                        }.toList())
+                    }
 
-            HomeScreen.DownloadedAttachments -> items.addAll(cachedAttachments.filter { it.searchMatched() }
-                .toList())
+                    HomeScreen.DownloadedAttachments -> items.addAll(attachments.filter { it.searchMatched() }
+                        .toList())
 
-            HomeScreen.Contacts -> {
-                items.clear()
-                val filteredNotifications: List<DBNotification> =
-                    notifications.filter { it.searchMatched() }.toList()
-                val filteredContacts: List<DBContact> =
-                    contacts.filter { it.searchMatched() }.toList()
+                    HomeScreen.Contacts -> {
+                        items.clear()
+                        val filteredNotifications: List<DBNotification> =
+                            dbNotifications.filter { it.searchMatched() }.toList()
+                        val filteredContacts: List<DBContact> =
+                            dbContacts.filter { it.searchMatched() }.toList()
 
-                val bothTypesPresented =
-                    filteredNotifications.isNotEmpty() && filteredContacts.isNotEmpty()
-                if (bothTypesPresented) {
-                    items.add(NotificationSeparator(filteredNotifications.size))
+                        val bothTypesPresented =
+                            filteredNotifications.isNotEmpty() && filteredContacts.isNotEmpty()
+                        if (bothTypesPresented) {
+                            items.add(NotificationSeparator(filteredNotifications.size))
+                        }
+
+                        items.addAll(filteredNotifications)
+
+                        if (bothTypesPresented) {
+                            items.add(ContactsSeparator(filteredContacts.size))
+                        }
+                        items.addAll(filteredContacts)
+                    }
                 }
-
-                items.addAll(filteredNotifications)
-
-                if (bothTypesPresented) {
-                    items.add(ContactsSeparator(filteredContacts.size))
-                }
-                items.addAll(filteredContacts)
             }
         }
     }
@@ -330,8 +329,8 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                     .update((currentState.itemToDelete as DBNotification).copy(dismissed = true))
             }
         }
-        updateState(currentState.copy(itemToDelete = null))
         refresh()
+        updateState(currentState.copy(itemToDelete = null))
     }
 
     fun onUndoDeletePressed() {
