@@ -756,12 +756,13 @@ fun SharedTransitionScope.MessageViewHolder(
                             else -> {
                                 ProfileImage(
                                     modifier
-                                        .sharedBounds(
+                                        //Elevation bug under the navigation drawer
+                                        /*.sharedBounds(
                                             sharedContentState = rememberSharedContentState(
                                                 key = "message_image/${item.getMessageId()}"
                                             ),
                                             animatedVisibilityScope = animatedVisibilityScope,
-                                        )
+                                        )*/
                                         .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                                         .clip(CircleShape),
                                     item.getAddressValue()?.getProfilePictureUrl() ?: "",

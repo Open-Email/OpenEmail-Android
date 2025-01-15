@@ -145,12 +145,14 @@ fun SharedTransitionScope.ContactDetailsScreen(
             ProfileImage(
                 modifier
                     .height(imageSize)
-                    .sharedBounds(
+                //Elevation bug under the navigation drawer
+                    /*.sharedBounds(
                         sharedContentState = rememberSharedContentState(
                             key = "message_image/${state.address}"
                         ),
                         animatedVisibilityScope = animatedVisibilityScope,
-                    ),
+                    )*/
+                ,
                 state.address.getProfilePictureUrl() ?: "",
                 onError = {
                     Icon(
