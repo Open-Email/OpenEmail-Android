@@ -17,7 +17,7 @@ data class DBDraftWithReaders(
 ) : HomeItem {
     override fun getContacts(): List<PublicUserData> = readers.map { it.toPublicUserData() }
 
-    override fun getTitle(): String = getContacts().first().fullName
+    override fun getTitle(): String = getContacts().firstOrNull()?.fullName ?: ""
 
     override fun getAddressValue(): String? = draft.readerAddresses?.split(",")?.firstOrNull()
 

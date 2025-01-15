@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -142,7 +143,7 @@ fun PersonalSettingsScreen(
                         tint = MaterialTheme.colorScheme.primary
                     )
                 },
-                onLoading = { CircularProgressIndicator(imageModifier) })
+                onLoading = { CircularProgressIndicator(imageModifier, strokeCap = StrokeCap.Round) })
             state.localData?.let {
                 Text(
                     it.name,

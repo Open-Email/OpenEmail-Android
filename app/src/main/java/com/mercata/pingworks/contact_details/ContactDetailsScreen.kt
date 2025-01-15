@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -37,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +53,7 @@ import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.utils.getProfilePictureUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -75,7 +78,14 @@ fun SharedTransitionScope.ContactDetailsScreen(
         ),
         topBar = {
             TopAppBar(title = {
-                Text(stringResource(R.string.profile))
+                if (state.loading) {
+                    CircularProgressIndicator(
+                        modifier = modifier.size(28.dp),
+                        strokeCap = StrokeCap.Round
+                    )
+                } else {
+                    Text(stringResource(R.string.profile))
+                }
             },
                 navigationIcon = {
                     IconButton(content = {
@@ -115,9 +125,11 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     containerColor = colorScheme.primary,
                     contentColor = colorScheme.onPrimary,
                     onClick = {
-                        if (state.isNotification) {
-                            coroutineScope.launch(Dispatchers.IO) {
+                        coroutineScope.launch(Dispatchers.IO) {
+                            if (state.isNotification) {
                                 viewModel.approveRequest()
+                            }
+                            withContext(Dispatchers.Main) {
                                 navController.navigate("ComposingScreen/${state.address}/null/null")
                             }
                         }

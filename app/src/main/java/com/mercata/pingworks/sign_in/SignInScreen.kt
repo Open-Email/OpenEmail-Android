@@ -46,6 +46,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -312,7 +313,7 @@ fun SignInScreen(
 
                 Box(contentAlignment = Alignment.Center, modifier = modifier.weight(1f)) {
                     if (state.loading)
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(strokeCap = StrokeCap.Round)
                 }
                 Text(
 

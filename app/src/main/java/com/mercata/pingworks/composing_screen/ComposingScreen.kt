@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -43,6 +44,7 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -74,6 +76,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -92,6 +95,7 @@ import com.mercata.pingworks.CHIP_HEIGHT
 import com.mercata.pingworks.CHIP_ICON_SIZE
 import com.mercata.pingworks.CLEAR_ICON_SIZE
 import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
+import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
@@ -104,7 +108,9 @@ import com.mercata.pingworks.theme.roboto
 import com.mercata.pingworks.utils.getMimeType
 import com.mercata.pingworks.utils.getNameFromURI
 import com.mercata.pingworks.utils.getProfilePictureUrl
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -214,7 +220,7 @@ fun SharedTransitionScope.ComposingScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = {
-                            navController.popBackStack()
+                            viewModel.confirmExit()
                         }) {
                             Icon(
                                 imageVector = Icons.Default.Close,
@@ -240,7 +246,7 @@ fun SharedTransitionScope.ComposingScreen(
                                 viewModel.send()
                             }) {
                             if (state.loading) {
-                                CircularProgressIndicator()
+                                CircularProgressIndicator(strokeCap = StrokeCap.Round)
                             } else {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Send,
@@ -354,6 +360,7 @@ fun SharedTransitionScope.ComposingScreen(
                                 if (state.addressFieldText.isNotBlank()) {
                                     if (state.addressLoading) {
                                         CircularProgressIndicator(
+                                            strokeCap = StrokeCap.Round,
                                             modifier = modifier.size(
                                                 CHIP_ICON_SIZE
                                             )
@@ -380,7 +387,7 @@ fun SharedTransitionScope.ComposingScreen(
                             ),
                             isError = state.addressErrorResId != null,
                             keyboardActions = KeyboardActions(
-                                onDone  = {
+                                onDone = {
                                     focusManager.clearFocus()
                                 }
                             ),
@@ -533,7 +540,8 @@ fun SharedTransitionScope.ComposingScreen(
                     ) {
                         ProfileImage(
                             modifier = modifier,
-                            imageUrl = state.openedAddressDetails?.address?.getProfilePictureUrl() ?: "",
+                            imageUrl = state.openedAddressDetails?.address?.getProfilePictureUrl()
+                                ?: "",
                             onError = {
                                 Icon(
                                     Icons.Default.AccountCircle,
@@ -553,22 +561,22 @@ fun SharedTransitionScope.ComposingScreen(
 
         if (state.confirmExitDialogShown) {
             AlertDialog(
+                tonalElevation = 0.dp,
+                shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
                 title = {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = stringResource(id = R.string.warning))
-                    }
+                    Text(
+                        text = stringResource(id = R.string.warning), textAlign = TextAlign.Start,
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 },
                 text = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(horizontalAlignment = Alignment.Start) {
                         Text(
                             text = stringResource(id = R.string.exit_composing_confirmation),
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Start
                         )
                         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                        ElevatedButton(modifier = modifier.fillMaxWidth(), onClick = {
+                        Button(modifier = modifier.fillMaxWidth(), onClick = {
                             viewModel.closeExitConfirmation()
                             navController.popBackStack(route = "HomeScreen", inclusive = false)
                         }) {
@@ -576,9 +584,13 @@ fun SharedTransitionScope.ComposingScreen(
                         }
                         OutlinedButton(modifier = modifier.fillMaxWidth(), onClick = {
                             coroutineScope.launch {
-                                viewModel.closeExitConfirmation()
                                 viewModel.deleteDraft()
-                                navController.popBackStack(route = "HomeScreen", inclusive = false)
+                                withContext(Dispatchers.Main) {
+                                    navController.popBackStack(
+                                        route = "HomeScreen",
+                                        inclusive = false
+                                    )
+                                }
                             }
                         }) {
                             Text(stringResource(id = R.string.close_without_saving))
