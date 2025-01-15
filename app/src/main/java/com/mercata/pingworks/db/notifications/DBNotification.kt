@@ -2,7 +2,6 @@ package com.mercata.pingworks.db.notifications
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import com.mercata.pingworks.db.contacts.ContactItem
 import com.mercata.pingworks.models.PublicUserData
@@ -56,9 +55,6 @@ data class DBNotification(
     @ColumnInfo("streams") val streams: String?
 ) : ContactItem {
 
-    @Ignore
-    override val key: String = notificationId
-
     fun isExpired(): Boolean {
         val currentTimestamp = System.currentTimeMillis()
         return currentTimestamp - SEVEN_DAYS_MILLIS > receivedOnTimestamp
@@ -74,7 +70,7 @@ data class DBNotification(
 
     override fun getTextBody(): String = address
 
-    override fun getMessageId(): String = notificationId
+    override fun getMessageId(): String = "${DBNotification::class} " + notificationId
 
     override fun getAttachmentsAmount(): Int? = null
 

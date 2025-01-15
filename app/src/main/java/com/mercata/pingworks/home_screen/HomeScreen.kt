@@ -38,20 +38,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Menu
@@ -62,9 +60,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.ModalDrawerSheet
@@ -161,14 +159,14 @@ fun SharedTransitionScope.HomeScreen(
     fun openComposingScreen() {
         navController.navigate(
             "ComposingScreen/${
-                state.selectedItems.mapNotNull { it.getAddressValue() }.joinToString(",")
+                viewModel.selectedItems.mapNotNull { it.getAddressValue() }.joinToString(",")
             }/null/null"
         )
     }
 
     val fabWidth by animateDpAsState(
         targetValue = if (listState.isScrollInProgress) 56.dp else 56.dp + MARGIN_DEFAULT + measureTextWidth(
-            stringResource(if (state.selectedItems.isEmpty()) state.screen.fabTitleRes else R.string.create_message),
+            stringResource(if (viewModel.selectedItems.isEmpty()) state.screen.fabTitleRes else R.string.create_message),
             typography.labelLarge
         )
     )
@@ -177,16 +175,8 @@ fun SharedTransitionScope.HomeScreen(
         viewModel.refresh()
     })
 
-    BackHandler(enabled = state.selectedItems.isNotEmpty()) {
-        state.selectedItems.clear()
-    }
-
-    LaunchedEffect(state.searchOpened) {
-        if (state.searchOpened) {
-            searchFocusRequester.requestFocus()
-        } else {
-            focusManager.clearFocus()
-        }
+    BackHandler(enabled = viewModel.selectedItems.isNotEmpty()) {
+        viewModel.selectedItems.clear()
     }
 
     LaunchedEffect(state.sendingSnackBar) {
@@ -240,7 +230,7 @@ fun SharedTransitionScope.HomeScreen(
                         }
                     },
                     selected = state.screen,
-                    unread = state.unread,
+                    unread = viewModel.unread,
                 )
             }
         }) {
@@ -248,7 +238,7 @@ fun SharedTransitionScope.HomeScreen(
             SnackbarHost(hostState = snackbarHostState)
         }, topBar = {
             Column(
-                modifier = modifier.background(if (state.selectedItems.isEmpty()) colorScheme.surface else colorScheme.primary)
+                modifier = modifier.background(if (viewModel.selectedItems.isEmpty()) colorScheme.surface else colorScheme.primary)
 
             ) {
                 Spacer(
@@ -290,7 +280,7 @@ fun SharedTransitionScope.HomeScreen(
                         }
                     },
                     colors = TextFieldDefaults.outlinedTextFieldColors(
-                        backgroundColor = if (state.selectedItems.isEmpty())
+                        backgroundColor = if (viewModel.selectedItems.isEmpty())
                             colorScheme.surfaceVariant
                         else
                             colorScheme.onPrimary,
@@ -302,11 +292,7 @@ fun SharedTransitionScope.HomeScreen(
                     trailingIcon = {
                         if (state.query.isNotEmpty()) {
                             IconButton(onClick = {
-                                if (state.query.isEmpty()) {
-                                    viewModel.toggleSearch()
-                                } else {
-                                    viewModel.onSearchQuery("")
-                                }
+                                viewModel.onSearchQuery("")
                             }) {
                                 Icon(
                                     Icons.Rounded.Clear,
@@ -363,7 +349,7 @@ fun SharedTransitionScope.HomeScreen(
                     stringResource(state.screen.titleResId),
                     style = typography.labelLarge.copy(
                         color =
-                        if (state.selectedItems.isEmpty())
+                        if (viewModel.selectedItems.isEmpty())
                             colorScheme.onSurface
                         else
                             colorScheme.onPrimary
@@ -372,7 +358,7 @@ fun SharedTransitionScope.HomeScreen(
                         vertical = MARGIN_DEFAULT / 2, horizontal = MARGIN_DEFAULT
                     )
                 )
-                Divider(color = colorScheme.outline)
+                HorizontalDivider(color = colorScheme.outline)
             }
         }, floatingActionButton = {
             Row(
@@ -386,11 +372,11 @@ fun SharedTransitionScope.HomeScreen(
 
                     .clickable {
                         if (state.screen == HomeScreen.Contacts) {
-                            if (state.selectedItems.isEmpty()) {
+                            if (viewModel.selectedItems.isEmpty()) {
                                 viewModel.toggleSearchAddressDialog(true)
                             } else {
                                 val unapprovedRequests =
-                                    state.selectedItems.filterIsInstance<DBNotification>()
+                                    viewModel.selectedItems.filterIsInstance<DBNotification>()
                                 if (unapprovedRequests.isEmpty()) {
                                     openComposingScreen()
                                 } else {
@@ -411,7 +397,7 @@ fun SharedTransitionScope.HomeScreen(
                 horizontalArrangement = Arrangement.Absolute.Center
             ) {
                 Icon(
-                    painterResource(if (state.selectedItems.isEmpty()) state.screen.fabIcon else R.drawable.edit),
+                    painterResource(if (viewModel.selectedItems.isEmpty()) state.screen.fabIcon else R.drawable.edit),
                     null,
                     tint = colorScheme.onPrimary
                 )
@@ -419,7 +405,7 @@ fun SharedTransitionScope.HomeScreen(
                     Row {
                         Spacer(modifier.width(MARGIN_DEFAULT / 2))
                         Text(
-                            stringResource(if (state.selectedItems.isEmpty()) state.screen.fabTitleRes else R.string.create_message),
+                            stringResource(if (viewModel.selectedItems.isEmpty()) state.screen.fabTitleRes else R.string.create_message),
                             maxLines = 1,
                             overflow = TextOverflow.Clip,
                             style = typography.labelLarge.copy(color = colorScheme.onPrimary)
@@ -443,8 +429,8 @@ fun SharedTransitionScope.HomeScreen(
                         bottom = padding.calculateBottomPadding() + (MARGIN_DEFAULT.value * 1.5).dp + 52.dp
                     ), modifier = Modifier.fillMaxSize()
                 ) {
-                    itemsIndexed(items = state.items.filter { it != state.itemToDelete },
-                        key = { _, item -> item.getMessageId() }) { index, item ->
+                    items(items = viewModel.items,
+                        key = { item -> item.getMessageId() }) { item ->
                         if (item is Separator) {
                             Text(
                                 item.getSeparatorTitle(context),
@@ -457,37 +443,37 @@ fun SharedTransitionScope.HomeScreen(
                                 )
                             )
                         } else {
-                            Column {
-                                SwipeContainer(modifier = modifier.animateItem(),
-                                    item = item,
-                                    onDelete = when (item) {
-                                        is DBMessageWithDBAttachments -> {
-                                            if (state.screen == HomeScreen.Outbox) {
-                                                {
-                                                    viewModel.deleteItem(item)
-                                                }
-                                            } else {
-                                                null
-                                            }
-                                        }
-
-                                        is CachedAttachment, is DBDraftWithReaders, is ContactItem -> {
+                            SwipeContainer(modifier = modifier.animateItem(),
+                                item = item,
+                                onDelete = when (item) {
+                                    is DBMessageWithDBAttachments -> {
+                                        if (state.screen == HomeScreen.Outbox) {
                                             {
                                                 viewModel.deleteItem(item)
                                             }
+                                        } else {
+                                            null
                                         }
+                                    }
 
-                                        else -> null
-                                    },
-                                    onUpdateReadState = when (state.screen) {
-                                        HomeScreen.Inbox, HomeScreen.Broadcast -> {
-                                            { message ->
-                                                viewModel.updateRead(message as DBMessageWithDBAttachments)
-                                            }
+                                    is CachedAttachment, is DBDraftWithReaders, is ContactItem -> {
+                                        {
+                                            viewModel.deleteItem(item)
                                         }
+                                    }
 
-                                        else -> null
-                                    }) {
+                                    else -> null
+                                },
+                                onUpdateReadState = when (state.screen) {
+                                    HomeScreen.Inbox, HomeScreen.Broadcast -> {
+                                        { message ->
+                                            viewModel.updateRead(message as DBMessageWithDBAttachments)
+                                        }
+                                    }
+
+                                    else -> null
+                                }) {
+                                Column {
                                     MessageViewHolder(item = item,
                                         currentUser = state.currentUser!!,
                                         animatedVisibilityScope = animatedVisibilityScope,
@@ -509,7 +495,7 @@ fun SharedTransitionScope.HomeScreen(
 
                                             else -> null
                                         },
-                                        isSelected = state.selectedItems.contains(item),
+                                        isSelected = viewModel.selectedItems.contains(item),
                                         onMessageClicked = { message ->
                                             when (message) {
                                                 is CachedAttachment -> {
@@ -549,30 +535,25 @@ fun SharedTransitionScope.HomeScreen(
                                                 )
                                             }
                                         })
+                                    HorizontalDivider(color = colorScheme.outline)
                                 }
-                                if (index != state.items.size - 1) {
-                                    //ignoring bottom list divider
-                                    Divider(
-                                        modifier
-                                            .fillMaxWidth()
-                                            .height(1.dp),
-                                        color = colorScheme.outline,
-                                        thickness = 1.dp
-                                    )
-                                }
-
                             }
                         }
                     }
                 }
-                if (state.items.isEmpty()) {
+                if (viewModel.items.isEmpty()) {
                     EmptyPlaceholder(
                         modifier = modifier.align(Alignment.Center), screen = state.screen
                     )
                 }
 
                 if (state.newContactSearchDialogShown) {
-                    AddContactDialog(modifier = modifier, state = state, viewModel = viewModel)
+                    AddContactDialog(
+                        modifier = modifier,
+                        state = state,
+                        viewModel = viewModel,
+                        navController = navController
+                    )
                 }
 
                 if (state.addRequestsToContactsDialogShown) {
@@ -607,7 +588,7 @@ fun SharedTransitionScope.HomeScreen(
                                     )
                                 }
 
-                                if (state.selectedItems.filterIsInstance<DBContact>()
+                                if (viewModel.selectedItems.filterIsInstance<DBContact>()
                                         .isNotEmpty()
                                 ) {
                                     Spacer(modifier = modifier.height(MARGIN_DEFAULT))

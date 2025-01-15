@@ -2,9 +2,9 @@ package com.mercata.pingworks.db.contacts
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import com.mercata.pingworks.db.HomeItem
+import com.mercata.pingworks.db.notifications.DBNotification
 import com.mercata.pingworks.models.PublicUserData
 import java.time.Instant
 
@@ -52,8 +52,6 @@ data class DBContact(
     @ColumnInfo(name = "streams") val streams: String?
 ) : ContactItem {
 
-    @Ignore
-    override val key: String = address
     override fun getContacts(): List<PublicUserData> = listOf()
 
     override fun getAddressValue(): String = address
@@ -64,7 +62,7 @@ data class DBContact(
 
     override fun getTextBody(): String = address
 
-    override fun getMessageId(): String = address
+    override fun getMessageId(): String = "${DBContact::class} " + address
 
     override fun getAttachmentsAmount(): Int? = null
 
@@ -117,5 +115,4 @@ fun DBContact.toPublicUserData(): PublicUserData =
 interface ContactItem : HomeItem {
     val name: String?
     val address: String
-    val key: String
 }

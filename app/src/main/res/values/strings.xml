@@ -43,7 +43,7 @@
     <string name="settings_title">Settings</string>
     <string name="back_button">Back button</string>
     <string name="contacts_title">Contacts</string>
-    <string name="add_new_contact">Add new contact</string>
+    <string name="add_new_contact">Add a new contact</string>
     <string name="logout_button">Logout</string>
     <string name="input_contact_address_hint">Contact address</string>
     <string name="search_address">Search address</string>
@@ -133,4 +133,5 @@
     <string name="contact_requests">Contact requests (%d)</string>
     <string name="address_book">Address Book (%d)</string>
     <string name="profile">Profile</string>
+    <string name="address_not_found_error">Address not found</string>
 </resources>

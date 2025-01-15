@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -54,7 +55,7 @@ fun NavigationDrawerBody(
                 count = unread[screen]?.takeIf { it > 0 }
             )
         }
-        Divider(modifier = modifier.fillMaxWidth().padding(vertical = MARGIN_DEFAULT), color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+        HorizontalDivider(modifier = modifier.fillMaxWidth().padding(vertical = MARGIN_DEFAULT), color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
         NavigationItem(
             modifier = modifier,
             onClick = {

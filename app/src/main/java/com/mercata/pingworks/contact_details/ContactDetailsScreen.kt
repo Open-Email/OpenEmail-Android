@@ -16,13 +16,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
@@ -30,7 +29,6 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -92,11 +90,14 @@ fun SharedTransitionScope.ContactDetailsScreen(
                 },
                 actions = {
                     if (state.isNotification) {
-                        Button (enabled = !state.loading, onClick = {
-                            coroutineScope.launch(Dispatchers.IO) {
-                                viewModel.approveRequest()
-                            }
-                        }) {
+                        Button(
+                            modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                            enabled = !state.loading,
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    viewModel.approveRequest()
+                                }
+                            }) {
                             Text(stringResource(R.string.add_contact))
                         }
                     }
@@ -115,13 +116,12 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     contentColor = colorScheme.onPrimary,
                     onClick = {
                         if (state.isNotification) {
-
-                            //TODO approve auto adding to contacts dialog
                             coroutineScope.launch(Dispatchers.IO) {
                                 viewModel.approveRequest()
+                                navController.navigate("ComposingScreen/${state.address}/null/null")
                             }
                         }
-                        navController.navigate("ComposingScreen/${state.address}/null/null")
+
                     }) {
                     Row {
                         Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
@@ -146,13 +146,12 @@ fun SharedTransitionScope.ContactDetailsScreen(
                 modifier
                     .height(imageSize)
                 //Elevation bug under the navigation drawer
-                    /*.sharedBounds(
-                        sharedContentState = rememberSharedContentState(
-                            key = "message_image/${state.address}"
-                        ),
-                        animatedVisibilityScope = animatedVisibilityScope,
-                    )*/
-                ,
+                /*.sharedBounds(
+                    sharedContentState = rememberSharedContentState(
+                        key = "message_image/${state.address}"
+                    ),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                )*/,
                 state.address.getProfilePictureUrl() ?: "",
                 onError = {
                     Icon(
@@ -354,7 +353,7 @@ fun DataRow(modifier: Modifier = Modifier, title: String, description: String) {
 
 @Composable
 fun ContactDivider(modifier: Modifier = Modifier) {
-    Divider(
+    HorizontalDivider(
         modifier
             .fillMaxWidth()
             .height(1.dp),

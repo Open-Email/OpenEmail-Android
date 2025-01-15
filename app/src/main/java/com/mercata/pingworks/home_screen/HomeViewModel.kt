@@ -9,7 +9,6 @@ import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.HomeItem
-import com.mercata.pingworks.db.contacts.ContactItem
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.db.drafts.DBDraftWithReaders
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
@@ -51,9 +50,13 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     private val allMessages: ArrayList<DBMessageWithDBAttachments> = arrayListOf()
     private val pendingMessages: ArrayList<DBPendingMessage> = arrayListOf()
     private val draftMessages: ArrayList<DBDraftWithReaders> = arrayListOf()
-    private val contacts: ArrayList<ContactItem> = arrayListOf()
-    private val notifications: ArrayList<ContactItem> = arrayListOf()
+    private val contacts: ArrayList<DBContact> = arrayListOf()
+    private val notifications: LinkedHashSet<DBNotification> = LinkedHashSet()
     private val cachedAttachments: ArrayList<CachedAttachment> = arrayListOf()
+
+    val items: SnapshotStateList<HomeItem> = mutableStateListOf()
+    val selectedItems: SnapshotStateList<HomeItem> = mutableStateListOf()
+    val unread: SnapshotStateMap<HomeScreen, Int> = mutableStateMapOf()
 
     init {
         val sp: SharedPreferences by inject()
@@ -87,8 +90,8 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                         }
                     }
                 }
-                currentState.unread[HomeScreen.Inbox] = unreadMessages
-                currentState.unread[HomeScreen.Broadcast] = unreadBroadcasts
+                unread[HomeScreen.Inbox] = unreadMessages
+                unread[HomeScreen.Broadcast] = unreadBroadcasts
                 updateList()
             }
         }
@@ -96,7 +99,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             db.pendingMessagesDao().getAllAsFlowWithAttachments().collect { pending ->
                 pendingMessages.clear()
                 pendingMessages.addAll(pending)
-                currentState.unread[HomeScreen.Pending] = pendingMessages.size
+                unread[HomeScreen.Pending] = pendingMessages.size
                 updateList()
             }
         }
@@ -104,7 +107,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             db.draftDao().getAllFlow().collect { drafts ->
                 draftMessages.clear()
                 draftMessages.addAll(drafts)
-                currentState.unread[HomeScreen.Drafts] = draftMessages.size
+                unread[HomeScreen.Drafts] = draftMessages.size
                 updateList()
             }
         }
@@ -112,7 +115,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             db.userDao().getAllAsFlow().collect { dbContacts ->
                 contacts.clear()
                 contacts.addAll(dbContacts)
-                currentState.unread[HomeScreen.Contacts] =
+                unread[HomeScreen.Contacts] =
                     contacts.filterIsInstance<DBNotification>().size
                 updateList()
             }
@@ -153,14 +156,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         updateState(currentState.copy(screen = screen))
         updateList()
         sp.saveSelectedNavigationScreen(screen)
-        currentState.selectedItems.clear()
-    }
-
-    fun toggleSearch() {
-        updateState(currentState.copy(searchOpened = !currentState.searchOpened, query = ""))
-        if (currentState.searchOpened.not()) {
-            updateList()
-        }
+        selectedItems.clear()
     }
 
     fun refresh() {
@@ -192,63 +188,68 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
     private fun updateList() {
         val currentUserAddress = sp.getUserAddress()
-        currentState.items.clear()
+        items.clear()
 
         when (currentState.screen) {
             HomeScreen.Drafts -> {
-                currentState.items.addAll(draftMessages.filter { it.searchMatched() }.toList())
+                items.addAll(draftMessages.filter { it.searchMatched() }.toList())
             }
 
             HomeScreen.Pending -> {
-                currentState.items.addAll(pendingMessages.filter { it.searchMatched() }.toList())
+                items.addAll(pendingMessages.filter { it.searchMatched() }.toList())
             }
 
-            HomeScreen.Broadcast -> currentState.items.addAll(allMessages.filter {
+            HomeScreen.Broadcast -> items.addAll(allMessages.filter {
                 it.message.message.isBroadcast
                         && it.message.author?.address != currentUserAddress
                         && it.searchMatched()
             }.toList())
 
             HomeScreen.Outbox -> {
-                currentState.items.addAll(allMessages.filter {
+                items.addAll(allMessages.filter {
                     it.message.author?.address == currentUserAddress && it.searchMatched()
                 }.toList())
             }
 
             HomeScreen.Inbox -> {
-                currentState.items.addAll(allMessages.filter {
+                items.addAll(allMessages.filter {
                     it.message.message.isBroadcast.not() &&
                             it.message.author?.address != currentUserAddress && it.searchMatched()
                 }.toList())
             }
 
-            HomeScreen.DownloadedAttachments -> currentState.items.addAll(cachedAttachments.filter { it.searchMatched() }
+            HomeScreen.DownloadedAttachments -> items.addAll(cachedAttachments.filter { it.searchMatched() }
                 .toList())
 
             HomeScreen.Contacts -> {
-                val filteredNotifications = notifications.filter { it.searchMatched() }.toList()
-                val filteredContacts = contacts.filter { it.searchMatched() }.toList()
+                items.clear()
+                val filteredNotifications: List<DBNotification> =
+                    notifications.filter { it.searchMatched() }.toList()
+                val filteredContacts: List<DBContact> =
+                    contacts.filter { it.searchMatched() }.toList()
 
-                val bothTypesPresented = filteredNotifications.isNotEmpty() && filteredContacts.isNotEmpty()
+                val bothTypesPresented =
+                    filteredNotifications.isNotEmpty() && filteredContacts.isNotEmpty()
                 if (bothTypesPresented) {
-                    currentState.items.add(NotificationSeparator(notifications.size))
+                    items.add(NotificationSeparator(filteredNotifications.size))
                 }
-                currentState.items.addAll(filteredNotifications)
+
+                items.addAll(filteredNotifications)
 
                 if (bothTypesPresented) {
-                    currentState.items.add(ContactsSeparator(contacts.size))
+                    items.add(ContactsSeparator(filteredContacts.size))
                 }
-                currentState.items.addAll(filteredContacts)
+                items.addAll(filteredContacts)
             }
         }
     }
 
     private fun HomeItem.searchMatched(): Boolean =
-        this.getSubtitle()?.lowercase()?.contains(currentState.query.lowercase()) ?: false ||
-                this.getTextBody().lowercase()
-                    .contains(currentState.query.lowercase()) || this.getTitle().lowercase()
-            .contains(currentState.query.lowercase())
-
+        this.getMessageId() != currentState.itemToDelete?.getMessageId()
+                && (this.getSubtitle()?.lowercase()
+            ?.contains(currentState.query.lowercase()) ?: false
+                || this.getTextBody().lowercase().contains(currentState.query.lowercase())
+                || this.getTitle().lowercase().contains(currentState.query.lowercase()))
 
     fun deleteItem(item: HomeItem) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -261,6 +262,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 )
             )
             updateState(currentState.copy(undoDelete = null))
+            updateList()
             var undoSnackbarResId: Int? = null
             when (item) {
                 is CachedAttachment -> {
@@ -316,13 +318,16 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
             is DBContact -> {
                 dl.deleteAttachmentsForMessages(
-                    db.messagesDao().getAllForContactAddress((currentState.itemToDelete as DBContact).address)
+                    db.messagesDao()
+                        .getAllForContactAddress((currentState.itemToDelete as DBContact).address)
                 )
-                db.userDao().update((currentState.itemToDelete as DBContact).copy(markedToDelete = true))
+                db.userDao()
+                    .update((currentState.itemToDelete as DBContact).copy(markedToDelete = true))
             }
 
             is DBNotification -> {
-                db.notificationsDao().update((currentState.itemToDelete as DBNotification).copy(dismissed = true))
+                db.notificationsDao()
+                    .update((currentState.itemToDelete as DBNotification).copy(dismissed = true))
             }
         }
         updateState(currentState.copy(itemToDelete = null))
@@ -342,6 +347,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                     undoDelete = null
                 )
             )
+            updateList()
         }
     }
 
@@ -353,16 +359,16 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     }
 
     fun toggleSelectItem(item: HomeItem) {
-        if (currentState.selectedItems.contains(item)) {
-            currentState.selectedItems.remove(item)
+        if (selectedItems.contains(item)) {
+            selectedItems.remove(item)
         } else {
-            currentState.selectedItems.add(item)
+            selectedItems.add(item)
         }
     }
 
     suspend fun addSelectedNotificationsToContacts() {
         withContext(Dispatchers.IO) {
-            val selectedRequests = currentState.selectedItems.filterIsInstance<DBNotification>()
+            val selectedRequests = selectedItems.filterIsInstance<DBNotification>()
             val approvedRequests = selectedRequests.map { request ->
                 request.toPublicUserData().toDBContact().copy(uploaded = false)
             }
@@ -416,7 +422,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     }
 
     fun onNewContactAddressInput(str: String) {
-        updateState(currentState.copy(newContactAddressInput = str))
+        updateState(currentState.copy(newContactAddressInput = str, addressNotFoundError = false))
         updateState(currentState.copy(searchButtonActive = emailValid()))
     }
 
@@ -424,44 +430,57 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         viewModelScope.launch {
             updateState(currentState.copy(loading = true))
             val address = currentState.newContactAddressInput.trim()
-            val publicData: PublicUserData? =
-                when (val call = safeApiCall { getProfilePublicData(address) }) {
-                    is HttpResult.Success -> {
-                        call.data
-                    }
 
-                    is HttpResult.Error -> {
-                        null
-                    }
+            when (val call = safeApiCall { getProfilePublicData(address) }) {
+                is HttpResult.Success -> {
+                    updateState(
+                        currentState.copy(
+                            existingContactFound = call.data,
+                            addressNotFoundError = false
+                        )
+                    )
                 }
-            publicData?.let {
-                updateState(currentState.copy(existingContactFound = it))
+
+                is HttpResult.Error -> {
+                    updateState(
+                        currentState.copy(
+                            existingContactFound = null,
+                            addressNotFoundError = true
+                        )
+                    )
+                }
             }
+
             updateState(currentState.copy(loading = false))
         }
     }
 
     fun toggleSearchAddressDialog(isShown: Boolean) {
-        updateState(currentState.copy(newContactSearchDialogShown = isShown))
+        updateState(
+            currentState.copy(
+                newContactSearchDialogShown = isShown,
+                addressNotFoundError = false,
+                newContactAddressInput = ""
+            )
+        )
         if (!isShown) {
-            updateState(currentState.copy(newContactAddressInput = ""))
             clearFoundContact()
         }
     }
 
     fun deleteSelected() {
-        currentState.selectedItems.forEach {
+        selectedItems.forEach {
             when (it) {
                 is CachedAttachment -> {
                     dl.deleteFile(it.uri)
                 }
             }
         }
-        currentState.selectedItems.clear()
+        selectedItems.clear()
     }
 
     fun clearSelection() {
-        currentState.selectedItems.clear()
+        selectedItems.clear()
     }
 }
 
@@ -471,7 +490,7 @@ data class HomeState(
     val addRequestsToContactsDialogShown: Boolean = false,
     val searchButtonActive: Boolean = false,
     val loading: Boolean = false,
-    val searchOpened: Boolean = false,
+    val addressNotFoundError: Boolean = false,
     val sendingSnackBar: Boolean = false,
     val newContactSearchDialogShown: Boolean = false,
     val newContactAddressInput: String = "",
@@ -480,9 +499,6 @@ data class HomeState(
     val undoDelete: Int? = null,
     val existingContactFound: PublicUserData? = null,
     val screen: HomeScreen = HomeScreen.Broadcast,
-    val items: SnapshotStateList<HomeItem> = mutableStateListOf(),
-    val selectedItems: SnapshotStateList<HomeItem> = mutableStateListOf(),
-    val unread: SnapshotStateMap<HomeScreen, Int> = mutableStateMapOf()
 )
 
 enum class HomeScreen(
