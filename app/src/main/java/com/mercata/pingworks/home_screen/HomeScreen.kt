@@ -128,6 +128,7 @@ import com.mercata.pingworks.utils.getProfilePictureUrl
 import com.mercata.pingworks.utils.measureTextWidth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -500,43 +501,55 @@ fun SharedTransitionScope.HomeScreen(
                                         },
                                         isSelected = viewModel.selectedItems.contains(item),
                                         onMessageClicked = { message ->
-                                            when (message) {
-                                                is CachedAttachment -> {
-                                                    val attachment = item as CachedAttachment
-                                                    val intent: Intent = Intent().apply {
-                                                        action = Intent.ACTION_SEND
-                                                        putExtra(
-                                                            Intent.EXTRA_STREAM,
-                                                            attachment.uri
-                                                        )
-                                                        type = attachment.type
-                                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            coroutineScope.launch {
+                                                withContext(Dispatchers.IO) {
+                                                    state.itemToDelete?.run {
+                                                        viewModel.onDeleteWaitComplete()
                                                     }
-                                                    val shareIntent =
-                                                        Intent.createChooser(intent, null)
-                                                    launcher.launch(shareIntent)
                                                 }
+                                                withContext(Dispatchers.Main) {
+                                                    when (message) {
+                                                        is CachedAttachment -> {
+                                                            val attachment =
+                                                                item as CachedAttachment
+                                                            val intent: Intent = Intent().apply {
+                                                                action = Intent.ACTION_SEND
+                                                                putExtra(
+                                                                    Intent.EXTRA_STREAM,
+                                                                    attachment.uri
+                                                                )
+                                                                type = attachment.type
+                                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                            }
+                                                            val shareIntent =
+                                                                Intent.createChooser(intent, null)
+                                                            launcher.launch(shareIntent)
+                                                        }
 
-                                                is DBDraftWithReaders -> navController.navigate(
-                                                    "ComposingScreen/null/${state.screen.outbox}/${message.draft.draftId}",
-                                                )
+                                                        is DBDraftWithReaders -> navController.navigate(
+                                                            "ComposingScreen/null/${state.screen.outbox}/${message.draft.draftId}",
+                                                        )
 
-                                                is DBContact -> {
-                                                    navController.navigate(
-                                                        "ContactDetailsScreen/${item.getAddressValue()}/${false}"
-                                                    )
+                                                        is DBContact -> {
+                                                            navController.navigate(
+                                                                "ContactDetailsScreen/${item.getAddressValue()}/${false}"
+                                                            )
+                                                        }
+
+                                                        is DBNotification -> {
+                                                            navController.navigate(
+                                                                "ContactDetailsScreen/${item.getAddressValue()}/${true}"
+                                                            )
+                                                        }
+
+                                                        else -> navController.navigate(
+                                                            "MessageDetailsScreen/${message.getMessageId()}/${state.screen.outbox}",
+                                                        )
+                                                    }
                                                 }
-
-                                                is DBNotification -> {
-                                                    navController.navigate(
-                                                        "ContactDetailsScreen/${item.getAddressValue()}/${true}"
-                                                    )
-                                                }
-
-                                                else -> navController.navigate(
-                                                    "MessageDetailsScreen/${message.getMessageId()}/${state.screen.outbox}",
-                                                )
                                             }
+
+
                                         })
                                     HorizontalDivider(color = colorScheme.outline)
                                 }

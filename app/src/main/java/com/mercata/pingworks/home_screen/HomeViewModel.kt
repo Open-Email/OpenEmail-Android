@@ -147,6 +147,9 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
     fun selectScreen(screen: HomeScreen) {
         viewModelScope.launch {
+            currentState.itemToDelete?.run {
+                onDeleteWaitComplete()
+            }
             updateState(currentState.copy(screen = screen))
             updateList()
             sp.saveSelectedNavigationScreen(screen)
@@ -294,7 +297,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
-    private suspend fun onDeleteWaitComplete() {
+    suspend fun onDeleteWaitComplete() {
         updateState(currentState.copy(undoDelete = null))
         when (currentState.itemToDelete) {
             is CachedAttachment -> {
