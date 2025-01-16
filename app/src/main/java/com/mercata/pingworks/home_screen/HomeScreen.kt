@@ -307,7 +307,7 @@ fun SharedTransitionScope.HomeScreen(
                                         .clip(CircleShape)
                                         .size(43.dp)
                                         .clickable {
-                                            navController.navigate("SettingsScreen")
+                                            navController.navigate("ProfileScreen")
                                         },
                                     imageUrl = state.currentUser?.address?.getProfilePictureUrl()
                                         ?: "",

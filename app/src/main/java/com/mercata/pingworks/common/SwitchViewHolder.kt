@@ -1,5 +1,6 @@
 package com.mercata.pingworks.common
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +25,10 @@ fun SwitchViewHolder(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MARGIN_DEFAULT)
+            .clickable {
+                onChange(!isChecked)
+            }
+            .padding(horizontal = MARGIN_DEFAULT, vertical = MARGIN_DEFAULT/2)
     ) {
         Text(
             stringResource(id = title),

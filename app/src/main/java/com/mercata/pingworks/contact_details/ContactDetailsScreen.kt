@@ -50,6 +50,7 @@ import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
+import com.mercata.pingworks.common.SwitchViewHolder
 import com.mercata.pingworks.utils.getProfilePictureUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -84,7 +85,10 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         strokeCap = StrokeCap.Round
                     )
                 } else {
-                    Text(stringResource(R.string.profile))
+                    Text(
+                        state.dbContact?.name ?: state.contact?.fullName
+                        ?: stringResource(R.string.profile)
+                    )
                 }
             },
                 navigationIcon = {
@@ -190,30 +194,17 @@ fun SharedTransitionScope.ContactDetailsScreen(
             )
             Spacer(modifier.height(MARGIN_DEFAULT))
             ContactDivider(modifier.padding(horizontal = MARGIN_DEFAULT))
-            Spacer(modifier.height(MARGIN_DEFAULT / 2))
             if (!state.isNotification) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.toggleBroadcast() }
-                        .padding(
-                            horizontal = MARGIN_DEFAULT,
-                        )
-                ) {
-                    Text(
-                        stringResource(id = R.string.receive_broadcasts),
-                        style = typography.titleMedium,
-                        softWrap = true
-                    )
-                    Spacer(modifier = modifier.weight(1f))
-                    Switch(
-                        checked = state.dbContact?.receiveBroadcasts ?: false,
-                        onCheckedChange = { viewModel.toggleBroadcast() })
-                }
-                Spacer(modifier.height(MARGIN_DEFAULT / 2))
+                SwitchViewHolder(
+                    isChecked = state.dbContact?.receiveBroadcasts ?: false,
+                    title = R.string.receive_broadcasts
+                ) { viewModel.toggleBroadcast() }
                 ContactDivider(modifier.padding(horizontal = MARGIN_DEFAULT))
+                Spacer(modifier.height(MARGIN_DEFAULT / 2))
             }
+
+
+
 
             state.contact?.run {
                 Column(modifier.padding(MARGIN_DEFAULT)) {

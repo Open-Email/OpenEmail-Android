@@ -578,7 +578,7 @@ fun SharedTransitionScope.ComposingScreen(
                         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                         Button(modifier = modifier.fillMaxWidth(), onClick = {
                             viewModel.closeExitConfirmation()
-                            navController.popBackStack(route = "HomeScreen", inclusive = false)
+                            navController.popBackStack()
                         }) {
                             Text(stringResource(id = R.string.save_as_draft))
                         }
@@ -586,10 +586,8 @@ fun SharedTransitionScope.ComposingScreen(
                             coroutineScope.launch {
                                 viewModel.deleteDraft()
                                 withContext(Dispatchers.Main) {
-                                    navController.popBackStack(
-                                        route = "HomeScreen",
-                                        inclusive = false
-                                    )
+                                    viewModel.closeExitConfirmation()
+                                    navController.popBackStack()
                                 }
                             }
                         }) {

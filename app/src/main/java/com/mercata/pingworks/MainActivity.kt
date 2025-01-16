@@ -22,6 +22,7 @@ import com.mercata.pingworks.composing_screen.ComposingScreen
 import com.mercata.pingworks.contact_details.ContactDetailsScreen
 import com.mercata.pingworks.home_screen.HomeScreen
 import com.mercata.pingworks.message_details.MessageDetailsScreen
+import com.mercata.pingworks.profile_screen.ProfileScreen
 import com.mercata.pingworks.registration.RegistrationScreen
 import com.mercata.pingworks.save_keys_suggestion.SaveKeysSuggestionScreen
 import com.mercata.pingworks.settings_screen.SettingsScreen
@@ -102,6 +103,12 @@ class MainActivity : AppCompatActivity() {
                         }
                         composable(route = "SaveKeysSuggestionScreen") {
                             SaveKeysSuggestionScreen(navController = navController)
+                        }
+                        composable(route = "ProfileScreen") {
+                            ProfileScreen(
+                                navController = navController,
+                                animatedVisibilityScope = this
+                            )
                         }
                         composable(
                             route = "HomeScreen",
