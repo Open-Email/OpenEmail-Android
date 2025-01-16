@@ -930,6 +930,18 @@ private suspend fun uploadRootMessage(
     }
 }
 
+suspend fun deleteUserImage(sp: SharedPreferences): Response<Void> {
+    return withContext(Dispatchers.IO) {
+        val currentUser = sp.getUserData()!!
+
+        getInstance("https://${currentUser.address.getMailHost()}").deleteUserImage(
+            sotnHeader = currentUser.sign(),
+            hostPart = currentUser.address.getHost(),
+            localPart = currentUser.address.getLocal(),
+        )
+    }
+}
+
 suspend fun uploadUserImage(uri: Uri, sp: SharedPreferences, fileUtils: FileUtils): Response<Void> {
     return withContext(Dispatchers.IO) {
         val currentUser = sp.getUserData()!!

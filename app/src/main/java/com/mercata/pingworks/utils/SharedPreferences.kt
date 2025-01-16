@@ -59,11 +59,6 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
         publicUserData?.let { db.userDao().insert(it.toDBContact()) }
     }
 
-    fun saveUserAvatarLink(link: String) =
-        sharedPreferences.edit().putString(SP_AVATAR_LINK, link).apply()
-
-    fun getUserAvatarLink() = sharedPreferences.getString(SP_AVATAR_LINK, null)
-
     fun getUserAddress(): Address? = sharedPreferences.getString(SP_ADDRESS, null)
 
     fun setAutologin(autologin: Boolean) {
@@ -93,7 +88,6 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
             name = name,
             encryptionKeys = encryptionKeys,
             signingKeys = signingKeys,
-            avatarLink = getUserAvatarLink()
         )
     }
 

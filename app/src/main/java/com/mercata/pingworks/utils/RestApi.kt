@@ -82,6 +82,13 @@ interface RestApi {
         @Body body: RequestBody
     ): Response<Void>
 
+    @DELETE("/home/{hostPart}/{localPart}/image")
+    suspend fun deleteUserImage(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+    ): Response<Void>
+
     @PUT("/mail/{hostPart}/{localPart}/link/{link}/notifications")
     suspend fun notifyAddress(
         @Header("Authorization") sotnHeader: String,

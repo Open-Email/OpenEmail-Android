@@ -144,9 +144,6 @@ fun SettingsScreen(
                     }
                 }
             }
-            SettingViewHolder(modifier, stringResource(R.string.personal_settings), onClick = {
-                navController.navigate("PersonalSettingsScreen")
-            })
             Spacer(modifier = modifier.weight(1f))
             TextButton(modifier = modifier.fillMaxWidth(),
                 onClick = {

@@ -2,9 +2,13 @@
 
 package com.mercata.pingworks.profile_screen
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,7 +32,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -37,7 +40,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -48,7 +53,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
+import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.common.SwitchViewHolder
+import com.mercata.pingworks.utils.getProfilePictureUrl
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -63,6 +70,13 @@ fun SharedTransitionScope.ProfileScreen(
     val pagerState = rememberPagerState(pageCount = { state.tabs.size })
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+
+    val documentChooserLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            uri?.let {
+                viewModel.setUserImage(it)
+            }
+        }
 
     LaunchedEffect(pagerState) {
         snapshotFlow {
@@ -115,39 +129,75 @@ fun SharedTransitionScope.ProfileScreen(
         ) { padding ->
         Column(
             modifier.padding(top = padding.calculateTopPadding())
-            //.verticalScroll(rememberScrollState())
         ) {
             ScrollableTabRow(selectedTabIndex = pagerState.currentPage,
                 divider = {
-                HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.outline)
-            }, tabs = {
-                state.tabs.forEachIndexed { index, tabData ->
-                    Tab(selected = pagerState.currentPage == index, onClick = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(index)
+                    HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.outline)
+                }, tabs = {
+                    state.tabs.forEachIndexed { index, tabData ->
+                        Tab(selected = pagerState.currentPage == index, onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        }) {
+                            Text(
+                                stringResource(tabData.titleResId),
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    color =
+                                    if (pagerState.currentPage == index) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface
+                                ),
+                                modifier = modifier.padding(MARGIN_DEFAULT)
+                            )
                         }
-                    }) {
-                        Text(
-                            stringResource(tabData.titleResId),
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                color =
-                                if (pagerState.currentPage == index) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurface
-                            ),
-                            modifier = modifier.padding(vertical = MARGIN_DEFAULT)
-                        )
                     }
-                }
-            })
+                })
 
             HorizontalPager(state = pagerState) { index ->
                 Column(
                     modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
+                        .padding(
+                            top = MARGIN_DEFAULT,
+                            bottom = MARGIN_DEFAULT + padding.calculateBottomPadding()
+                        )
+
                 ) {
                     state.tabs[index].listItems.forEach { tabData ->
                         when (tabData) {
+                            is ProfileViewModel.UserPicListItem -> {
+                                val imageModifier = modifier
+                                    .size(80.dp)
+                                    .clickable {
+                                        documentChooserLauncher.launch(
+                                            PickVisualMediaRequest(
+                                                mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly
+                                            )
+                                        )
+                                    }
+                                    .clip(CircleShape)
+                                    .align(alignment = Alignment.CenterHorizontally)
+                                ProfileImage(
+                                    modifier = imageModifier,
+                                    imageUrl = state.selectedNewImage?.toString()
+                                        ?: state.current?.address?.getProfilePictureUrl() ?: "",
+                                    onError = {
+                                        Icon(
+                                            modifier = imageModifier.padding(MARGIN_DEFAULT),
+                                            painter = painterResource(R.drawable.frame_person),
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    onLoading = {
+                                        CircularProgressIndicator(
+                                            imageModifier,
+                                            strokeCap = StrokeCap.Round
+                                        )
+                                    })
+                            }
+
                             is ProfileViewModel.InputListItem -> {
                                 OutlinedTextField(
                                     modifier = modifier

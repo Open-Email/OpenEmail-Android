@@ -10,8 +10,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.mercata.pingworks.R
 
 @Composable
@@ -43,7 +45,10 @@ fun ProfileImage(
                 imageState = ImageLoadingState.Error
             },
             contentScale = ContentScale.Crop,
-            model = imageUrl,
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(imageUrl)
+                .crossfade(true)
+                .build(),
             contentDescription = stringResource(id = R.string.profile_image)
         )
     }
