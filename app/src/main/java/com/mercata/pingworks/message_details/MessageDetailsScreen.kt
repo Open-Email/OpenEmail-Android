@@ -14,11 +14,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,17 +33,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme.typography
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -61,14 +62,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.ATTACHMENT_LIST_ITEM_HEIGHT
-import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
-import com.mercata.pingworks.DEFAULT_DATE_FORMAT
+import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
-import com.mercata.pingworks.composing_screen.AddressChip
 import com.mercata.pingworks.db.messages.FusedAttachment
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloaded
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloading
@@ -102,12 +101,6 @@ fun SharedTransitionScope.MessageDetailsScreen(
     val message = messageWithAuthor?.message
     val outbox: Boolean = state.outboxAddresses != null
 
-    val date: String = message?.timestamp?.let {
-        ZonedDateTime.ofInstant(
-            Instant.ofEpochMilli(it), ZoneId.systemDefault()
-        ).format(DEFAULT_DATE_FORMAT)
-    } ?: ""
-
     val subject = message?.subject ?: ""
 
     LaunchedEffect(state.shareIntent) {
@@ -127,11 +120,8 @@ fun SharedTransitionScope.MessageDetailsScreen(
             ),
         topBar = {
             TopAppBar(
-                modifier = modifier.shadow(elevation = if (scrollState.value == 0) 0.dp else 16.dp),
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (scrollState.value == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
+
+                modifier = modifier.shadow(elevation = 1.dp),
                 title = {
                     AnimatedVisibility(visible = scrollState.value != 0,
                         enter = fadeIn() + slideInVertically { 100.dp.value.roundToInt() },
@@ -141,31 +131,33 @@ fun SharedTransitionScope.MessageDetailsScreen(
                             subject,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
-                            style = MaterialTheme.typography.labelMedium
+                            style = typography.labelMedium
                         )
                     }
                 },
                 actions = {
-                    if (!state.noReply) {
-                        IconButton(onClick = {
-                            navController.navigate("ComposingScreen/${state.message?.message?.message?.authorAddress}/${state.message?.getMessageId()}/null")
+                    OutlinedButton(
+                        modifier = modifier.padding(end = MARGIN_DEFAULT),
+                        onClick = {
+                            //TODO delete message
                         }) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.reply),
-                                contentDescription = stringResource(R.string.reply_button)
-                            )
-                        }
+                        Icon(
+                            painterResource(R.drawable.delete),
+
+                            tint = colorScheme.error,
+                            contentDescription = stringResource(R.string.delete)
+                        )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        navController.popBackStack()
-                    }) {
+                    IconButton(content = {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back_button)
+                            painterResource(R.drawable.back),
+                            contentDescription = stringResource(R.string.back_button),
                         )
-                    }
+                    }, onClick = {
+                        navController.popBackStack()
+                    })
                 },
             )
         },
@@ -188,86 +180,116 @@ fun SharedTransitionScope.MessageDetailsScreen(
                             animatedVisibilityScope = animatedVisibilityScope,
                         ),
                     text = subject,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
+                    style = typography.titleLarge,
                 )
             }
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+            Spacer(modifier = modifier.height(MARGIN_DEFAULT * 1.5f))
 
-            if (outbox) {
-                Column {
-                    SelectionContainer(modifier = modifier.padding(horizontal = MARGIN_DEFAULT)) {
-                        Text(date)
-                    }
-                    FlowRow(modifier = modifier.padding(horizontal = MARGIN_DEFAULT/2)) {
-                        state.outboxAddresses!!.map {
-                            AddressChip(modifier = modifier, user = it, onClick = { user ->
-                                navController.navigate(
-                                    "ContactDetailsScreen/${user.address}"
-                                )
-                            })
-                        }
-                    }
-                }
-            } else {
-                Row(
+            Row(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = MARGIN_DEFAULT)
+            ) {
+                ProfileImage(
                     modifier = modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MARGIN_DEFAULT)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = modifier
-                            .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
-                            .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                            .background(MaterialTheme.colorScheme.primary)
-                    ) {
+                        .clip(CircleShape)
+                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
+                    imageUrl = messageWithAuthor?.author?.address?.getProfilePictureUrl()
+                        ?: "",
+                    onError = {
+                        Box(
+                            modifier
+                                .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                .background(color = colorScheme.surface)
+                                .border(
+                                    width = 1.dp,
+                                    color = colorScheme.outline,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${state.currentUser?.name?.firstOrNull() ?: ""}${
+                                    state.currentUser?.name?.getOrNull(
+                                        1
+                                    ) ?: ""
+                                }",
+                                style = typography.titleMedium,
+                                color = colorScheme.onSurface
+                            )
+                        }
+                    })
 
-                        ProfileImage(
-                            modifier = modifier,
-                            imageUrl =  messageWithAuthor?.author?.address?.getProfilePictureUrl() ?: "",
-                            onError = {
-                                Text(
-                                    text = "${
-                                        messageWithAuthor?.author?.name?.firstOrNull() ?: messageWithAuthor?.author?.address?.first()
-                                    }",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                            })
-                    }
+                Spacer(modifier = modifier.width(MARGIN_DEFAULT * 0.75f))
 
-                    Spacer(modifier = modifier.width(MARGIN_DEFAULT))
-
-                    messageWithAuthor?.author?.let { author ->
-                        Column {
-                            author.name?.let { name ->
+                messageWithAuthor?.author?.let { author ->
+                    Column {
+                        author.name?.let { name ->
+                            Row {
                                 SelectionContainer {
                                     Text(
                                         text = name,
-                                        maxLines = 2,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        style = typography.titleMedium,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
-                            }
-                            SelectionContainer {
-                                Text(
-                                    text = author.address,
-                                    maxLines = 2,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+
+                                state.message?.message?.message?.timestamp?.let { timestamp ->
+                                    Spacer(modifier.weight(1f))
+                                    SelectionContainer {
+                                        Text(
+                                            text = ZonedDateTime.ofInstant(
+                                                Instant.ofEpochMilli(timestamp),
+                                                ZoneId.systemDefault()
+                                            ).format(DEFAULT_DATE_TIME_FORMAT),
+                                            maxLines = 1,
+                                            style = typography.bodySmall.copy(color = colorScheme.outlineVariant),
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
                             }
                         }
+                        SelectionContainer {
+                            Text(
+                                text = author.address,
+                                maxLines = 1,
+                                style = typography.bodyMedium,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
-                    Spacer(modifier.weight(1f))
-                    SelectionContainer {
-                        Text(date)
-                    }
-
                 }
+            }
+            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                HorizontalDivider(
+                    modifier = modifier.weight(1f),
+                    thickness = 1.dp,
+                    color = colorScheme.outline
+                )
+                OutlinedButton(onClick = {
+                    navController.navigate("ComposingScreen/${state.message?.message?.message?.authorAddress}/${state.message?.getMessageId()}/null")
+                }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painterResource(R.drawable.reply),
+                            contentDescription = stringResource(R.string.reply_button),
+                            tint = colorScheme.onSurface
+                        )
+                        Spacer(modifier.width(MARGIN_DEFAULT / 2))
+                        Text(
+                            stringResource(R.string.reply_button),
+                            style = typography.labelLarge.copy(color = colorScheme.onSurface)
+                        )
+                    }
+                }
+                HorizontalDivider(
+                    modifier = modifier.width(MARGIN_DEFAULT),
+                    thickness = 1.dp,
+                    color = colorScheme.outline
+                )
             }
             Spacer(modifier = modifier.height(MARGIN_DEFAULT))
             SelectionContainer {
@@ -280,9 +302,16 @@ fun SharedTransitionScope.MessageDetailsScreen(
                             ),
                             animatedVisibilityScope = animatedVisibilityScope,
                         ),
+                    style = typography.bodyMedium,
                     text = message?.textBody ?: ""
                 )
             }
+            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+            HorizontalDivider(
+                modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                thickness = 1.dp,
+                color = colorScheme.outline
+            )
             messageWithAttachments?.getAttachments()?.takeIf { it.isNotEmpty() }
                 ?.let { attachments ->
                     Column {
@@ -291,10 +320,11 @@ fun SharedTransitionScope.MessageDetailsScreen(
                             text = stringResource(id = R.string.attachments_label),
                             modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
                             maxLines = 1,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = typography.bodyMedium,
                             overflow = TextOverflow.Ellipsis,
                             fontWeight = FontWeight.Bold,
                         )
+                        Spacer(modifier = modifier.height(MARGIN_DEFAULT * 3 / 4))
                         attachments.map { attachment ->
                             AttachmentViewHolder(
                                 modifier = modifier,
@@ -317,17 +347,14 @@ fun AttachmentViewHolder(
     viewModel: MessageDetailsViewModel
 ) {
     val type = attachment.fileType.lowercase()
-    val imageResource = if (type.contains("pdf")) {
-        R.drawable.pdf
-    } else if (type.contains("image")) {
-        R.drawable.image
-    } else if (type.contains("audio")) {
-        R.drawable.sound
-    } else if (type.contains("video")) {
-        R.drawable.video
-    } else {
-        R.drawable.file
-    }
+    val imageResource =
+        if (type.contains("image")) {
+            R.drawable.image
+        } else if (type.contains("zip") || type.contains("rar")) {
+            R.drawable.zip
+        } else {
+            R.drawable.file
+        }
 
     val status = if (state.attachmentsWithStatus[attachment] == null) {
         NotDownloaded
@@ -339,78 +366,109 @@ fun AttachmentViewHolder(
         }
     }
 
-    Row(verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxSize()
-            .height(ATTACHMENT_LIST_ITEM_HEIGHT)
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable {
-                when (status) {
-                    NotDownloaded -> viewModel.downloadFile(attachment)
-                    Downloaded -> {
-                        viewModel.share(attachment)
+    Box(modifier.padding(horizontal = MARGIN_DEFAULT, vertical = MARGIN_DEFAULT / 4)) {
+        Row(verticalAlignment = Alignment.CenterVertically,
+            modifier = modifier
+                .fillMaxSize()
+                .height(ATTACHMENT_LIST_ITEM_HEIGHT)
+                .background(colorScheme.surface)
+                .border(
+                    width = 1.dp, color = colorScheme.outline, shape = RoundedCornerShape(
+                        DEFAULT_CORNER_RADIUS
+                    )
+                )
+                .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                .clickable {
+                    when (status) {
+                        NotDownloaded -> viewModel.downloadFile(attachment)
+                        Downloaded -> {
+                            viewModel.share(attachment)
+                        }
+
+                        Downloading -> {
+                            //ignore
+                        }
                     }
 
-                    Downloading -> {
-                        //ignore
+                }
+                .padding(horizontal = MARGIN_DEFAULT / 2)
+        ) {
+            when (status) {
+                NotDownloaded -> {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = modifier
+                            .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                            .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                            .background(colorScheme.surfaceVariant)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = imageResource),
+                            contentDescription = null,
+                            tint = colorScheme.outlineVariant
+                        )
+
                     }
                 }
 
-            }
-            .padding(horizontal = MARGIN_DEFAULT)
-    ) {
-        when (status) {
-            NotDownloaded -> {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = modifier
-                        .clip(CircleShape)
-                        .size(CONTACT_LIST_ITEM_IMAGE_SIZE)
-                        .background(MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(
-                        painter = painterResource(id = imageResource),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
+                Downloaded -> {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = modifier
+                            .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                            .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                            .background(colorScheme.surfaceVariant)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Share,
+                            contentDescription = null,
+                            tint = colorScheme.primary
+                        )
+                    }
+                }
+
+                Downloading -> {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = modifier
+                            .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                            .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                            .background(colorScheme.surfaceVariant)
+                    ) {
+                        if (state.attachmentsWithStatus[attachment]!!.status is Indefinite) {
+                            CircularProgressIndicator(
+                                modifier = modifier.size(MESSAGE_LIST_ITEM_IMAGE_SIZE / 2),
+                                strokeCap = StrokeCap.Round
+                            )
+                        } else {
+                            CircularProgressIndicator(
+                                modifier = modifier.size(MESSAGE_LIST_ITEM_IMAGE_SIZE / 2),
+                                strokeCap = StrokeCap.Round,
+                                progress = { state.attachmentsWithStatus[attachment]!!.status.percent!! / 100f }
+                            )
+
+                        }
+                    }
+
                 }
             }
 
-            Downloaded -> {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = modifier
-                        .clip(CircleShape)
-                        .size(CONTACT_LIST_ITEM_IMAGE_SIZE)
-                        .background(MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            }
-
-            Downloading -> {
-                if (state.attachmentsWithStatus[attachment]!!.status is Indefinite) {
-                    CircularProgressIndicator(modifier = modifier.size(CONTACT_LIST_ITEM_IMAGE_SIZE), strokeCap = StrokeCap.Round)
-                } else {
-                    CircularProgressIndicator(
-                        strokeCap = StrokeCap.Round,
-                        modifier = modifier.size(CONTACT_LIST_ITEM_IMAGE_SIZE),
-                        progress = { state.attachmentsWithStatus[attachment]!!.status.percent!! / 100f })
-                }
+            Spacer(modifier = modifier.width(MARGIN_DEFAULT))
+            Column {
+                Text(
+                    text = attachment.name,
+                    style = typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = String.format(stringResource(R.string.file_size_placeholder), attachment.fileSize / 1024),
+                    style = typography.bodySmall.copy(color = colorScheme.outlineVariant),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
-
-        Spacer(modifier = modifier.width(MARGIN_DEFAULT))
-        Text(
-            text = attachment.name,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 

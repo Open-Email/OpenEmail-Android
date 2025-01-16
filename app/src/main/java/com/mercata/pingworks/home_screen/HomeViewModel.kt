@@ -93,7 +93,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                     dbMessages.filterNot { it.message.message.markedToDelete }.toList(),
                     dbPendingMessages,
                     dbDrafts,
-                    dbContacts,
+                    dbContacts.filterNot { it.address == sp.getUserAddress() },
                     dbNotifications.filterNot {
                         it.address == sp.getUserAddress() || it.isExpired() || it.dismissed
                     })

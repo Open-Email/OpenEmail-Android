@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.mercata.pingworks.utils.Address
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -16,8 +17,8 @@ interface NotificationsDao {
     @Query("SELECT * FROM dbnotification ORDER BY received_on_timestamp DESC")
     suspend fun getAll(): List<DBNotification>
 
-    @Query("SELECT * FROM dbnotification WHERE notification_id = :id")
-    suspend fun getById(id: String): DBNotification?
+    @Query("SELECT * FROM dbnotification WHERE address = :address")
+    suspend fun getByAddress(address: Address): DBNotification?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(notifications: List<DBNotification>)

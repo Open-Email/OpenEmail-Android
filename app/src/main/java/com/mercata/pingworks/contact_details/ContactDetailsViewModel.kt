@@ -1,5 +1,6 @@
 package com.mercata.pingworks.contact_details
 
+import android.app.DownloadManager
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
@@ -7,9 +8,11 @@ import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.models.toDBContact
+import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.HttpResult
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
+import com.mercata.pingworks.utils.syncAllMessages
 import com.mercata.pingworks.utils.syncContacts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -49,11 +52,21 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
         }
     }
 
+    private val dl: DownloadRepository by inject()
+
     suspend fun approveRequest() {
         updateState(currentState.copy(loading = true))
         val dbContact = currentState.contact?.toDBContact()?.copy(uploaded = false) ?: return
         db.userDao().insert(dbContact)
+
+        db.notificationsDao().let { dao ->
+            dao.getByAddress(currentState.address)?.let {
+                dao.update(it.copy(dismissed = true))
+            }
+        }
+
         syncContacts(sp, db.userDao())
+        syncAllMessages(db, sp, dl)
         updateState(currentState.copy(loading = false, isNotification = false, dbContact = dbContact))
     }
 

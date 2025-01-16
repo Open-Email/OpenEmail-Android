@@ -118,7 +118,6 @@ fun SharedTransitionScope.ProfileScreen(
                     Icon(
                         painterResource(R.drawable.back),
                         contentDescription = stringResource(R.string.back_button),
-                        //tint = colorScheme.onSurface
                     )
                 }, onClick = {
                     navController.popBackStack()

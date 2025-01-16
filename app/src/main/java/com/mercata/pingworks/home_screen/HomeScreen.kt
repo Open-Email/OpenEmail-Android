@@ -290,6 +290,7 @@ fun SharedTransitionScope.HomeScreen(
                         disabledBorderColor = Color.Transparent
                     ),
                     trailingIcon = {
+
                         if (state.query.isNotEmpty()) {
                             IconButton(onClick = {
                                 viewModel.onSearchQuery("")
@@ -304,16 +305,17 @@ fun SharedTransitionScope.HomeScreen(
                             Box(modifier.padding(end = MARGIN_DEFAULT)) {
                                 ProfileImage(
                                     modifier
-                                        .clip(CircleShape)
-                                        .size(43.dp)
                                         .clickable {
                                             navController.navigate("ProfileScreen")
-                                        },
-                                    imageUrl = state.currentUser?.address?.getProfilePictureUrl()
-                                        ?: "",
+                                        }
+                                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                        .clip(CircleShape),
+                                    //TODO uncomment
+                                    state.currentUser?.address?.getProfilePictureUrl() ?: "",
                                     onError = {
                                         Box(
                                             modifier
+                                                .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                                                 .background(color = colorScheme.surface)
                                                 .border(
                                                     width = 1.dp,
@@ -323,12 +325,13 @@ fun SharedTransitionScope.HomeScreen(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                "${state.currentUser?.name?.firstOrNull() ?: ""}${
+                                                text = "${state.currentUser?.name?.firstOrNull() ?: ""}${
                                                     state.currentUser?.name?.getOrNull(
                                                         1
                                                     ) ?: ""
                                                 }",
-                                                style = typography.titleSmall
+                                                style = typography.titleMedium,
+                                                color = colorScheme.onSurface
                                             )
                                         }
                                     })
@@ -676,12 +679,12 @@ fun SharedTransitionScope.MessageViewHolder(
                             onMessageSelected?.invoke(item)
                         }
                         .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                        .background(if (isSelected) colorScheme.secondary else colorScheme.primary)) {
+                        .background(if (isSelected) colorScheme.primary else colorScheme.surface)) {
                     if (isSelected) {
                         Icon(
                             Icons.Filled.CheckCircle,
                             stringResource(id = R.string.selected_label),
-                            tint = colorScheme.onSecondary
+                            tint = colorScheme.onPrimary
                         )
                     } else {
                         when (item) {
@@ -702,37 +705,6 @@ fun SharedTransitionScope.MessageViewHolder(
                                     tint = colorScheme.onPrimary
                                 )
                             }
-
-                            /*is DBDraftWithReaders -> {
-                                ProfileImage(
-                                    modifier
-                                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                                        .clip(CircleShape),
-                                    item.getAddressValue()?.getProfilePictureUrl() ?: "",
-                                    onError = { _ ->
-                                        Box(
-                                            modifier
-                                                .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                                                .background(color = colorScheme.surface)
-                                                .border(
-                                                    width = 1.dp,
-                                                    color = colorScheme.outline,
-                                                    shape = CircleShape
-                                                ),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = "${currentUser.name.firstOrNull() ?: ""}${
-                                                    currentUser.name.getOrNull(
-                                                        1
-                                                    ) ?: ""
-                                                }",
-                                                style = typography.titleMedium,
-                                                color = colorScheme.onSurface,
-                                            )
-                                        }
-                                    })
-                            }*/
 
                             else -> {
                                 ProfileImage(
