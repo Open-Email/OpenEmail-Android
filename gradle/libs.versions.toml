@@ -3,6 +3,7 @@ activityCompose = "1.9.3"
 agp = "8.8.0"
 biometric = "1.1.0"
 coilCompose = "2.7.0"
+composeQrCode = "1.0.1"
 datastorePreferences = "1.1.1"
 foundationAndroid = "1.7.5"
 koinAndroid = "4.0.0-RC1"
@@ -44,6 +45,7 @@ androidx-ui-text-google-fonts = { module = "androidx.compose.ui:ui-text-google-f
 androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
+compose-qr-code = { module = "com.lightspark:compose-qr-code", version.ref = "composeQrCode" }
 jetbrains-kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

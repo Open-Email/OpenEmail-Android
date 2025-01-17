@@ -24,6 +24,8 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
                 address = userData.address,
                 privateEncryptionKey = userData.encryptionKeys.pair.secretKey.asBytes.encodeToBase64(),
                 privateSigningKey = userData.signingKeys.pair.secretKey.asBytes.encodeToBase64(),
+                publicEncryptionKey = userData.encryptionKeys.pair.publicKey.asBytes.encodeToBase64(),
+                publicSigningKey = userData.signingKeys.pair.publicKey.asBytes.encodeToBase64(),
                 biometryAvailable = bioManager.isBiometricAvailable(),
                 biometryEnabled = sharedPreferences.isBiometry(),
                 autologinEnabled = sharedPreferences.isAutologin()
@@ -67,6 +69,8 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
 data class SettingsState(
     val privateEncryptionKey: String? = null,
     val privateSigningKey: String? = null,
+    val publicEncryptionKey: String? = null,
+    val publicSigningKey: String? = null,
     val address: String? = null,
     val biometryAvailable: Boolean = false,
     val biometryEnabled: Boolean = false,
