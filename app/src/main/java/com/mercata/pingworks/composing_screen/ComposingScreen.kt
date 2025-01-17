@@ -343,6 +343,7 @@ fun SharedTransitionScope.ComposingScreen(
                     }
                     Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                     OutlinedTextField(
+                        shape = CircleShape,
                         value = state.addressFieldText,
                         prefix = if (state.mode == ComposingScreenMode.Default) {
                             null
@@ -424,6 +425,7 @@ fun SharedTransitionScope.ComposingScreen(
             }
             AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
                 OutlinedTextField(
+                    shape = CircleShape,
                     value = state.subject,
                     onValueChange = { str -> viewModel.updateSubject(str) },
                     keyboardOptions = KeyboardOptions(
@@ -458,6 +460,7 @@ fun SharedTransitionScope.ComposingScreen(
             }
             AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
                 OutlinedTextField(
+                    shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
                     keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.None,
                         showKeyboardOnFocus = true,
