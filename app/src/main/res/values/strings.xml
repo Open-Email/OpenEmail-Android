@@ -136,4 +136,10 @@
     <string name="address_not_found_error">Address not found</string>
     <string name="general">General</string>
     <string name="file_size_placeholder">%d KB</string>
+    <string name="keys">Keys</string>
+    <string name="private_keys">Private keys</string>
+    <string name="share">Share</string>
+    <string name="public_keys">Public keys</string>
+    <string name="public_signing_key">Public signing key</string>
+    <string name="public_encryption_key">Public encryption key</string>
 </resources>
