@@ -360,6 +360,10 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     fun clearAddressField() {
         updateState(currentState.copy(addressFieldText = ""))
     }
+
+    fun toggleAttachmentBottomSheet(shown: Boolean) {
+        updateState(currentState.copy(attachmentBottomSheetShown = shown))
+    }
 }
 
 data class ComposingState(
@@ -372,6 +376,7 @@ data class ComposingState(
     val addressFieldText: Address = "",
     val recipients: SnapshotStateList<PublicUserData> = mutableStateListOf(),
     val contacts: SnapshotStateList<DBContact> = mutableStateListOf(),
+    val attachmentBottomSheetShown: Boolean = false,
     val addressLoading: Boolean = false,
     val loading: Boolean = false,
     val confirmExitDialogShown: Boolean = false,
