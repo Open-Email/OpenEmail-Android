@@ -11,6 +11,7 @@ import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
 import com.mercata.pingworks.db.messages.FusedAttachment
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.repository.SendMessageRepository
 import com.mercata.pingworks.utils.AttachmentResult
 import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.FileUtils
@@ -23,12 +24,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
 
 class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
     AbstractViewModel<MessageDetailsState>(
         MessageDetailsState(
             messageId = savedStateHandle.get<String>("messageId")!!,
+            deletable = savedStateHandle.get<Boolean>("deletable")!!,
         )
     ) {
 
@@ -92,6 +95,7 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
 
     private val downloadRepository: DownloadRepository by inject()
     private val fileUtils: FileUtils by inject()
+    private val sendMessageRepository: SendMessageRepository by inject()
 
     fun downloadFile(attachment: FusedAttachment) {
         currentState.attachmentsWithStatus[attachment] = AttachmentResult(null, Progress(0))
@@ -118,11 +122,27 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
     fun shared() {
         updateState(currentState.copy(shareIntent = null))
     }
+
+    suspend fun deleteMessage() {
+        withContext(Dispatchers.IO) {
+            toggleDeletionConfirmation(false)
+            currentState.message?.message?.message?.copy(
+                markedToDelete = true
+            )?.let { db.messagesDao().update(it) }
+        }
+        sendMessageRepository.revokeMarkedMessages()
+    }
+
+    fun toggleDeletionConfirmation(shown: Boolean) {
+        updateState(currentState.copy(deleteConfirmationShown = shown))
+    }
 }
 
 data class MessageDetailsState(
     val messageId: String,
+    val deletable: Boolean,
     val outboxAddresses: List<PublicUserData>? = null,
+    val deleteConfirmationShown: Boolean = false,
     val noReply: Boolean = true,
     val shareIntent: Intent? = null,
     val message: DBMessageWithDBAttachments? = null,

@@ -53,16 +53,19 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.ModalDrawerSheet
@@ -543,7 +546,12 @@ fun SharedTransitionScope.HomeScreen(
                                                         }
 
                                                         else -> navController.navigate(
-                                                            "MessageDetailsScreen/${message.getMessageId()}/${state.screen.outbox}",
+                                                            "MessageDetailsScreen/${message.getMessageId()}/${state.screen.outbox}/${
+                                                                message.getAddressValue().equals(
+                                                                    state.currentUser!!.address,
+                                                                    false
+                                                                )
+                                                            }",
                                                         )
                                                     }
                                                 }
@@ -574,10 +582,13 @@ fun SharedTransitionScope.HomeScreen(
 
                 if (state.addRequestsToContactsDialogShown) {
                     AlertDialog(
+                        tonalElevation = 0.dp,
+                        shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
                         icon = {
                             Icon(
-                                Icons.Default.Warning,
-                                contentDescription = stringResource(id = R.string.warning)
+                                Icons.Rounded.Warning,
+                                contentDescription = stringResource(id = R.string.warning),
+                                tint = colorScheme.primary
                             )
                         },
                         title = {
@@ -587,10 +598,10 @@ fun SharedTransitionScope.HomeScreen(
                             Column {
                                 Text(
                                     text = stringResource(R.string.add_selected_requests_warning),
-                                    textAlign = TextAlign.Center
+                                    textAlign = TextAlign.Start
                                 )
                                 Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                                ElevatedButton(modifier = modifier.fillMaxWidth(), onClick = {
+                                Button(modifier = modifier.fillMaxWidth(), onClick = {
                                     coroutineScope.launch(Dispatchers.Main) {
                                         viewModel.addSelectedNotificationsToContacts()
                                     }.invokeOnCompletion {

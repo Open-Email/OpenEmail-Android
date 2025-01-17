@@ -142,4 +142,5 @@
     <string name="public_keys">Public keys</string>
     <string name="public_signing_key">Public signing key</string>
     <string name="public_encryption_key">Public encryption key</string>
+    <string name="delete_message_question">Do you want to delete this outgoing message?</string>
 </resources>
