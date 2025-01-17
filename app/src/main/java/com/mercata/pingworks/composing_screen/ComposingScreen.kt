@@ -38,7 +38,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Clear
@@ -46,12 +45,14 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme.typography
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -63,6 +64,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -72,6 +74,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -104,7 +107,6 @@ import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.home_screen.MessageViewHolder
 import com.mercata.pingworks.models.PublicUserData
-import com.mercata.pingworks.theme.roboto
 import com.mercata.pingworks.utils.getMimeType
 import com.mercata.pingworks.utils.getNameFromURI
 import com.mercata.pingworks.utils.getProfilePictureUrl
@@ -123,6 +125,7 @@ fun SharedTransitionScope.ComposingScreen(
     viewModel: ComposingViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val sheetState = rememberModalBottomSheetState()
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val toFocusRequester = remember { FocusRequester() }
@@ -185,24 +188,30 @@ fun SharedTransitionScope.ComposingScreen(
         }
     }
 
-    Box {
-        Scaffold(
-            snackbarHost = {
-                SnackbarHost(hostState = snackbarHostState)
-            },
-            modifier = modifier.sharedBounds(
-                rememberSharedContentState(
-                    key = "composing_bounds"
-                ),
-                animatedVisibilityScope,
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
+        modifier = modifier.sharedBounds(
+            rememberSharedContentState(
+                key = "composing_bounds"
             ),
-            topBar = {
-                TopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    ),
-                    title = {
+            animatedVisibilityScope,
+        ),
+        topBar = {
+            TopAppBar(
+                modifier = modifier.shadow(1.dp),
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = colorScheme.surface,
+                    titleContentColor = colorScheme.onSurface,
+                ),
+                title = {
+                    if (state.loading) {
+                        CircularProgressIndicator(
+                            modifier = modifier.size(28.dp),
+                            strokeCap = StrokeCap.Round
+                        )
+                    } else {
                         Column {
                             Text(
                                 text = stringResource(id = R.string.create_new_message),
@@ -212,313 +221,310 @@ fun SharedTransitionScope.ComposingScreen(
                             Text(
                                 text = state.currentUser?.address ?: "",
                                 maxLines = 1,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            viewModel.confirmExit()
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = stringResource(id = R.string.back_button),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = {
-                                photoSnapLauncher.launch(viewModel.getNewFileUri())
-                            }) {
-                            Icon(
-                                painter = painterResource(R.drawable.camera),
-                                contentDescription = stringResource(id = R.string.add_instant_photo),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        IconButton(enabled = !state.loading,
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        viewModel.confirmExit()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(id = R.string.back_button),
+                            tint = colorScheme.onSurface
+                        )
+                    }
+                },
+                actions = {
+                    AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
+                        Button(modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                            enabled = !state.loading,
                             onClick = {
                                 focusManager.clearFocus()
                                 viewModel.send()
                             }) {
-                            if (state.loading) {
-                                CircularProgressIndicator(strokeCap = StrokeCap.Round)
-                            } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    painterResource(R.drawable.send),
                                     contentDescription = stringResource(id = R.string.send),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = colorScheme.onPrimary
+                                )
+                                Spacer(modifier.width(4.dp))
+                                Text(
+                                    stringResource(R.string.send),
+                                    style = typography.labelLarge.copy(color = colorScheme.onPrimary)
                                 )
                             }
                         }
-                    },
-                )
-            },
-            floatingActionButton = {
-                if (state.mode == ComposingScreenMode.Default) {
-                    FloatingActionButton(
-                        modifier = modifier.imePadding(),
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        onClick = {
-                            documentChooserLauncher.launch(arrayOf("*/*"))
-                        }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.attach),
-                            stringResource(id = R.string.add_new_contact)
-                        )
                     }
+                },
+            )
+        },
+        floatingActionButton = {
+            if (state.mode == ComposingScreenMode.Default) {
+                FloatingActionButton(
+                    modifier = modifier.imePadding(),
+                    containerColor = colorScheme.primary,
+                    contentColor = colorScheme.onPrimary,
+                    onClick = {
+                        viewModel.toggleAttachmentBottomSheet(true)
+                    }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.attach),
+                        contentDescription = null,
+                        modifier = modifier.size(24.dp)
+                    )
                 }
             }
-        ) { padding ->
-            Column(
-                modifier = modifier
-                    .padding(
-                        start = padding.calculateLeftPadding(LocalLayoutDirection.current),
-                        end = padding.calculateRightPadding(LocalLayoutDirection.current),
-                        top = padding.calculateTopPadding()
-                    )
-                    .imePadding()
-                    .verticalScroll(rememberScrollState())
-            ) {
-                AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
+        }
+    ) { padding ->
+        Column(
+            modifier = modifier
+                .padding(
+                    start = padding.calculateLeftPadding(LocalLayoutDirection.current),
+                    end = padding.calculateRightPadding(LocalLayoutDirection.current),
+                    top = padding.calculateTopPadding()
+                )
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+        ) {
+            AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
+                Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = modifier
                             .fillMaxWidth()
                             .clickable { viewModel.toggleBroadcast() }
-                            .padding(
-                                top = MARGIN_DEFAULT,
-                                start = MARGIN_DEFAULT,
-                                end = MARGIN_DEFAULT,
-                                bottom = MARGIN_DEFAULT / 2
-                            )
+                            .padding(vertical = MARGIN_DEFAULT)
+
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.cast),
-                            contentDescription = stringResource(
-                                id = R.string.broadcast_title
-                            ),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
                         Spacer(modifier = modifier.width(MARGIN_DEFAULT))
-                        Text(
-                            stringResource(id = R.string.broadcast_title),
-                            fontFamily = roboto,
-                            softWrap = true
-                        )
-                        Spacer(modifier = modifier.weight(1f))
                         Switch(
                             checked = state.broadcast,
                             onCheckedChange = { viewModel.toggleBroadcast() })
+                        Spacer(modifier = modifier.width(MARGIN_DEFAULT))
+                        Text(
+                            stringResource(id = R.string.broadcast_title),
+                            style = typography.labelLarge,
+                            softWrap = true
+                        )
+                        Spacer(modifier = modifier.width(MARGIN_DEFAULT))
                     }
+                    HorizontalDivider(
+                        modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                        thickness = 1.dp,
+                        color = colorScheme.outline
+                    )
                 }
-                AnimatedVisibility(visible = !state.broadcast) {
-                    Column {
-                        FlowRow(
-                            modifier = modifier.padding(horizontal = MARGIN_DEFAULT * 3 / 4),
-                            verticalArrangement = Arrangement.spacedBy(0.dp),
-                            horizontalArrangement = Arrangement.spacedBy(0.dp),
-                        ) {
-                            state.recipients.map { user ->
-                                AddressChip(
-                                    modifier = modifier,
-                                    user = user,
-                                    onClick = { clickedUser ->
-                                        viewModel.openUserDetails(clickedUser)
-                                    },
-                                    onDismiss = { clickedUser ->
-                                        viewModel.removeRecipient(clickedUser)
-                                    })
-                            }
+            }
+
+            AnimatedVisibility(visible = !state.broadcast) {
+                Column {
+                    FlowRow(
+                        modifier = modifier.padding(horizontal = MARGIN_DEFAULT * 3 / 4),
+                        verticalArrangement = Arrangement.spacedBy(0.dp),
+                        horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    ) {
+                        state.recipients.map { user ->
+                            AddressChip(
+                                modifier = modifier,
+                                user = user,
+                                onClick = { clickedUser ->
+                                    viewModel.openUserDetails(clickedUser)
+                                },
+                                onDismiss = { clickedUser ->
+                                    viewModel.removeRecipient(clickedUser)
+                                })
                         }
-                        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                        OutlinedTextField(
-                            value = state.addressFieldText,
-                            prefix = if (state.mode == ComposingScreenMode.Default) {
-                                null
-                            } else {
-                                {
+                    }
+                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                    OutlinedTextField(
+                        shape = CircleShape,
+                        value = state.addressFieldText,
+                        prefix = if (state.mode == ComposingScreenMode.Default) {
+                            null
+                        } else {
+                            {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    modifier = modifier.clickable {
+                                        viewModel.clearAddressField()
+                                        focusManager.clearFocus()
+                                    },
+                                    contentDescription = stringResource(
+                                        id = R.string.add_recipient
+                                    ),
+                                    tint = colorScheme.primary
+                                )
+                            }
+                        },
+                        suffix = {
+                            if (state.addressFieldText.isNotBlank()) {
+                                if (state.addressLoading) {
+                                    CircularProgressIndicator(
+                                        strokeCap = StrokeCap.Round,
+                                        modifier = modifier.size(
+                                            CHIP_ICON_SIZE
+                                        )
+                                    )
+                                } else {
                                     Icon(
-                                        imageVector = Icons.Default.Close,
+                                        imageVector = Icons.Default.AddCircle,
                                         modifier = modifier.clickable {
-                                            viewModel.clearAddressField()
-                                            focusManager.clearFocus()
+                                            viewModel.attemptToAddAddress()
                                         },
                                         contentDescription = stringResource(
                                             id = R.string.add_recipient
                                         ),
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = colorScheme.primary
                                     )
                                 }
-                            },
-                            suffix = {
-                                if (state.addressFieldText.isNotBlank()) {
-                                    if (state.addressLoading) {
-                                        CircularProgressIndicator(
-                                            strokeCap = StrokeCap.Round,
-                                            modifier = modifier.size(
-                                                CHIP_ICON_SIZE
-                                            )
-                                        )
-                                    } else {
-                                        Icon(
-                                            imageVector = Icons.Default.AddCircle,
-                                            modifier = modifier.clickable {
-                                                viewModel.attemptToAddAddress()
-                                            },
-                                            contentDescription = stringResource(
-                                                id = R.string.add_recipient
-                                            ),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            },
-                            onValueChange = { str -> viewModel.updateTo(str) },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Email,
-                                imeAction = ImeAction.Done,
-                                showKeyboardOnFocus = true,
-                            ),
-                            isError = state.addressErrorResId != null,
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    focusManager.clearFocus()
-                                }
-                            ),
-                            label = {
-                                Text(stringResource(id = R.string.to_placeholder))
-                            },
-                            supportingText = {
-                                state.addressErrorResId?.let {
-                                    Text(
-                                        text = stringResource(id = it),
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            },
-                            modifier = modifier
-                                .padding(horizontal = MARGIN_DEFAULT)
-                                .focusRequester(toFocusRequester)
-                                .fillMaxWidth()
-                                .onFocusChanged { focusState ->
-                                    if (!focusState.isFocused) {
-                                        viewModel.attemptToAddAddress()
-                                    }
-                                    viewModel.toggleMode(focusState.isFocused)
-                                })
-                    }
-                }
-                AnimatedVisibility(visible = !state.broadcast) {
-                    Spacer(modifier = modifier.height(MARGIN_DEFAULT / 2))
-                }
-                AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
-                    OutlinedTextField(
-                        value = state.subject,
-                        onValueChange = { str -> viewModel.updateSubject(str) },
+                            }
+                        },
+                        onValueChange = { str -> viewModel.updateTo(str) },
                         keyboardOptions = KeyboardOptions(
-                            imeAction = ImeAction.Next,
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Done,
                             showKeyboardOnFocus = true,
                         ),
-                        isError = state.subjectErrorResId != null,
+                        isError = state.addressErrorResId != null,
                         keyboardActions = KeyboardActions(
-                            onNext = {
-                                focusManager.moveFocus(FocusDirection.Down)
+                            onDone = {
+                                focusManager.clearFocus()
                             }
                         ),
                         label = {
-                            Text(stringResource(id = R.string.subject_placeholder))
+                            Text(stringResource(id = R.string.to_placeholder))
                         },
                         supportingText = {
-                            state.subjectErrorResId?.let {
+                            state.addressErrorResId?.let {
                                 Text(
                                     text = stringResource(id = it),
-                                    color = MaterialTheme.colorScheme.error
+                                    color = colorScheme.error
                                 )
                             }
                         },
                         modifier = modifier
                             .padding(horizontal = MARGIN_DEFAULT)
-                            .focusRequester(subjectFocusRequester)
+                            .focusRequester(toFocusRequester)
                             .fillMaxWidth()
-                    )
+                            .onFocusChanged { focusState ->
+                                if (!focusState.isFocused) {
+                                    viewModel.attemptToAddAddress()
+                                }
+                                viewModel.toggleMode(focusState.isFocused)
+                            })
                 }
-                AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
-                    Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                }
-                AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
-                    OutlinedTextField(
-                        keyboardOptions = KeyboardOptions(
-                            imeAction = ImeAction.None,
-                            showKeyboardOnFocus = true,
-                        ),
-                        placeholder = {
-                            Text(text = stringResource(id = R.string.body_placeholder))
-                        },
-                        isError = state.bodyErrorResId != null,
-                        supportingText = {
-                            state.bodyErrorResId?.let {
-                                Text(
-                                    text = stringResource(id = it),
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        },
-                        modifier = modifier
-                            .padding(horizontal = MARGIN_DEFAULT)
-                            .defaultMinSize(minHeight = 200.dp)
-                            .fillMaxWidth()
-                            .focusRequester(bodyFocusRequester),
-                        value = state.body,
-                        onValueChange = { str ->
-                            viewModel.updateBody(str)
-                        })
-                }
-                AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
-                    Column {
-                        state.attachments.map { attachmentUri ->
-                            AttachmentViewHolder(
-                                modifier = modifier,
-                                attachment = attachmentUri,
-                                viewModel = viewModel
-                            )
-                        }
-                    }
-                }
-
-                AnimatedVisibility(visible = state.mode == ComposingScreenMode.ContactSuggestion) {
-                    Column {
-                        state.contacts.filter {
-                            it.name?.contains(
-                                state.addressFieldText,
-                                true
-                            ) == true || it.address.contains(state.addressFieldText, true)
-                        }.forEach { contact ->
-                            MessageViewHolder(
-                                modifier = modifier,
-                                animatedVisibilityScope = animatedVisibilityScope,
-                                item = contact,
-                                isSelected = false,
-                                onMessageClicked = { person ->
-                                    viewModel.addContactSuggestion(person as DBContact)
-                                    viewModel.clearAddressField()
-                                    focusManager.clearFocus()
-                                },
-                                onMessageSelected = null,
-                                currentUser = state.currentUser!!
-                            )
-                        }
-                    }
-                }
-
-
-                Spacer(modifier = modifier.height(MARGIN_DEFAULT + 56.dp + padding.calculateBottomPadding()))
             }
+            AnimatedVisibility(visible = !state.broadcast) {
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT / 2))
+            }
+            AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
+                OutlinedTextField(
+                    shape = CircleShape,
+                    value = state.subject,
+                    onValueChange = { str -> viewModel.updateSubject(str) },
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Next,
+                        showKeyboardOnFocus = true,
+                    ),
+                    isError = state.subjectErrorResId != null,
+                    keyboardActions = KeyboardActions(
+                        onNext = {
+                            focusManager.moveFocus(FocusDirection.Down)
+                        }
+                    ),
+                    label = {
+                        Text(stringResource(id = R.string.subject_placeholder))
+                    },
+                    supportingText = {
+                        state.subjectErrorResId?.let {
+                            Text(
+                                text = stringResource(id = it),
+                                color = colorScheme.error
+                            )
+                        }
+                    },
+                    modifier = modifier
+                        .padding(horizontal = MARGIN_DEFAULT)
+                        .focusRequester(subjectFocusRequester)
+                        .fillMaxWidth()
+                )
+            }
+            AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+            }
+            AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
+                OutlinedTextField(
+                    shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.None,
+                        showKeyboardOnFocus = true,
+                    ),
+                    placeholder = {
+                        Text(text = stringResource(id = R.string.body_placeholder))
+                    },
+                    isError = state.bodyErrorResId != null,
+                    supportingText = {
+                        state.bodyErrorResId?.let {
+                            Text(
+                                text = stringResource(id = it),
+                                color = colorScheme.error
+                            )
+                        }
+                    },
+                    modifier = modifier
+                        .padding(horizontal = MARGIN_DEFAULT)
+                        .defaultMinSize(minHeight = 200.dp)
+                        .fillMaxWidth()
+                        .focusRequester(bodyFocusRequester),
+                    value = state.body,
+                    onValueChange = { str ->
+                        viewModel.updateBody(str)
+                    })
+            }
+            AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
+                Column {
+                    state.attachments.map { attachmentUri ->
+                        AttachmentViewHolder(
+                            modifier = modifier,
+                            attachment = attachmentUri,
+                            viewModel = viewModel
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(visible = state.mode == ComposingScreenMode.ContactSuggestion) {
+                Column {
+                    state.contacts.filter {
+                        it.name?.contains(
+                            state.addressFieldText,
+                            true
+                        ) == true || it.address.contains(state.addressFieldText, true)
+                    }.forEach { contact ->
+                        MessageViewHolder(
+                            modifier = modifier,
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            item = contact,
+                            isSelected = false,
+                            onMessageClicked = { person ->
+                                viewModel.addContactSuggestion(person as DBContact)
+                                viewModel.clearAddressField()
+                                focusManager.clearFocus()
+                            },
+                            onMessageSelected = null,
+                            currentUser = state.currentUser!!
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = modifier.height(MARGIN_DEFAULT + 56.dp + padding.calculateBottomPadding()))
         }
 
         if (state.openedAddressDetails != null) {
@@ -558,7 +564,6 @@ fun SharedTransitionScope.ComposingScreen(
                 }
             )
         }
-
         if (state.confirmExitDialogShown) {
             AlertDialog(
                 tonalElevation = 0.dp,
@@ -566,7 +571,7 @@ fun SharedTransitionScope.ComposingScreen(
                 title = {
                     Text(
                         text = stringResource(id = R.string.warning), textAlign = TextAlign.Start,
-                        style = MaterialTheme.typography.titleMedium
+                        style = typography.titleMedium
                     )
                 },
                 text = {
@@ -610,6 +615,65 @@ fun SharedTransitionScope.ComposingScreen(
                 },
             )
         }
+        if (state.attachmentBottomSheetShown) {
+            ModalBottomSheet(
+                tonalElevation = 0.dp,
+                shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
+                onDismissRequest = {
+                    viewModel.toggleAttachmentBottomSheet(false)
+                },
+                sheetState = sheetState
+            ) {
+                // Sheet content
+                OutlinedButton(
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MARGIN_DEFAULT),
+                    onClick = {
+                        coroutineScope.launch { sheetState.hide() }.invokeOnCompletion {
+                            if (!sheetState.isVisible) {
+                                viewModel.toggleAttachmentBottomSheet(false)
+                            }
+                        }
+                        documentChooserLauncher.launch(arrayOf("*/*"))
+                    }) {
+                    Row {
+                        Icon(
+                            painterResource(R.drawable.file),
+                            contentDescription = stringResource(R.string.attach_file),
+                            tint = colorScheme.primary
+                        )
+                        Spacer(modifier.width(MARGIN_DEFAULT))
+                        Text(stringResource(R.string.attach_file))
+                    }
+                }
+                Spacer(modifier.height(MARGIN_DEFAULT / 2))
+                OutlinedButton(
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MARGIN_DEFAULT),
+                    onClick = {
+                        coroutineScope.launch { sheetState.hide() }.invokeOnCompletion {
+                            if (!sheetState.isVisible) {
+                                viewModel.toggleAttachmentBottomSheet(false)
+                            }
+                        }
+                        photoSnapLauncher.launch(viewModel.getNewFileUri())
+                    }) {
+                    Row {
+                        Icon(
+                            painterResource(R.drawable.camera),
+                            contentDescription = stringResource(R.string.add_instant_photo),
+                            tint = colorScheme.primary
+                        )
+                        Spacer(modifier.width(MARGIN_DEFAULT))
+                        Text(stringResource(R.string.add_instant_photo))
+                    }
+                }
+                Spacer(modifier.height(MARGIN_DEFAULT))
+
+            }
+        }
     }
 }
 
@@ -627,7 +691,7 @@ fun AddressChip(
                 .height(CHIP_HEIGHT)
                 .clip(shape = CircleShape)
                 .clickable { onClick(user) }
-                .border(1.dp, color = MaterialTheme.colorScheme.onSurface, shape = CircleShape),
+                .border(1.dp, color = colorScheme.onSurface, shape = CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Row(
@@ -652,7 +716,7 @@ fun AddressChip(
                         })
                 }
                 Spacer(modifier = modifier.width(MARGIN_DEFAULT / 4))
-                Text(text = user.fullName, style = MaterialTheme.typography.bodySmall)
+                Text(text = user.fullName, style = typography.bodySmall)
                 Spacer(modifier = modifier.width(MARGIN_DEFAULT / 4))
                 if (onDismiss != null) {
                     Icon(
@@ -694,7 +758,7 @@ fun AttachmentViewHolder(
         modifier = modifier
             .fillMaxSize()
             .height(ATTACHMENT_LIST_ITEM_HEIGHT)
-            .background(MaterialTheme.colorScheme.surface)
+            .background(colorScheme.surface)
             .padding(horizontal = MARGIN_DEFAULT)
     ) {
         Box(
@@ -702,12 +766,12 @@ fun AttachmentViewHolder(
             modifier = modifier
                 .clip(CircleShape)
                 .size(CONTACT_LIST_ITEM_IMAGE_SIZE)
-                .background(MaterialTheme.colorScheme.primary)
+                .background(colorScheme.primary)
         ) {
             Icon(
                 painter = painterResource(id = imageResource),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary
+                tint = colorScheme.onPrimary
             )
         }
         Text(
@@ -715,7 +779,7 @@ fun AttachmentViewHolder(
                 .weight(1f)
                 .padding(horizontal = MARGIN_DEFAULT),
             text = attachment.getNameFromURI(context) ?: "",
-            style = MaterialTheme.typography.bodyMedium,
+            style = typography.bodyMedium,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis
         )

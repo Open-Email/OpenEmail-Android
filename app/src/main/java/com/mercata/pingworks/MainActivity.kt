@@ -120,13 +120,17 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                         composable(
-                            route = "MessageDetailsScreen/{messageId}/{outbox}",
+                            route = "MessageDetailsScreen/{messageId}/{outbox}/{deletable}",
                             arguments = listOf(
                                 navArgument("messageId") {
                                     type = NavType.StringType
                                     nullable = false
                                 },
                                 navArgument("outbox") {
+                                    type = NavType.BoolType
+                                    nullable = false
+                                },
+                                navArgument("deletable") {
                                     type = NavType.BoolType
                                     nullable = false
                                 }

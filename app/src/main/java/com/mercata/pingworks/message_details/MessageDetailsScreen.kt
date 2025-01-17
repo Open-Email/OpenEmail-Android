@@ -34,6 +34,8 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -44,11 +46,13 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +61,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -74,6 +79,7 @@ import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloadin
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.NotDownloaded
 import com.mercata.pingworks.utils.Indefinite
 import com.mercata.pingworks.utils.getProfilePictureUrl
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -90,6 +96,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
 
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
@@ -99,7 +106,6 @@ fun SharedTransitionScope.MessageDetailsScreen(
     val messageWithAttachments = state.message
     val messageWithAuthor = messageWithAttachments?.message
     val message = messageWithAuthor?.message
-    val outbox: Boolean = state.outboxAddresses != null
 
     val subject = message?.subject ?: ""
 
@@ -136,17 +142,21 @@ fun SharedTransitionScope.MessageDetailsScreen(
                     }
                 },
                 actions = {
-                    OutlinedButton(
-                        modifier = modifier.padding(end = MARGIN_DEFAULT),
-                        onClick = {
-                            //TODO delete message
-                        }) {
-                        Icon(
-                            painterResource(R.drawable.delete),
+                    if (state.deletable) {
+                        OutlinedButton(
+                            modifier = modifier.padding(end = MARGIN_DEFAULT),
+                            onClick = {
+                                if (!state.deleteConfirmationShown) {
+                                    viewModel.toggleDeletionConfirmation(true)
+                                }
+                            }) {
+                            Icon(
+                                painterResource(R.drawable.delete),
 
-                            tint = colorScheme.error,
-                            contentDescription = stringResource(R.string.delete)
-                        )
+                                tint = colorScheme.error,
+                                contentDescription = stringResource(R.string.delete)
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
@@ -162,179 +172,233 @@ fun SharedTransitionScope.MessageDetailsScreen(
             )
         },
     ) { padding ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(padding)
-                .padding(vertical = MARGIN_DEFAULT)
-        ) {
-            SelectionContainer {
-                Text(
-                    modifier = modifier
-                        .padding(horizontal = MARGIN_DEFAULT)
-                        .sharedBounds(
-                            sharedContentState = rememberSharedContentState(
-                                key = "message_subject/${state.messageId}"
-                            ),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                        ),
-                    text = subject,
-                    style = typography.titleLarge,
-                )
-            }
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT * 1.5f))
-
-            Row(
+        Box(modifier.fillMaxSize()) {
+            Column(
                 modifier = modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = MARGIN_DEFAULT)
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(padding)
+                    .padding(vertical = MARGIN_DEFAULT)
             ) {
-                ProfileImage(
-                    modifier = modifier
-                        .clip(CircleShape)
-                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
-                    imageUrl = messageWithAuthor?.author?.address?.getProfilePictureUrl()
-                        ?: "",
-                    onError = {
-                        Box(
-                            modifier
-                                .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                                .background(color = colorScheme.surface)
-                                .border(
-                                    width = 1.dp,
-                                    color = colorScheme.outline,
-                                    shape = CircleShape
+                SelectionContainer {
+                    Text(
+                        modifier = modifier
+                            .padding(horizontal = MARGIN_DEFAULT)
+                            .sharedBounds(
+                                sharedContentState = rememberSharedContentState(
+                                    key = "message_subject/${state.messageId}"
                                 ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "${state.currentUser?.name?.firstOrNull() ?: ""}${
-                                    state.currentUser?.name?.getOrNull(
-                                        1
-                                    ) ?: ""
-                                }",
-                                style = typography.titleMedium,
-                                color = colorScheme.onSurface
-                            )
-                        }
-                    })
+                                animatedVisibilityScope = animatedVisibilityScope,
+                            ),
+                        text = subject,
+                        style = typography.titleLarge,
+                    )
+                }
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT * 1.5f))
 
-                Spacer(modifier = modifier.width(MARGIN_DEFAULT * 0.75f))
+                Row(
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MARGIN_DEFAULT)
+                ) {
+                    ProfileImage(
+                        modifier = modifier
+                            .clip(CircleShape)
+                            .size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
+                        imageUrl = messageWithAuthor?.author?.address?.getProfilePictureUrl()
+                            ?: "",
+                        onError = {
+                            Box(
+                                modifier
+                                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                    .background(color = colorScheme.surface)
+                                    .border(
+                                        width = 1.dp,
+                                        color = colorScheme.outline,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "${state.currentUser?.name?.firstOrNull() ?: ""}${
+                                        state.currentUser?.name?.getOrNull(
+                                            1
+                                        ) ?: ""
+                                    }",
+                                    style = typography.titleMedium,
+                                    color = colorScheme.onSurface
+                                )
+                            }
+                        })
 
-                messageWithAuthor?.author?.let { author ->
-                    Column {
-                        author.name?.let { name ->
-                            Row {
-                                SelectionContainer {
-                                    Text(
-                                        text = name,
-                                        maxLines = 1,
-                                        style = typography.titleMedium,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
+                    Spacer(modifier = modifier.width(MARGIN_DEFAULT * 0.75f))
 
-                                state.message?.message?.message?.timestamp?.let { timestamp ->
-                                    Spacer(modifier.weight(1f))
+                    messageWithAuthor?.author?.let { author ->
+                        Column {
+                            author.name?.let { name ->
+                                Row {
                                     SelectionContainer {
                                         Text(
-                                            text = ZonedDateTime.ofInstant(
-                                                Instant.ofEpochMilli(timestamp),
-                                                ZoneId.systemDefault()
-                                            ).format(DEFAULT_DATE_TIME_FORMAT),
+                                            text = name,
                                             maxLines = 1,
-                                            style = typography.bodySmall.copy(color = colorScheme.outlineVariant),
+                                            style = typography.titleMedium,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
+
+                                    state.message?.message?.message?.timestamp?.let { timestamp ->
+                                        Spacer(modifier.weight(1f))
+                                        SelectionContainer {
+                                            Text(
+                                                text = ZonedDateTime.ofInstant(
+                                                    Instant.ofEpochMilli(timestamp),
+                                                    ZoneId.systemDefault()
+                                                ).format(DEFAULT_DATE_TIME_FORMAT),
+                                                maxLines = 1,
+                                                style = typography.bodySmall.copy(color = colorScheme.outlineVariant),
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
                                 }
                             }
+                            SelectionContainer {
+                                Text(
+                                    text = author.address,
+                                    maxLines = 1,
+                                    style = typography.bodyMedium,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
-                        SelectionContainer {
+                    }
+                }
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    HorizontalDivider(
+                        modifier = modifier.weight(1f),
+                        thickness = 1.dp,
+                        color = colorScheme.outline
+                    )
+                    OutlinedButton(onClick = {
+                        navController.navigate("ComposingScreen/${state.message?.message?.message?.authorAddress}/${state.message?.getMessageId()}/null")
+                    }) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painterResource(R.drawable.reply),
+                                contentDescription = stringResource(R.string.reply_button),
+                                tint = colorScheme.onSurface
+                            )
+                            Spacer(modifier.width(MARGIN_DEFAULT / 2))
                             Text(
-                                text = author.address,
+                                stringResource(R.string.reply_button),
+                                style = typography.labelLarge.copy(color = colorScheme.onSurface)
+                            )
+                        }
+                    }
+                    HorizontalDivider(
+                        modifier = modifier.width(MARGIN_DEFAULT),
+                        thickness = 1.dp,
+                        color = colorScheme.outline
+                    )
+                }
+                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                SelectionContainer {
+                    Text(
+                        modifier = modifier
+                            .padding(horizontal = MARGIN_DEFAULT)
+                            .sharedBounds(
+                                sharedContentState = rememberSharedContentState(
+                                    key = "message_body/${state.messageId}"
+                                ),
+                                animatedVisibilityScope = animatedVisibilityScope,
+                            ),
+                        style = typography.bodyMedium,
+                        text = message?.textBody ?: ""
+                    )
+                }
+
+                messageWithAttachments?.getAttachments()?.takeIf { it.isNotEmpty() }
+                    ?.let { attachments ->
+                        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                        HorizontalDivider(
+                            modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                            thickness = 1.dp,
+                            color = colorScheme.outline
+                        )
+                        Column {
+                            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
+                            Text(
+                                text = stringResource(id = R.string.attachments_label),
+                                modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
                                 maxLines = 1,
                                 style = typography.bodyMedium,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
+                                fontWeight = FontWeight.Bold,
                             )
+                            Spacer(modifier = modifier.height(MARGIN_DEFAULT * 3 / 4))
+                            attachments.map { attachment ->
+                                AttachmentViewHolder(
+                                    modifier = modifier,
+                                    attachment = attachment,
+                                    viewModel = viewModel,
+                                    state = state,
+                                )
+                            }
                         }
                     }
-                }
             }
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                HorizontalDivider(
-                    modifier = modifier.weight(1f),
-                    thickness = 1.dp,
-                    color = colorScheme.outline
-                )
-                OutlinedButton(onClick = {
-                    navController.navigate("ComposingScreen/${state.message?.message?.message?.authorAddress}/${state.message?.getMessageId()}/null")
-                }) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+
+            if (state.deleteConfirmationShown) {
+                AlertDialog(
+                    tonalElevation = 0.dp,
+                    shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
+                    icon = {
                         Icon(
-                            painterResource(R.drawable.reply),
-                            contentDescription = stringResource(R.string.reply_button),
-                            tint = colorScheme.onSurface
+                            Icons.Rounded.Warning,
+                            contentDescription = stringResource(id = R.string.warning),
+                            tint = colorScheme.primary
                         )
-                        Spacer(modifier.width(MARGIN_DEFAULT / 2))
+                    },
+                    title = {
+                        Text(text = stringResource(R.string.warning))
+                    },
+                    text = {
                         Text(
-                            stringResource(R.string.reply_button),
-                            style = typography.labelLarge.copy(color = colorScheme.onSurface)
+                            text = stringResource(R.string.delete_message_question),
+                            textAlign = TextAlign.Start
                         )
-                    }
-                }
-                HorizontalDivider(
-                    modifier = modifier.width(MARGIN_DEFAULT),
-                    thickness = 1.dp,
-                    color = colorScheme.outline
-                )
-            }
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-            SelectionContainer {
-                Text(
-                    modifier = modifier
-                        .padding(horizontal = MARGIN_DEFAULT)
-                        .sharedBounds(
-                            sharedContentState = rememberSharedContentState(
-                                key = "message_body/${state.messageId}"
-                            ),
-                            animatedVisibilityScope = animatedVisibilityScope,
-                        ),
-                    style = typography.bodyMedium,
-                    text = message?.textBody ?: ""
-                )
-            }
-            Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-            HorizontalDivider(
-                modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
-                thickness = 1.dp,
-                color = colorScheme.outline
-            )
-            messageWithAttachments?.getAttachments()?.takeIf { it.isNotEmpty() }
-                ?.let { attachments ->
-                    Column {
-                        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                        Text(
-                            text = stringResource(id = R.string.attachments_label),
-                            modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
-                            maxLines = 1,
-                            style = typography.bodyMedium,
-                            overflow = TextOverflow.Ellipsis,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Spacer(modifier = modifier.height(MARGIN_DEFAULT * 3 / 4))
-                        attachments.map { attachment ->
-                            AttachmentViewHolder(
-                                modifier = modifier,
-                                attachment = attachment,
-                                viewModel = viewModel,
-                                state = state,
+                    },
+                    onDismissRequest = {
+                        viewModel.toggleDeletionConfirmation(false)
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    viewModel.deleteMessage()
+                                }.invokeOnCompletion {
+                                    navController.popBackStack()
+                                }
+                            }
+                        ) {
+                            Text(
+                                stringResource(id = R.string.delete),
+                                color = colorScheme.error
                             )
                         }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.toggleDeletionConfirmation(false)
+                            }
+                        ) {
+                            Text(stringResource(id = R.string.cancel_button))
+                        }
                     }
-                }
+                )
+            }
         }
     }
 }
@@ -462,7 +526,10 @@ fun AttachmentViewHolder(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = String.format(stringResource(R.string.file_size_placeholder), attachment.fileSize / 1024),
+                    text = String.format(
+                        stringResource(R.string.file_size_placeholder),
+                        attachment.fileSize / 1024
+                    ),
                     style = typography.bodySmall.copy(color = colorScheme.outlineVariant),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
