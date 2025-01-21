@@ -5,6 +5,7 @@ package com.mercata.pingworks.profile_screen
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -163,7 +164,8 @@ fun SharedTransitionScope.ProfileScreen(
                         )
 
                 ) {
-                    state.tabs[index].listItems.forEach { tabData ->
+                    val tab = state.tabs[index]
+                    tab.listItems.forEach { tabData ->
                         when (tabData) {
                             is ProfileViewModel.UserPicListItem -> {
                                 val imageModifier = modifier
@@ -198,36 +200,43 @@ fun SharedTransitionScope.ProfileScreen(
                             }
 
                             is ProfileViewModel.InputListItem -> {
-                                OutlinedTextField(
-                                    modifier = modifier
-                                        .fillMaxWidth()
-                                        .padding(
-                                            horizontal = MARGIN_DEFAULT,
-                                            vertical = MARGIN_DEFAULT / 2
+                                AnimatedVisibility(visible = tabData.hintResId != R.string.away_warning || state.current?.away == true) {
+                                    OutlinedTextField(
+                                        modifier = modifier
+                                            .fillMaxWidth()
+                                            .padding(
+                                                horizontal = MARGIN_DEFAULT,
+                                                vertical = MARGIN_DEFAULT / 2
+                                            ),
+                                        shape = CircleShape,
+                                        value = tabData.getValue(state),
+                                        label = {
+                                            Text(stringResource(id = tabData.hintResId))
+                                        },
+                                        supportingText = tabData.supportingStringResId?.let {
+                                            {
+                                                Text(
+                                                    text = stringResource(id = it),
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        },
+                                        keyboardOptions = KeyboardOptions(
+                                            imeAction = ImeAction.Done,
+                                            showKeyboardOnFocus = true,
                                         ),
-                                    shape = CircleShape,
-                                    value = tabData.getValue(state),
-                                    label = {
-                                        Text(stringResource(id = tabData.hintResId))
-                                    },
-                                    supportingText = tabData.supportingStringResId?.let {
-                                        {
-                                            Text(
-                                                text = stringResource(id = it),
-                                                color = MaterialTheme.colorScheme.error
+                                        keyboardActions = KeyboardActions(
+                                            onDone = {
+                                                focusManager.clearFocus()
+                                            }
+                                        ),
+                                        onValueChange = { str ->
+                                            tabData.onChanged(
+                                                viewModel,
+                                                str
                                             )
-                                        }
-                                    },
-                                    keyboardOptions = KeyboardOptions(
-                                        imeAction = ImeAction.Done,
-                                        showKeyboardOnFocus = true,
-                                    ),
-                                    keyboardActions = KeyboardActions(
-                                        onDone = {
-                                            focusManager.clearFocus()
-                                        }
-                                    ),
-                                    onValueChange = { str -> tabData.onChanged(viewModel, str) })
+                                        })
+                                }
                             }
 
                             is ProfileViewModel.SwitchListItem -> {
