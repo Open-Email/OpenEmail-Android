@@ -77,7 +77,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         updateState(
             currentState.copy(
                 currentUser = sp.getUserData(),
-                screen = sp.getSelectedNavigationScreen()
             )
         )
 
@@ -500,7 +499,7 @@ data class HomeState(
     val refreshing: Boolean = false,
     val undoDelete: Int? = null,
     val existingContactFound: PublicUserData? = null,
-    val screen: HomeScreen = HomeScreen.Broadcast,
+    val screen: HomeScreen = HomeScreen.Inbox,
 )
 
 enum class HomeScreen(
