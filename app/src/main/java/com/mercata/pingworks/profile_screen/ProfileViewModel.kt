@@ -7,7 +7,6 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.HttpResult
-import com.mercata.pingworks.utils.SharedPreferences
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
 import com.mercata.pingworks.utils.updateCall
@@ -35,6 +34,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
             )
         )
         updateState(currentState.copy())
+
     }
 
     private val fu: FileUtils by inject()
@@ -129,6 +129,30 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                 getValue = { state -> state.current?.fullName ?: "" },
                 getSavedData = { state -> state.saved?.fullName ?: "" }
             ),
+            InputListItem(
+                hintResId = R.string.status,
+                onChanged = { viewModel, str ->
+                    viewModel.updateState(
+                        viewModel.currentState.copy(
+                            current = viewModel.currentState.current?.copy(status = str)
+                        )
+                    )
+                },
+                getValue = { state -> state.current?.status ?: "" },
+                getSavedData = { state -> state.saved?.status ?: "" }
+            ),
+            InputListItem(
+                hintResId = R.string.about,
+                onChanged = { viewModel, str ->
+                    viewModel.updateState(
+                        viewModel.currentState.copy(
+                            current = viewModel.currentState.current?.copy(about = str)
+                        )
+                    )
+                },
+                getValue = { state -> state.current?.about ?: "" },
+                getSavedData = { state -> state.saved?.about ?: "" }
+            ),
             SwitchListItem(
                 R.string.away,
                 getValue = { state -> state.current?.away ?: false },
@@ -153,30 +177,6 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                 },
                 getValue = { state -> state.current?.awayWarning ?: "" },
                 getSavedData = { state -> state.saved?.awayWarning ?: "" }
-            ),
-            InputListItem(
-                hintResId = R.string.status,
-                onChanged = { viewModel, str ->
-                    viewModel.updateState(
-                        viewModel.currentState.copy(
-                            current = viewModel.currentState.current?.copy(status = str)
-                        )
-                    )
-                },
-                getValue = { state -> state.current?.status ?: "" },
-                getSavedData = { state -> state.saved?.status ?: "" }
-            ),
-            InputListItem(
-                hintResId = R.string.about,
-                onChanged = { viewModel, str ->
-                    viewModel.updateState(
-                        viewModel.currentState.copy(
-                            current = viewModel.currentState.current?.copy(about = str)
-                        )
-                    )
-                },
-                getValue = { state -> state.current?.about ?: "" },
-                getSavedData = { state -> state.saved?.about ?: "" }
             ),
         )
     ) : TabData
