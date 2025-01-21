@@ -81,18 +81,22 @@ fun RegistrationScreen(
         }
     }
 
+    fun registerCall() {
+        focusManager.clearFocus()
+        viewModel.register()
+    }
+
     Scaffold { padding ->
         Box {
             Column(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = modifier
-                    .verticalScroll(rememberScrollState())
                     .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
                     .imePadding()
 
             ) {
-
                 Box(
                     modifier
                         .background(
@@ -145,6 +149,43 @@ fun RegistrationScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT * 2))
+
+                OutlinedTextField(
+                    value = state.fullNameInput,
+                    onValueChange = { str -> viewModel.onFullNameEdit(str) },
+                    singleLine = true,
+                    isError = state.fullNameError,
+                    enabled = !state.isLoading,
+                    shape = CircleShape,
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MARGIN_DEFAULT)
+                        .focusRequester(fullNameFocusRequester),
+                    label = {
+                        Text(
+                            text = stringResource(id = R.string.full_name_hint)
+                        )
+                    },
+                    supportingText = {
+                        if (state.fullNameError) {
+                            Text(
+                                text = stringResource(id = R.string.full_name_empty_error),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Unspecified,
+                        imeAction = ImeAction.Done,
+                        showKeyboardOnFocus = true,
+                        capitalization = KeyboardCapitalization.None
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            registerCall()
+                        }
+                    ),
+                )
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -226,46 +267,6 @@ fun RegistrationScreen(
                     )
                 }
 
-                fun registerCall() {
-                    focusManager.clearFocus()
-                    viewModel.register()
-                }
-                OutlinedTextField(
-                    value = state.fullNameInput,
-                    onValueChange = { str -> viewModel.onFullNameEdit(str) },
-                    singleLine = true,
-                    isError = state.fullNameError,
-                    enabled = !state.isLoading,
-                    shape = CircleShape,
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MARGIN_DEFAULT)
-                        .focusRequester(fullNameFocusRequester),
-                    label = {
-                        Text(
-                            text = stringResource(id = R.string.full_name_hint)
-                        )
-                    },
-                    supportingText = {
-                        if (state.fullNameError) {
-                            Text(
-                                text = stringResource(id = R.string.full_name_empty_error),
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Unspecified,
-                        imeAction = ImeAction.Done,
-                        showKeyboardOnFocus = true,
-                        capitalization = KeyboardCapitalization.None
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            registerCall()
-                        }
-                    ),
-                )
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                 Button(
                     modifier = modifier

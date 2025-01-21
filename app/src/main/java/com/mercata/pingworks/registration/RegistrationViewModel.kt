@@ -27,14 +27,18 @@ import org.koin.core.component.inject
 
 class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationState()) {
 
-   private val dl: DownloadRepository by inject()
+    private val dl: DownloadRepository by inject()
 
     fun onUsernameChange(str: String) {
-        updateState(currentState.copy(usernameInput = str))
+        updateState(currentState.copy(usernameInput = str, userNameManuallyEdited = true))
     }
 
     fun onFullNameEdit(str: String) {
         updateState(currentState.copy(fullNameInput = str))
+        if (str.trim().contains(" ") && !currentState.userNameManuallyEdited) {
+            val suggestedUsername = str.replaceFirst(" ", ".").replace(" ", "").lowercase()
+            updateState(currentState.copy(usernameInput = suggestedUsername))
+        }
     }
 
     fun register() {
@@ -78,15 +82,15 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
     private fun addSupportContactForNewUser() {
         GlobalScope.launch(Dispatchers.IO) {
             val publicData: PublicUserData =
-            when (val call = safeApiCall { getProfilePublicData(SUPPORT_ADDRESS) }) {
-                is HttpResult.Success -> {
-                    call.data
-                }
+                when (val call = safeApiCall { getProfilePublicData(SUPPORT_ADDRESS) }) {
+                    is HttpResult.Success -> {
+                        call.data
+                    }
 
-                is HttpResult.Error -> {
-                    null
-                }
-            } ?: return@launch
+                    is HttpResult.Error -> {
+                        null
+                    }
+                } ?: return@launch
 
             val dbContact = publicData.toDBContact()
             db.userDao().insert(dbContact)
@@ -120,6 +124,7 @@ data class RegistrationState(
     val usernameInput: String = "",
     val fullNameInput: String = "",
     val registrationError: String? = null,
+    val userNameManuallyEdited: Boolean = false,
     val userNameError: Boolean = false,
     val fullNameError: Boolean = false,
     val isLoading: Boolean = false,
