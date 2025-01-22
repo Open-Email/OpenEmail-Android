@@ -183,13 +183,15 @@ fun SharedTransitionScope.HomeScreen(
         viewModel.selectedItems.clear()
     }
 
-    LaunchedEffect(state.sendingSnackBar) {
-        if (state.sendingSnackBar) {
+    LaunchedEffect(state.snackBar) {
+        if (state.snackBar != null) {
             coroutineScope.launch {
-                snackbarHostState.showSnackbar(
-                    message = context.getString(R.string.message_sending),
-                    duration = SnackbarDuration.Short
-                )
+                state.snackBar?.let {
+                    snackbarHostState.showSnackbar(
+                        message = context.getString(it.titleResId),
+                        duration = SnackbarDuration.Short
+                    )
+                }
             }
         }
     }
