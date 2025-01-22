@@ -20,10 +20,10 @@ interface NotificationsDao {
     @Query("SELECT * FROM dbnotification WHERE address = :address")
     suspend fun getByAddress(address: Address): DBNotification?
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(notifications: List<DBNotification>)
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(vararg notification: DBNotification)
 
     @Delete
