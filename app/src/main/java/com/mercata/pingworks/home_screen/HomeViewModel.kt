@@ -20,6 +20,7 @@ import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.models.toDBContact
 import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.repository.AddContactRepository
 import com.mercata.pingworks.repository.SendMessageRepository
 import com.mercata.pingworks.utils.Address
 import com.mercata.pingworks.utils.DownloadRepository
@@ -33,9 +34,7 @@ import com.mercata.pingworks.utils.syncAllMessages
 import com.mercata.pingworks.utils.syncContacts
 import com.mercata.pingworks.utils.syncNotifications
 import com.mercata.pingworks.utils.uploadPendingMessages
-import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.joinAll
@@ -48,6 +47,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     private val dl: DownloadRepository by inject()
     private val fu: FileUtils by inject()
     private val sendMessageRepository: SendMessageRepository by inject()
+    private val addContactRepository: AddContactRepository by inject()
     private var listUpdateState: HomeListUpdateState? = null
 
     val items: SnapshotStateList<HomeItem> = mutableStateListOf()
@@ -71,7 +71,11 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
         viewModelScope.launch {
             sendMessageRepository.sendingState.collect { isSending ->
-                updateState(currentState.copy(sendingSnackBar = isSending))
+                if (isSending) {
+                    updateState(currentState.copy(snackBar = SnackBarData(titleResId = R.string.message_sending)))
+                } else {
+                    updateState(currentState.copy(snackBar = null))
+                }
             }
         }
         updateState(
@@ -297,42 +301,43 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     }
 
     suspend fun onDeleteWaitComplete() {
-        updateState(currentState.copy(undoDelete = null))
-        when (currentState.itemToDelete) {
-            is CachedAttachment -> {
-                dl.deleteFile((currentState.itemToDelete as CachedAttachment).uri)
-            }
+        withContext(Dispatchers.IO) {
+            updateState(currentState.copy(undoDelete = null))
+            when (currentState.itemToDelete) {
+                is CachedAttachment -> {
+                    dl.deleteFile((currentState.itemToDelete as CachedAttachment).uri)
+                }
 
-            is DBDraftWithReaders -> {
-                db.draftDao()
-                    .delete((currentState.itemToDelete as DBDraftWithReaders).draft.draftId)
-            }
+                is DBDraftWithReaders -> {
+                    db.draftDao()
+                        .delete((currentState.itemToDelete as DBDraftWithReaders).draft.draftId)
+                }
 
-            is DBMessageWithDBAttachments -> {
-                db.messagesDao().update(
-                    (currentState.itemToDelete as DBMessageWithDBAttachments).message.message.copy(
-                        markedToDelete = true
+                is DBMessageWithDBAttachments -> {
+                    db.messagesDao().update(
+                        (currentState.itemToDelete as DBMessageWithDBAttachments).message.message.copy(
+                            markedToDelete = true
+                        )
                     )
-                )
-                sendMessageRepository.revokeMarkedMessages()
-            }
+                    sendMessageRepository.revokeMarkedMessages()
+                }
 
-            is DBContact -> {
-                dl.deleteAttachmentsForMessages(
-                    db.messagesDao()
-                        .getAllForContactAddress((currentState.itemToDelete as DBContact).address)
-                )
-                db.userDao()
-                    .update((currentState.itemToDelete as DBContact).copy(markedToDelete = true))
-            }
+                is DBContact -> {
+                    dl.deleteAttachmentsForMessages(
+                        db.messagesDao()
+                            .getAllForContactAddress((currentState.itemToDelete as DBContact).address)
+                    )
+                    db.userDao()
+                        .update((currentState.itemToDelete as DBContact).copy(markedToDelete = true))
+                }
 
-            is DBNotification -> {
-                db.notificationsDao()
-                    .update((currentState.itemToDelete as DBNotification).copy(dismissed = true))
+                is DBNotification -> {
+                    db.notificationsDao().update((currentState.itemToDelete as DBNotification).copy(dismissed = true))
+                }
             }
+            refresh()
+            updateState(currentState.copy(itemToDelete = null))
         }
-        refresh()
-        updateState(currentState.copy(itemToDelete = null))
     }
 
     fun onUndoDeletePressed() {
@@ -381,15 +386,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     fun syncWithServer() {
-        GlobalScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             onDeleteWaitComplete()
-            val db: AppDatabase by inject()
-            val sp: SharedPreferences by inject()
-            val dl: DownloadRepository by inject()
-            syncContacts(sp, db.userDao())
-            syncAllMessages(db, sp, dl)
+            addContactRepository.syncWithServer()
         }
     }
 
@@ -399,15 +399,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
     fun hideRequestApprovingConfirmationDialog() {
         updateState(currentState.copy(addRequestsToContactsDialogShown = false))
-    }
-
-    fun addContact() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val publicData = currentState.existingContactFound!!
-            val dbContact = publicData.toDBContact().copy(uploaded = false)
-            db.userDao().insert(dbContact)
-            toggleSearchAddressDialog(false)
-        }
     }
 
     private fun emailValid(): Boolean {
@@ -488,11 +479,11 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 data class HomeState(
     val itemToDelete: HomeItem? = null,
     val currentUser: UserData? = null,
+    val snackBar: SnackBarData? = null,
     val addRequestsToContactsDialogShown: Boolean = false,
     val searchButtonActive: Boolean = false,
     val loading: Boolean = false,
     val addressNotFoundError: Boolean = false,
-    val sendingSnackBar: Boolean = false,
     val newContactSearchDialogShown: Boolean = false,
     val newContactAddressInput: String = "",
     val query: String = "",
@@ -501,6 +492,8 @@ data class HomeState(
     val existingContactFound: PublicUserData? = null,
     val screen: HomeScreen = HomeScreen.Inbox,
 )
+
+data class SnackBarData(val titleResId: Int)
 
 enum class HomeScreen(
     val titleResId: Int,

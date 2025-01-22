@@ -12,8 +12,8 @@ import com.mercata.pingworks.utils.uploadMessage
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 
 class SendMessageRepository(
@@ -24,14 +24,14 @@ class SendMessageRepository(
     private val dl: DownloadRepository
 ) {
 
-    private val _sendingState = MutableStateFlow(false)
-    val sendingState: StateFlow<Boolean> = _sendingState
+    private val _sendingState = MutableSharedFlow<Boolean>()
+    val sendingState: SharedFlow<Boolean> = _sendingState
 
     @OptIn(DelicateCoroutinesApi::class)
     fun send(draftId: String, isBroadcast: Boolean, replyToSubjectId: String?) {
         soundPlayer.playSwoosh()
         GlobalScope.launch(Dispatchers.IO) {
-            _sendingState.value = true
+            _sendingState.emit(true)
             val draftWithRecipients = db.draftDao().getById(draftId)!!
             uploadMessage(
                 draft = draftWithRecipients.draft,
@@ -44,7 +44,7 @@ class SendMessageRepository(
                 sp = sp
             )
             db.draftDao().delete(draftId)
-            _sendingState.value = false
+            _sendingState.emit(false)
             syncAllMessages(db, sp, dl)
         }
     }
