@@ -1,25 +1,14 @@
-package com.mercata.pingworks.db.drafts.draft_reader
+package com.mercata.pingworks.db.archive.archive_readers
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
-import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
-import com.mercata.pingworks.db.drafts.DBDraft
 import com.mercata.pingworks.models.PublicUserData
 import java.time.Instant
 
-@Entity(
-    foreignKeys = [
-        ForeignKey(
-            entity = DBDraft::class,
-            parentColumns = ["draft_id"],
-            childColumns = ["draft_id"],
-            onDelete = ForeignKey.CASCADE // Cascade delete
-        )
-    ]
-)
-data class DBDraftReader(
-    @ColumnInfo(name = "draft_id") val draftId: String,
+@Entity
+data class DBArchivedReader (
+    @ColumnInfo(name = "archive_id") val archiveId: String,
     @ColumnInfo(name = "address") @PrimaryKey val address: String,
     @ColumnInfo(name = "full_name") val fullName: String,
     @ColumnInfo(name = "last_seen_public") val lastSeenPublic: Boolean,
@@ -59,7 +48,7 @@ data class DBDraftReader(
     @ColumnInfo(name = "streams") val streams: String?
 )
 
-fun DBDraftReader.toPublicUserData() = PublicUserData(
+fun DBArchivedReader.toPublicUserData() = PublicUserData(
     fullName = fullName,
     address = address,
     lastSeenPublic = lastSeenPublic,

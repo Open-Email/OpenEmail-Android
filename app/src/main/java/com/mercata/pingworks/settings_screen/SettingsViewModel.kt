@@ -51,6 +51,8 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
                 launch { db.attachmentsDao().deleteAll() },
                 launch { db.draftDao().deleteAll() },
                 launch { db.draftReaderDao().deleteAll() },
+                launch { db.archiveDao().deleteAll() },
+                launch { db.archiveReadersDao().deleteAll() },
                 launch { db.notificationsDao().deleteAll() },
                 launch { db.pendingMessagesDao().deleteAll() },
                 launch { db.pendingAttachmentsDao().deleteAll() },
