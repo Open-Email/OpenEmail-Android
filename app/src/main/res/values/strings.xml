@@ -146,4 +146,7 @@
     <string name="private_key">Private key</string>
     <string name="public_key">Public key</string>
     <string name="signing">Signing</string>
+    <string name="placeholder_is_not_in_your_contacts">%s is not yet in your contacts</string>
+    <string name="add_to_contacts_and_message">Add to contacts and start a new message?</string>
+    <string name="message">Message</string>
 </resources>

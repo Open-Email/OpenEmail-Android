@@ -84,12 +84,21 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
             }
         }
     }
+
+    fun hideRequestApprovingConfirmationDialog() {
+        updateState(currentState.copy(requestApprovalDialogShown = false))
+    }
+
+    fun showRequestApprovingConfirmationDialog() {
+        updateState(currentState.copy(requestApprovalDialogShown = true))
+    }
 }
 
 data class ContactDetailsState(
     val address: String,
-    val snackBarResId: Int? = null,
     val isNotification: Boolean,
+    val snackBarResId: Int? = null,
+    val requestApprovalDialogShown: Boolean = false,
     val loading: Boolean = false,
     val contact: PublicUserData? = null,
     val dbContact: DBContact? = null
