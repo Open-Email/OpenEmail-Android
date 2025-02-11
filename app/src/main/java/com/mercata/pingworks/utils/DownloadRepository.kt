@@ -77,7 +77,7 @@ class DownloadRepository(val context: Context, private val fileUtils: FileUtils)
         val folder = File(context.filesDir, FOLDER_NAME)
         val downloaded: Array<File> = folder.listFiles() ?: arrayOf()
         val rv = hashMapOf<FusedAttachment, AttachmentResult>()
-        messageWithDBAttachments.getAttachments().forEach { attachment ->
+        messageWithDBAttachments.getFusedAttachments().forEach { attachment ->
             downloaded.firstOrNull { file -> file.name == attachment.name && file.length() == attachment.fileSize }
                 ?.let { file ->
                     rv[attachment] = AttachmentResult(file, Progress(100))
@@ -281,7 +281,7 @@ class DownloadRepository(val context: Context, private val fileUtils: FileUtils)
                     when (val call = safeApiCall {
                         downloadMessage(
                             envelope.currentUser,
-                            envelope.contact,
+                            envelope.contact.address,
                             envelope.contentHeaders.messageID
                         )
                     }) {

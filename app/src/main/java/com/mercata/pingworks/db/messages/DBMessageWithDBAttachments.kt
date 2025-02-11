@@ -20,11 +20,11 @@ data class DBMessageWithDBAttachments(
     override fun getSubtitle() = message.message.subject
     override fun getTextBody() = message.message.textBody
     override fun getMessageId() = message.message.messageId
-    override fun getAttachmentsAmount(): Int = attachmentParts.size
+    override fun getAttachmentsAmount(): Int = getFusedAttachments().size
     override fun isUnread(): Boolean = message.message.isUnread
     override fun getTimestamp(): Long = message.message.timestamp
 
-    fun getAttachments(): List<FusedAttachment> =
+    fun getFusedAttachments(): List<FusedAttachment> =
         attachmentParts.groupBy { dbAttachment -> dbAttachment.name }.map { multipart ->
             FusedAttachment(multipart.key, multipart.value.first().fileSize, multipart.value.first().type, multipart.value)
         }

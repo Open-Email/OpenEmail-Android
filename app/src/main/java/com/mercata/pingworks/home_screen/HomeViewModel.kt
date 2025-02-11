@@ -9,8 +9,8 @@ import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.HomeItem
-import com.mercata.pingworks.db.archive.DBArchiveWithReaders
-import com.mercata.pingworks.db.archive.DBArchivedMessage
+import com.mercata.pingworks.db.archive.DBArchiveWitAttachments
+import com.mercata.pingworks.db.archive.toArchive
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.db.drafts.DBDraftWithReaders
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
@@ -48,7 +48,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
     private val dl: DownloadRepository by inject()
     private val fu: FileUtils by inject()
-    private val sendMessageRepository: SendMessageRepository by inject()
     private val addContactRepository: AddContactRepository by inject()
     private var listUpdateState: HomeListUpdateState? = null
 
@@ -63,7 +62,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         val dbContacts: List<DBContact>,
         val dbNotifications: List<DBNotification>,
         val attachments: List<CachedAttachment>,
-        val archive: List<DBArchiveWithReaders>
+        val archive: List<DBArchiveWitAttachments>
     )
 
     init {
@@ -277,6 +276,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             updateList()
             var undoSnackbarResId: Int? = null
             when (item) {
+                is DBArchiveWitAttachments -> {
+                    undoSnackbarResId = R.string.archived_message_deleted
+                }
+
                 is CachedAttachment -> {
                     undoSnackbarResId = R.string.attachment_deleted
                 }
@@ -311,6 +314,12 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         withContext(Dispatchers.IO) {
             updateState(currentState.copy(undoDelete = null))
             when (currentState.itemToDelete) {
+                is DBArchiveWitAttachments -> {
+                    currentState.itemToDelete?.getMessageId()?.let {
+                        db.archiveDao().delete(it)
+                    }
+                }
+
                 is CachedAttachment -> {
                     dl.deleteFile((currentState.itemToDelete as CachedAttachment).uri)
                 }
@@ -321,12 +330,14 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 }
 
                 is DBMessageWithDBAttachments -> {
+                    val message = (currentState.itemToDelete as DBMessageWithDBAttachments)
+                    db.archiveDao().insert(message.toArchive())
+                    db.archiveAttachmentsDao().insertAll(message.attachmentParts.map { it.toArchive() })
                     db.messagesDao().update(
-                        (currentState.itemToDelete as DBMessageWithDBAttachments).message.message.copy(
+                       message.message.message.copy(
                             markedToDelete = true
                         )
                     )
-                    sendMessageRepository.revokeMarkedMessages()
                 }
 
                 is DBContact -> {

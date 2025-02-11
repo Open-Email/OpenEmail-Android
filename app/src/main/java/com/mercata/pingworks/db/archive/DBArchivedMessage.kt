@@ -2,9 +2,20 @@ package com.mercata.pingworks.db.archive
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import com.mercata.pingworks.db.contacts.DBContact
 
-@Entity
+@Entity(
+    foreignKeys = [
+        ForeignKey(
+            entity = DBContact::class,
+            parentColumns = ["address"],
+            childColumns = ["author_address"],
+            onDelete = ForeignKey.CASCADE // Cascade delete
+        )
+    ]
+)
 data class DBArchivedMessage(
     @PrimaryKey
     @ColumnInfo("archive_id") val archiveId: String,
@@ -13,8 +24,6 @@ data class DBArchivedMessage(
     @ColumnInfo("text_body") val textBody: String,
     @ColumnInfo("is_broadcast") val isBroadcast: Boolean,
     @ColumnInfo("is_unread") val isUnread: Boolean,
-    @ColumnInfo("marked_to_delete") val markedToDelete: Boolean,
     @ColumnInfo("timestamp") val timestamp: Long,
-    @ColumnInfo("attachmentUrls") val attachmentUrls: String?, // joined to string with "," separator
     @ColumnInfo("reader") val readerAddresses: String? // joined to string with "," separator
 )

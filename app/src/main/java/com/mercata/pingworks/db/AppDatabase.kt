@@ -4,8 +4,8 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.mercata.pingworks.db.archive.ArchiveDao
 import com.mercata.pingworks.db.archive.DBArchivedMessage
-import com.mercata.pingworks.db.archive.archive_readers.ArchiveReaderDao
-import com.mercata.pingworks.db.archive.archive_readers.DBArchivedReader
+import com.mercata.pingworks.db.archive.archive_attachments.ArchivedAttachmentsDao
+import com.mercata.pingworks.db.archive.archive_attachments.DBArchivedAttachment
 import com.mercata.pingworks.db.attachments.AttachmentsDao
 import com.mercata.pingworks.db.attachments.DBAttachment
 import com.mercata.pingworks.db.contacts.ContactsDao
@@ -33,8 +33,8 @@ import com.mercata.pingworks.db.pending.readers.PendingReadersDao
         DBPendingAttachment::class,
         DBPendingReaderPublicData::class,
         DBDraft::class,
-        DBArchivedReader::class,
         DBArchivedMessage::class,
+        DBArchivedAttachment::class,
         DBDraftReader::class,
         DBNotification::class],
     version = 1
@@ -50,5 +50,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun draftReaderDao(): DraftReaderDao
     abstract fun notificationsDao(): NotificationsDao
     abstract fun archiveDao(): ArchiveDao
-    abstract fun archiveReadersDao(): ArchiveReaderDao
+    abstract fun archiveAttachmentsDao(): ArchivedAttachmentsDao
 }

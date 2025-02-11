@@ -453,12 +453,8 @@ fun SharedTransitionScope.HomeScreen(
                                 item = item,
                                 onDelete = when (item) {
                                     is DBMessageWithDBAttachments -> {
-                                        if (state.screen == HomeScreen.Outbox) {
-                                            {
-                                                viewModel.deleteItem(item)
-                                            }
-                                        } else {
-                                            null
+                                        {
+                                            viewModel.deleteItem(item)
                                         }
                                     }
 
