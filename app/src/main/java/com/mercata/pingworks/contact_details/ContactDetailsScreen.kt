@@ -160,7 +160,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
 
                     }) {
                     Row {
-                        Icon(Icons.Filled.Edit, stringResource(id = R.string.create_new_message))
+                        Icon(Icons.Filled.Edit, stringResource(id = R.string.create_message))
                         Spacer(modifier.width(MARGIN_DEFAULT / 2))
                         Text(
                             stringResource(R.string.create_message),

@@ -268,14 +268,17 @@ fun SettingsScreen(
 
                                 Spacer(modifier.height(MARGIN_DEFAULT * 1.5f))
                                 Text(
-                                    stringResource(R.string.private_keys),
+                                    stringResource(R.string.encryption),
                                     modifier.padding(horizontal = MARGIN_DEFAULT),
                                     style = MaterialTheme.typography.labelLarge
                                 )
-                                Spacer(modifier.height(MARGIN_DEFAULT ))
-                                Row(modifier.padding(horizontal = MARGIN_DEFAULT), verticalAlignment = Alignment.CenterVertically) {
+                                Spacer(modifier.height(MARGIN_DEFAULT))
+                                Row(
+                                    modifier.padding(horizontal = MARGIN_DEFAULT),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Text(
-                                        stringResource(R.string.private_encryption_key_hint),
+                                        stringResource(R.string.private_key),
                                         modifier.weight(1f),
                                         style = MaterialTheme.typography.labelLarge
                                     )
@@ -287,7 +290,7 @@ fun SettingsScreen(
                                         }
                                         val shareIntent = Intent.createChooser(
                                             sendIntent,
-                                            context.getString(R.string.private_encryption_key_hint)
+                                            context.getString(R.string.private_key)
                                         )
                                         context.startActivity(shareIntent)
                                     }) {
@@ -305,11 +308,63 @@ fun SettingsScreen(
                                     style = MaterialTheme.typography.bodyLarge
                                 )
 
-                                Spacer(modifier.height(MARGIN_DEFAULT * 1.5f))
-
-                                Row(modifier.padding(horizontal = MARGIN_DEFAULT), verticalAlignment = Alignment.CenterVertically) {
+                                HorizontalDivider(
+                                    thickness = 1.dp,
+                                    modifier = modifier.padding(vertical = MARGIN_DEFAULT),
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Row(
+                                    modifier.padding(horizontal = MARGIN_DEFAULT),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Text(
-                                        stringResource(R.string.private_signing_key_hint),
+                                        stringResource(R.string.public_key),
+                                        modifier.weight(1f),
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                    IconButton(onClick = {
+                                        val sendIntent: Intent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, state.publicEncryptionKey)
+                                            type = "text/plain"
+                                        }
+                                        val shareIntent = Intent.createChooser(
+                                            sendIntent,
+                                            context.getString(R.string.public_key)
+                                        )
+                                        context.startActivity(shareIntent)
+                                    }) {
+                                        Icon(
+                                            Icons.Rounded.Share,
+                                            stringResource(R.string.share),
+                                            tint = MaterialTheme.colorScheme.outlineVariant
+                                        )
+                                    }
+                                }
+                                Spacer(modifier.height(MARGIN_DEFAULT))
+                                Text(
+                                    state.publicEncryptionKey ?: "",
+                                    modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                HorizontalDivider(
+                                    thickness = 1.dp,
+                                    modifier = modifier.padding(vertical = MARGIN_DEFAULT),
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Text(
+                                    stringResource(R.string.signing),
+                                    modifier.padding(horizontal = MARGIN_DEFAULT),
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                                Spacer(modifier.height(MARGIN_DEFAULT))
+
+                                Row(
+                                    modifier.padding(horizontal = MARGIN_DEFAULT),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        stringResource(R.string.private_key),
                                         modifier.weight(1f),
                                         style = MaterialTheme.typography.labelLarge
                                     )
@@ -321,7 +376,7 @@ fun SettingsScreen(
                                         }
                                         val shareIntent = Intent.createChooser(
                                             sendIntent,
-                                            context.getString(R.string.private_signing_key_hint)
+                                            context.getString(R.string.private_key)
                                         )
                                         context.startActivity(shareIntent)
                                     }) {
@@ -339,57 +394,17 @@ fun SettingsScreen(
                                     style = MaterialTheme.typography.bodyLarge
                                 )
                                 Spacer(modifier.height(MARGIN_DEFAULT))
-                                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
-                                Spacer(modifier.height(MARGIN_DEFAULT * 1.5f))
+                                HorizontalDivider(
+                                    thickness = 1.dp,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
 
-
-
-
-
-                                Text(
-                                    stringResource(R.string.public_keys),
+                                Row(
                                     modifier.padding(horizontal = MARGIN_DEFAULT),
-                                    style = MaterialTheme.typography.labelLarge
-                                )
-                                Spacer(modifier.height(MARGIN_DEFAULT ))
-                                Row(modifier.padding(horizontal = MARGIN_DEFAULT), verticalAlignment = Alignment.CenterVertically) {
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Text(
-                                        stringResource(R.string.public_encryption_key),
-                                        modifier.weight(1f),
-                                        style = MaterialTheme.typography.labelLarge
-                                    )
-                                    IconButton(onClick = {
-                                        val sendIntent: Intent = Intent().apply {
-                                            action = Intent.ACTION_SEND
-                                            putExtra(Intent.EXTRA_TEXT, state.publicEncryptionKey)
-                                            type = "text/plain"
-                                        }
-                                        val shareIntent = Intent.createChooser(
-                                            sendIntent,
-                                            context.getString(R.string.public_encryption_key)
-                                        )
-                                        context.startActivity(shareIntent)
-                                    }) {
-                                        Icon(
-                                            Icons.Rounded.Share,
-                                            stringResource(R.string.share),
-                                            tint = MaterialTheme.colorScheme.outlineVariant
-                                        )
-                                    }
-                                }
-                                Spacer(modifier.height(MARGIN_DEFAULT))
-
-                                Text(
-                                    state.publicEncryptionKey ?: "",
-                                    modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-
-                                Spacer(modifier.height(MARGIN_DEFAULT))
-
-                                Row(modifier.padding(horizontal = MARGIN_DEFAULT), verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        stringResource(R.string.public_signing_key),
+                                        stringResource(R.string.public_key),
                                         modifier.weight(1f),
                                         style = MaterialTheme.typography.labelLarge
                                     )
@@ -401,7 +416,7 @@ fun SettingsScreen(
                                         }
                                         val shareIntent = Intent.createChooser(
                                             sendIntent,
-                                            context.getString(R.string.public_signing_key)
+                                            context.getString(R.string.public_key)
                                         )
                                         context.startActivity(shareIntent)
                                     }) {

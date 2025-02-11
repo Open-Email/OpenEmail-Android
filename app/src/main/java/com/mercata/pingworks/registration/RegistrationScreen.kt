@@ -134,7 +134,7 @@ fun RegistrationScreen(
                 }
 
                 Text(
-                    stringResource(id = R.string.registration_title),
+                    String.format(stringResource(R.string.registration_title), stringResource(R.string.app_name)),
                     modifier
                         .padding(horizontal = MARGIN_DEFAULT)
                         .align(AbsoluteAlignment.Left),

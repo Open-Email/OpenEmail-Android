@@ -556,7 +556,7 @@ enum class HomeScreen(
         R.string.downloaded_attachments,
         iconResId = R.drawable.download,
         outbox = false,
-        placeholderDescriptionResId = R.string.downloaded_attachemnts_placeholder
+        placeholderDescriptionResId = R.string.downloaded_attachments_placeholder
     ),
     Trash(
         R.string.trash,

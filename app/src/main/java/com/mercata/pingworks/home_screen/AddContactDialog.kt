@@ -46,7 +46,7 @@ fun AddContactDialog(
         R.string.cannot_add_yourself
     } else {
         if (state.existingContactFound == null) {
-            R.string.add_new_contact
+            R.string.add_contact
         } else {
             if (addressPresented) {
                 R.string.account_in_contacts

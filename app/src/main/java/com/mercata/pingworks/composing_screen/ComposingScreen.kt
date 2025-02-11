@@ -214,7 +214,7 @@ fun SharedTransitionScope.ComposingScreen(
                     } else {
                         Column {
                             Text(
-                                text = stringResource(id = R.string.create_new_message),
+                                text = stringResource(id = R.string.create_message),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
