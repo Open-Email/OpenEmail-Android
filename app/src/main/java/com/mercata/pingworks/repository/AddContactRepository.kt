@@ -35,7 +35,6 @@ class AddContactRepository(
             syncWithServer()
             _addingState.emit(true)
         }
-
     }
 
     suspend fun syncWithServer() {

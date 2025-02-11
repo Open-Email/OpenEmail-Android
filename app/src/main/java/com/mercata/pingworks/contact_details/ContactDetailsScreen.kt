@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +34,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
@@ -149,13 +154,10 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     containerColor = colorScheme.primary,
                     contentColor = colorScheme.onPrimary,
                     onClick = {
-                        coroutineScope.launch(Dispatchers.IO) {
-                            if (state.isNotification) {
-                                viewModel.approveRequest()
-                            }
-                            withContext(Dispatchers.Main) {
-                                navController.navigate("ComposingScreen/${state.address}/null/null")
-                            }
+                        if (state.isNotification) {
+                            viewModel.showRequestApprovingConfirmationDialog()
+                        } else {
+                            navController.navigate("ComposingScreen/${state.address}/null/null")
                         }
 
                     }) {
@@ -163,7 +165,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         Icon(Icons.Filled.Edit, stringResource(id = R.string.create_message))
                         Spacer(modifier.width(MARGIN_DEFAULT / 2))
                         Text(
-                            stringResource(R.string.create_message),
+                            stringResource(if (state.isNotification) R.string.message else R.string.create_message),
                             maxLines = 1,
                             overflow = TextOverflow.Clip,
                             style = typography.labelLarge.copy(color = colorScheme.onPrimary)
@@ -188,7 +190,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     ),
                     animatedVisibilityScope = animatedVisibilityScope,
                 )*/,
-                state.address.getProfilePictureUrl() ?: "",
+                imageUrl = state.address.getProfilePictureUrl(),
                 onError = {
                     Icon(
                         painterResource(R.drawable.contacts),
@@ -356,6 +358,57 @@ fun SharedTransitionScope.ContactDetailsScreen(
                 }
             }
             Spacer(modifier = modifier.height(padding.calculateBottomPadding() + 72.dp))
+        }
+        if (state.requestApprovalDialogShown) {
+            AlertDialog(
+                tonalElevation = 0.dp,
+                shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
+                icon = {
+                    Icon(
+                        Icons.Rounded.Warning,
+                        contentDescription = stringResource(id = R.string.warning),
+                        tint = colorScheme.primary
+                    )
+                },
+                title = {
+                    Text(
+                        text = String.format(
+                            stringResource(R.string.placeholder_is_not_in_your_contacts),
+                            state.contact?.fullName ?: state.address
+                        )
+                    )
+                },
+                text = {
+                    Text(
+                        text = stringResource(R.string.add_to_contacts_and_message),
+                    )
+                },
+                onDismissRequest = { viewModel.hideRequestApprovingConfirmationDialog() },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.hideRequestApprovingConfirmationDialog()
+                        }
+                    ) {
+                        Text(stringResource(id = R.string.cancel_button))
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                viewModel.hideRequestApprovingConfirmationDialog()
+                                viewModel.approveRequest()
+                                withContext(Dispatchers.Main) {
+                                    navController.navigate("ComposingScreen/${state.address}/null/null")
+                                }
+                            }
+                        }
+                    ) {
+                        Text(stringResource(id = R.string.add_contact))
+                    }
+                },
+            )
         }
     }
 }
