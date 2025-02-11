@@ -9,6 +9,8 @@ import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.HomeItem
+import com.mercata.pingworks.db.archive.DBArchiveWitAttachments
+import com.mercata.pingworks.db.archive.toArchive
 import com.mercata.pingworks.db.contacts.DBContact
 import com.mercata.pingworks.db.drafts.DBDraftWithReaders
 import com.mercata.pingworks.db.messages.DBMessageWithDBAttachments
@@ -46,7 +48,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
     private val dl: DownloadRepository by inject()
     private val fu: FileUtils by inject()
-    private val sendMessageRepository: SendMessageRepository by inject()
     private val addContactRepository: AddContactRepository by inject()
     private var listUpdateState: HomeListUpdateState? = null
 
@@ -60,7 +61,8 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         val dbDrafts: List<DBDraftWithReaders>,
         val dbContacts: List<DBContact>,
         val dbNotifications: List<DBNotification>,
-        val attachments: ArrayList<CachedAttachment> = arrayListOf()
+        val attachments: List<CachedAttachment>,
+        val archive: List<DBArchiveWitAttachments>
     )
 
     init {
@@ -99,14 +101,15 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                     dbContacts.filterNot { it.address == sp.getUserAddress() },
                     dbNotifications.filterNot {
                         it.address == sp.getUserAddress() || it.isExpired() || it.dismissed
-                    })
+                    },
+                    listOf(),
+                    listOf()
+                )
             }.combine(dl.downloadedAttachmentsState) { listUpdateState, newAttachments ->
-                listUpdateState.apply {
-                    attachments.clear()
-                    attachments.addAll(newAttachments)
-                }
+                listUpdateState.copy(attachments = newAttachments)
+            }.combine(db.archiveDao().getAllAsFlow()) { listUpdateState, archive ->
+                listUpdateState.copy(archive = archive)
             }.collect { listUpdateState ->
-
                 var unreadBroadcasts = 0
                 var unreadMessages = 0
                 listUpdateState.dbMessages.forEach {
@@ -225,7 +228,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                         .toList())
 
                     HomeScreen.Contacts -> {
-                        items.clear()
                         val filteredNotifications: List<DBNotification> =
                             dbNotifications.filter { it.searchMatched() }.toList()
                         val filteredContacts: List<DBContact> =
@@ -243,6 +245,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                             items.add(ContactsSeparator(filteredContacts.size))
                         }
                         items.addAll(filteredContacts)
+                    }
+
+                    HomeScreen.Trash -> {
+                        items.addAll(archive.filter { it.searchMatched() }.toList())
                     }
                 }
             }
@@ -270,6 +276,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             updateList()
             var undoSnackbarResId: Int? = null
             when (item) {
+                is DBArchiveWitAttachments -> {
+                    undoSnackbarResId = R.string.archived_message_deleted
+                }
+
                 is CachedAttachment -> {
                     undoSnackbarResId = R.string.attachment_deleted
                 }
@@ -304,6 +314,12 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         withContext(Dispatchers.IO) {
             updateState(currentState.copy(undoDelete = null))
             when (currentState.itemToDelete) {
+                is DBArchiveWitAttachments -> {
+                    currentState.itemToDelete?.getMessageId()?.let {
+                        db.archiveDao().delete(it)
+                    }
+                }
+
                 is CachedAttachment -> {
                     dl.deleteFile((currentState.itemToDelete as CachedAttachment).uri)
                 }
@@ -314,12 +330,14 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 }
 
                 is DBMessageWithDBAttachments -> {
+                    val message = (currentState.itemToDelete as DBMessageWithDBAttachments)
+                    db.archiveDao().insert(message.toArchive())
+                    db.archiveAttachmentsDao().insertAll(message.attachmentParts.map { it.toArchive() })
                     db.messagesDao().update(
-                        (currentState.itemToDelete as DBMessageWithDBAttachments).message.message.copy(
+                       message.message.message.copy(
                             markedToDelete = true
                         )
                     )
-                    sendMessageRepository.revokeMarkedMessages()
                 }
 
                 is DBContact -> {
@@ -332,7 +350,8 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 }
 
                 is DBNotification -> {
-                    db.notificationsDao().update((currentState.itemToDelete as DBNotification).copy(dismissed = true))
+                    db.notificationsDao()
+                        .update((currentState.itemToDelete as DBNotification).copy(dismissed = true))
                 }
             }
             refresh()
@@ -538,6 +557,12 @@ enum class HomeScreen(
         iconResId = R.drawable.download,
         outbox = false,
         placeholderDescriptionResId = R.string.downloaded_attachemnts_placeholder
+    ),
+    Trash(
+        R.string.trash,
+        iconResId = R.drawable.delete,
+        outbox = false,
+        placeholderDescriptionResId = R.string.trash_folder_placeholder
     ),
     Contacts(
         R.string.contacts,

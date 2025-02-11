@@ -50,7 +50,6 @@ import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Warning
@@ -60,12 +59,10 @@ import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.ModalDrawerSheet
@@ -456,12 +453,8 @@ fun SharedTransitionScope.HomeScreen(
                                 item = item,
                                 onDelete = when (item) {
                                     is DBMessageWithDBAttachments -> {
-                                        if (state.screen == HomeScreen.Outbox) {
-                                            {
-                                                viewModel.deleteItem(item)
-                                            }
-                                        } else {
-                                            null
+                                        {
+                                            viewModel.deleteItem(item)
                                         }
                                     }
 

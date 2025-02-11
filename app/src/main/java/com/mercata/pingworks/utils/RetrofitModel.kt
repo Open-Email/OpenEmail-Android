@@ -517,16 +517,6 @@ suspend fun verifyNotification(
     }
 }
 
-suspend fun downloadMessage(
-    currentUser: UserData,
-    contact: DBContact,
-    messageId: String
-): Response<ResponseBody> {
-    return withContext(Dispatchers.IO) {
-        downloadMessage(currentUser, contact.address, messageId)
-    }
-}
-
 private suspend fun fetchEnvelopesForContact(
     messageIds: List<String>,
     currentUser: UserData,

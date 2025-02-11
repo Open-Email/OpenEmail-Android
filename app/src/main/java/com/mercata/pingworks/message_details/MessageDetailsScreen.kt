@@ -318,7 +318,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                     )
                 }
 
-                messageWithAttachments?.getAttachments()?.takeIf { it.isNotEmpty() }
+                messageWithAttachments?.getFusedAttachments()?.takeIf { it.isNotEmpty() }
                     ?.let { attachments ->
                         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                         HorizontalDivider(
