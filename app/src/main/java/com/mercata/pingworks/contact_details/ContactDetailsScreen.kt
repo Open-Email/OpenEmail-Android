@@ -128,22 +128,38 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     })
                 },
                 actions = {
-                    if (state.isNotification) {
-                        Button(
-                            modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
-                            enabled = !state.loading,
-                            onClick = {
-                                coroutineScope.launch(Dispatchers.IO) {
-                                    viewModel.approveRequest()
-                                }
-                            }) {
-                            Text(stringResource(R.string.add_contact))
+                    when(state.type) {
+                        ContactType.CurrentUser -> {
+                            Button(
+                                modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                                enabled = !state.loading,
+                                onClick = {
+                                    navController.navigate("ProfileScreen")
+                                }) {
+                                Text(stringResource(R.string.edit))
+                            }
+                        }
+                        ContactType.ContactNotification -> {
+                            Button(
+                                modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                                enabled = !state.loading,
+                                onClick = {
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        viewModel.approveRequest()
+                                    }
+                                }) {
+                                Text(stringResource(R.string.add_contact))
+                            }
+                        }
+
+                        ContactType.SavedContact -> {
+                            //ignore
                         }
                     }
                 })
         },
         floatingActionButton = {
-            if (!state.loading) {
+            if (!state.loading && state.type != ContactType.CurrentUser) {
                 ExtendedFloatingActionButton(
                     modifier = modifier.sharedBounds(
                         rememberSharedContentState(
@@ -154,7 +170,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     containerColor = colorScheme.primary,
                     contentColor = colorScheme.onPrimary,
                     onClick = {
-                        if (state.isNotification) {
+                        if (state.type == ContactType.ContactNotification) {
                             viewModel.showRequestApprovingConfirmationDialog()
                         } else {
                             navController.navigate("ComposingScreen/${state.address}/null/null")
@@ -165,7 +181,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         Icon(Icons.Filled.Edit, stringResource(id = R.string.create_message))
                         Spacer(modifier.width(MARGIN_DEFAULT / 2))
                         Text(
-                            stringResource(if (state.isNotification) R.string.message else R.string.create_message),
+                            stringResource(if (state.type == ContactType.ContactNotification) R.string.message else R.string.create_message),
                             maxLines = 1,
                             overflow = TextOverflow.Clip,
                             style = typography.labelLarge.copy(color = colorScheme.onPrimary)
@@ -216,7 +232,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
             )
             Spacer(modifier.height(MARGIN_DEFAULT))
             ContactDivider(modifier.padding(horizontal = MARGIN_DEFAULT))
-            if (!state.isNotification) {
+            if (state.type == ContactType.SavedContact) {
                 SwitchViewHolder(
                     isChecked = state.dbContact?.receiveBroadcasts ?: false,
                     title = R.string.receive_broadcasts
@@ -224,9 +240,6 @@ fun SharedTransitionScope.ContactDetailsScreen(
                 ContactDivider(modifier.padding(horizontal = MARGIN_DEFAULT))
                 Spacer(modifier.height(MARGIN_DEFAULT / 2))
             }
-
-
-
 
             state.contact?.run {
                 Column(modifier.padding(MARGIN_DEFAULT)) {

@@ -20,7 +20,7 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
     AbstractViewModel<ContactDetailsState>(
         ContactDetailsState(
             address = savedStateHandle.get<String>("address")!!,
-            isNotification = savedStateHandle.get<Boolean>("isNotification")!!,
+            type = ContactType.getTypeById(savedStateHandle.get<String>("type")!!)!! ,
         )
     ) {
 
@@ -69,7 +69,7 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
         updateState(
             currentState.copy(
                 loading = false,
-                isNotification = false,
+                type = ContactType.SavedContact,
                 dbContact = currentState.contact!!.toDBContact()
             )
         )
@@ -96,10 +96,21 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
 
 data class ContactDetailsState(
     val address: String,
-    val isNotification: Boolean,
+    val type: ContactType,
     val snackBarResId: Int? = null,
     val requestApprovalDialogShown: Boolean = false,
     val loading: Boolean = false,
     val contact: PublicUserData? = null,
     val dbContact: DBContact? = null
 )
+
+enum class ContactType(val id: String) {
+    CurrentUser("current"),
+    SavedContact("saved"),
+    ContactNotification("notification");
+
+    companion object {
+        fun getTypeById(typeId: String) = ContactType.entries.firstOrNull { it.id == typeId }
+    }
+
+}

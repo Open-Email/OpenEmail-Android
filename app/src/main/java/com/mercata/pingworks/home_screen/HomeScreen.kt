@@ -116,6 +116,7 @@ import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.NavigationDrawerBody
 import com.mercata.pingworks.common.ProfileImage
+import com.mercata.pingworks.contact_details.ContactType
 import com.mercata.pingworks.db.HomeItem
 import com.mercata.pingworks.db.contacts.ContactItem
 import com.mercata.pingworks.db.contacts.DBContact
@@ -309,11 +310,12 @@ fun SharedTransitionScope.HomeScreen(
                                 ProfileImage(
                                     modifier
                                         .clickable {
-                                            navController.navigate("ProfileScreen")
+                                            navController.navigate(
+                                                "ContactDetailsScreen/${state.currentUser!!.address}/${ContactType.CurrentUser.id}"
+                                            )
                                         }
                                         .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                                         .clip(CircleShape),
-                                    //TODO uncomment
                                     state.currentUser?.address?.getProfilePictureUrl() ?: "",
                                     onError = {
                                         Box(
@@ -530,13 +532,13 @@ fun SharedTransitionScope.HomeScreen(
 
                                                         is DBContact -> {
                                                             navController.navigate(
-                                                                "ContactDetailsScreen/${item.getAddressValue()}/${false}"
+                                                                "ContactDetailsScreen/${item.getAddressValue()}/${ContactType.SavedContact.id}"
                                                             )
                                                         }
 
                                                         is DBNotification -> {
                                                             navController.navigate(
-                                                                "ContactDetailsScreen/${item.getAddressValue()}/${true}"
+                                                                "ContactDetailsScreen/${item.getAddressValue()}/${ContactType.ContactNotification.id}"
                                                             )
                                                         }
 

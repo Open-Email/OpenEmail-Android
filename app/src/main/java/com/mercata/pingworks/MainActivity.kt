@@ -67,14 +67,14 @@ class MainActivity : AppCompatActivity() {
                         startDestination = "SignInScreen"
                     ) {
                         composable(
-                            route = "ContactDetailsScreen/{address}/{isNotification}",
+                            route = "ContactDetailsScreen/{address}/{type}",
                             arguments = listOf(
                                 navArgument("address") {
                                     type = NavType.StringType
                                     nullable = false
                                 },
-                                navArgument("isNotification") {
-                                    type = NavType.BoolType
+                                navArgument("type") {
+                                    type = NavType.StringType
                                     nullable = false
                                 },
                             ),

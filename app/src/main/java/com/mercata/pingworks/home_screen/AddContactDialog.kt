@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.R
+import com.mercata.pingworks.contact_details.ContactType
 
 @Composable
 fun AddContactDialog(
@@ -67,7 +68,7 @@ fun AddContactDialog(
         if (state.existingContactFound != null) {
             viewModel.toggleSearchAddressDialog(false)
             navController.navigate(
-                "ContactDetailsScreen/${state.existingContactFound.address}/${true}"
+                "ContactDetailsScreen/${state.existingContactFound.address}/${ContactType.ContactNotification.id}"
             )
         }
     }
