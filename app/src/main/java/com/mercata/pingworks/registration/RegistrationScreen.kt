@@ -2,6 +2,8 @@
 
 package com.mercata.pingworks.registration
 
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,19 +50,28 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withLink
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
+import com.mercata.pingworks.TNC_LINK
 import com.mercata.pingworks.common.Logo
 import com.mercata.pingworks.sign_in.RequestErrorDialog
+
 
 @Composable
 fun RegistrationScreen(
@@ -72,7 +83,7 @@ fun RegistrationScreen(
     val focusManager = LocalFocusManager.current
     val usernameFocusRequester = remember { FocusRequester() }
     val fullNameFocusRequester = remember { FocusRequester() }
-
+    val context = LocalContext.current as FragmentActivity
     var dropdownExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(key1 = state.isRegistered) {
@@ -134,7 +145,10 @@ fun RegistrationScreen(
                 }
 
                 Text(
-                    String.format(stringResource(R.string.registration_title), stringResource(R.string.app_name)),
+                    String.format(
+                        stringResource(R.string.registration_title),
+                        stringResource(R.string.app_name)
+                    ),
                     modifier
                         .padding(horizontal = MARGIN_DEFAULT)
                         .align(AbsoluteAlignment.Left),
@@ -283,14 +297,31 @@ fun RegistrationScreen(
                     if (state.isLoading)
                         CircularProgressIndicator(strokeCap = StrokeCap.Round)
                 }
+
                 Text(
-                    stringResource(id = R.string.terms_of_service_title),
+                    buildAnnotatedString {
+                        append(stringResource(R.string.terms_of_service_title))
+                        append(" ")
+                        withLink(
+                            LinkAnnotation.Url(
+                                linkInteractionListener = {
+                                    val intent = CustomTabsIntent.Builder().build()
+                                    intent.launchUrl(context, Uri.parse(TNC_LINK))
+                                },
+                                url = TNC_LINK,
+                                styles = TextLinkStyles(style = SpanStyle(color = MaterialTheme.colorScheme.primary))
+                            )
+                        ) {
+                            append(stringResource(R.string.terms_of_service))
+                        }
+                    },
                     modifier = modifier
                         .align(Alignment.Start)
                         .padding(horizontal = MARGIN_DEFAULT),
                     textAlign = TextAlign.Start,
                     style = MaterialTheme.typography.titleSmall.copy(color = MaterialTheme.colorScheme.outlineVariant)
                 )
+
                 Spacer(modifier.height(MARGIN_DEFAULT / 2))
                 Text(
                     stringResource(id = R.string.terms_of_service_description),

@@ -94,6 +94,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.foundation.android)
     implementation(libs.compose.qr.code)
+    implementation(libs.androidx.browser)
     //noinspection UseTomlInstead
     implementation("com.goterl:lazysodium-android:5.1.0@aar")
     //noinspection UseTomlInstead

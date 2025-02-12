@@ -17,7 +17,8 @@
     <string name="full_name_hint">Full name</string>
     <string name="complete_later_label">You can complete your profile later.</string>
     <string name="register_button">Register</string>
-    <string name="terms_of_service_title">By continuing you agree to the Terms of Service</string>
+    <string name="terms_of_service_title">By continuing you agree to the</string>
+    <string name="terms_of_service">Terms of Service</string>
     <string name="user_name_existing_error">Too bad! That name is not available.</string>
     <string name="full_name_empty_error">Please add your full name.</string>
     <string name="something_went_wrong_title">Something went wrong</string>
