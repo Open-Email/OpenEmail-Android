@@ -111,6 +111,14 @@ class EnterKeysViewModel(savedStateHandle: SavedStateHandle) :
             updateState(currentState.copy(loading = false))
         }
     }
+
+    fun parseScannedKeys(keys: String) {
+        val split = keys.split(":")
+        val encryptionKey = split.firstOrNull() ?: return
+        val signingKey = split.getOrNull(1) ?: return
+        updateState(currentState.copy(privateEncryptionKeyInput = encryptionKey, privateSigningKeyInput = signingKey))
+        authenticateWithKeys()
+    }
 }
 
 data class EnterKeysState(

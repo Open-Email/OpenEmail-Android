@@ -22,7 +22,7 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.theme.lexend
 
 @Composable
-fun Logo(modifier: Modifier = Modifier, size: LogoSize = LogoSize.Medium) {
+fun Logo(modifier: Modifier = Modifier, size: LogoSize = LogoSize.Medium, lightFont: Boolean = false) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically
@@ -40,7 +40,7 @@ fun Logo(modifier: Modifier = Modifier, size: LogoSize = LogoSize.Medium) {
                 fontFamily = lexend,
                 fontSize = size.fontSize.sp,
                 fontWeight = FontWeight.W400,
-                color = MaterialTheme.colorScheme.onSurface
+                color = if (lightFont) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface
             )
         )
     }

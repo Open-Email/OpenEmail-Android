@@ -156,4 +156,5 @@
     <string name="your_account">Your account</string>
     <string name="not_your_account_button">Not your account?</string>
     <string name="scan_qr_code">Scan QR-code</string>
+    <string name="enter_private_keys_manually">Enter private keys manually</string>
 </resources>

@@ -1,6 +1,8 @@
 package com.mercata.pingworks.sign_in.enter_keys_screen
 
-import android.widget.Space
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
+import com.mercata.pingworks.QR_SCANNER_RESULT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.SETTING_LIST_ITEM_SIZE
 import com.mercata.pingworks.common.Logo
@@ -72,6 +75,22 @@ fun EnterKeysScreen(
     val focusManager = LocalFocusManager.current
     val encryptionFocusRequester = remember { FocusRequester() }
     val signingFocusRequester = remember { FocusRequester() }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            navController.navigate(route = "QRCodeScannerScreen")
+        }
+    }
+
+    val qrResult =
+        navController.currentBackStackEntry?.savedStateHandle?.get<String>(QR_SCANNER_RESULT)
+
+    if (qrResult != null) {
+        viewModel.parseScannedKeys(qrResult)
+        navController.currentBackStackEntry?.savedStateHandle?.set(QR_SCANNER_RESULT, null)
+    }
 
     LaunchedEffect(key1 = state.isLoggedIn) {
         if (state.isLoggedIn) {
@@ -138,7 +157,10 @@ fun EnterKeysScreen(
                     }
                 }
                 if (state.publicUserData != null) {
-                    Row(modifier.padding(bottom = MARGIN_DEFAULT), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier.padding(bottom = MARGIN_DEFAULT),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Spacer(modifier.width(MARGIN_DEFAULT))
                         ProfileImage(
                             modifier
@@ -275,7 +297,7 @@ fun EnterKeysScreen(
                         disabledContainerColor = Color.Transparent,
                         disabledContentColor = colorScheme.surfaceVariant
                     ), onClick = {
-                        //TODO navigate to qr code scanner
+                        permissionLauncher.launch(Manifest.permission.CAMERA)
                     }, enabled = !state.loading
                 ) {
                     Text(
@@ -293,3 +315,4 @@ fun EnterKeysScreen(
         }
     }
 }
+
