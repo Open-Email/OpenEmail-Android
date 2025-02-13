@@ -4,7 +4,8 @@
     <string name="onboarding_text">Experience Spam-Free, Private, and Secure Email by Design</string>
     <string name="address_input_hint">%s address</string>
     <string name="sign_in_button">Sign In</string>
-    <string name="authenticate_button">Sign Up</string>
+    <string name="signup_button">Sign Up</string>
+    <string name="authenticate_button">Authenticate</string>
     <string name="no_account_question">No %s address yet?</string>
     <string name="registration_button">Get one now, it\'s free.</string>
     <string name="invalid_email">Invalid address. Please, check input and try again.</string>
@@ -151,4 +152,8 @@
     <string name="add_to_contacts_and_message">Add to contacts and start a new message?</string>
     <string name="message">Message</string>
     <string name="edit">Edit</string>
+    <string name="enter_your_private_keys">Enter your private keys</string>
+    <string name="your_account">Your account</string>
+    <string name="not_your_account_button">Not your account?</string>
+    <string name="scan_qr_code">Scan QR-code</string>
 </resources>

@@ -290,7 +290,7 @@ fun RegistrationScreen(
                     enabled = !state.isLoading && state.usernameInput.isNotBlank() && state.fullNameInput.isNotBlank()
                 ) {
                     Text(
-                        stringResource(id = R.string.authenticate_button),
+                        stringResource(id = R.string.signup_button),
                     )
                 }
                 Box(contentAlignment = Alignment.Center, modifier = modifier.weight(1f)) {

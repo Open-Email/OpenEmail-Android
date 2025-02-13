@@ -27,6 +27,7 @@ import com.mercata.pingworks.registration.RegistrationScreen
 import com.mercata.pingworks.save_keys_suggestion.SaveKeysSuggestionScreen
 import com.mercata.pingworks.settings_screen.SettingsScreen
 import com.mercata.pingworks.sign_in.SignInScreen
+import com.mercata.pingworks.sign_in.enter_keys_screen.EnterKeysScreen
 import com.mercata.pingworks.theme.AppTheme
 
 class MainActivity : AppCompatActivity() {
@@ -93,6 +94,17 @@ class MainActivity : AppCompatActivity() {
                         }
                         composable(route = "SignInScreen") {
                             SignInScreen(navController = navController)
+                        }
+                        composable(
+                            route = "EnterKeysScreen/{address}",
+                            arguments = listOf(
+                                navArgument("address") {
+                                    type = NavType.StringType
+                                    nullable = false
+                                },
+                            )
+                        ) {
+                            EnterKeysScreen(navController = navController)
                         }
                         composable(route = "RegistrationScreen") {
                             RegistrationScreen(navController = navController)

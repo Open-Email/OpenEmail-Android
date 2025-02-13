@@ -2,12 +2,6 @@ package com.mercata.pingworks.sign_in
 
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,7 +22,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -48,9 +41,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -61,10 +51,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
-import com.mercata.pingworks.animationDuration
 import com.mercata.pingworks.common.Logo
 import com.mercata.pingworks.theme.roboto
-import kotlinx.coroutines.delay
 
 @Composable
 fun SignInScreen(
@@ -73,25 +61,12 @@ fun SignInScreen(
 ) {
 
     val state by viewModel.state.collectAsState()
-    val focusManager = LocalFocusManager.current
-
     val addressFocusRequester = remember { FocusRequester() }
-    val encryptionFocusRequester = remember { FocusRequester() }
-    val signingFocusRequester = remember { FocusRequester() }
 
     LaunchedEffect(key1 = state.isLoggedIn) {
         if (state.isLoggedIn) {
             navController.popBackStack(route = "SignInScreen", inclusive = true)
             navController.navigate(route = "HomeScreen")
-        }
-    }
-
-    LaunchedEffect(key1 = state.keysInputOpen) {
-        focusManager.clearFocus()
-        if (state.keysInputOpen) {
-            delay(animationDuration.toLong())
-            viewModel.openInputKeys()
-            encryptionFocusRequester.requestFocus()
         }
     }
 
@@ -184,131 +159,32 @@ fun SignInScreen(
                     ),
                     keyboardActions = KeyboardActions(
                         onNext = {
-                            viewModel.signInClicked()
+                            viewModel.signInClicked(onNewUser = {
+                                navController.navigate(
+                                    "EnterKeysScreen/${state.emailInput}"
+                                )
+                            })
                         }
                     )
                 )
-                AnimatedVisibility(
-                    visible = !state.keysInputOpen,
-                    enter = fadeIn(animationSpec = tween(durationMillis = animationDuration)) + expandVertically(
-                        animationSpec = tween(durationMillis = animationDuration)
-                    ),
-                    exit = fadeOut(animationSpec = tween(durationMillis = animationDuration)) + shrinkVertically(
-                        animationSpec = tween(durationMillis = animationDuration)
-                    )
-                ) {
-                    Button(
-                        modifier = modifier
-                            .padding(horizontal = MARGIN_DEFAULT)
-                            .padding(top = MARGIN_DEFAULT)
-                            .fillMaxWidth(),
-                        onClick = { viewModel.signInClicked() },
-                        enabled = !state.loading && state.signInButtonActive
-                    ) {
-                        Text(
-                            stringResource(id = R.string.sign_in_button),
-                            fontFamily = roboto
-                        )
-                    }
-                }
-                AnimatedVisibility(
-                    visible = state.keysInputOpen,
-                    enter = fadeIn(animationSpec = tween(durationMillis = animationDuration)) + expandVertically(
-                        animationSpec = tween(durationMillis = animationDuration)
-                    ),
-                    exit = fadeOut(animationSpec = tween(durationMillis = animationDuration)) + shrinkVertically(
-                        animationSpec = tween(durationMillis = animationDuration)
-                    )
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        OutlinedTextField(
-                            value = state.privateEncryptionKeyInput,
-                            onValueChange = { str -> viewModel.onPrivateEncryptionKeyInput(str) },
-                            singleLine = true,
-                            shape = CircleShape,
-                            enabled = !state.loading,
-                            leadingIcon = {
-                                Icon(
-                                    painterResource(R.drawable.key),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                                )
-                            },
-                            modifier = modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = MARGIN_DEFAULT)
-                                .focusRequester(encryptionFocusRequester),
-                            label = {
-                                Text(
-                                    text = stringResource(id = R.string.private_encryption_key_hint)
-                                )
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Unspecified,
-                                imeAction = ImeAction.Next,
-                                showKeyboardOnFocus = true,
-                                capitalization = KeyboardCapitalization.None
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onNext = {
-                                    focusManager.clearFocus()
-                                    signingFocusRequester.requestFocus()
-                                }
-                            ),
-                        )
-                        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                        OutlinedTextField(
-                            value = state.privateSigningKeyInput,
-                            onValueChange = { str -> viewModel.onPrivateSigningKeyInput(str) },
-                            singleLine = true,
-                            shape = CircleShape,
-                            enabled = !state.loading,
-                            leadingIcon = {
-                                Icon(
-                                    painterResource(R.drawable.key),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                                )
-                            },
-                            modifier = modifier
-                                .padding(horizontal = MARGIN_DEFAULT)
-                                .fillMaxWidth()
-                                .focusRequester(signingFocusRequester),
-                            label = {
-                                Text(
-                                    text = stringResource(id = R.string.private_signing_key_hint)
-                                )
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Unspecified,
-                                imeAction = ImeAction.Done,
-                                showKeyboardOnFocus = true,
-                                capitalization = KeyboardCapitalization.None
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    focusManager.clearFocus()
-                                    viewModel.authenticateWithKeys()
-                                }
-                            ),
-                        )
-                        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                        Button(
-                            modifier = modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = MARGIN_DEFAULT),
-                            onClick = { viewModel.authenticateWithKeys() },
-                            enabled = !state.loading && state.authenticateButtonEnabled
-                        ) {
-                            Text(
-                                stringResource(id = R.string.sign_in_button),
+                Button(
+                    modifier = modifier
+                        .padding(horizontal = MARGIN_DEFAULT)
+                        .padding(top = MARGIN_DEFAULT)
+                        .fillMaxWidth(),
+                    onClick = {
+                        viewModel.signInClicked(onNewUser = {
+                            navController.navigate(
+                                "EnterKeysScreen/${state.emailInput}"
                             )
-                        }
-                        Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                    }
+                        })
+                    },
+                    enabled = !state.loading && state.signInButtonActive
+                ) {
+                    Text(
+                        stringResource(id = R.string.sign_in_button),
+                        fontFamily = roboto
+                    )
                 }
 
                 Box(contentAlignment = Alignment.Center, modifier = modifier.weight(1f)) {
