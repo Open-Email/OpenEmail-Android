@@ -101,6 +101,10 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
         updateState(currentState.copy(registrationError = null))
     }
 
+    fun openManualEmailInput() {
+        updateState(currentState.copy(currentUser = null))
+    }
+
     private fun authenticateWithKeys() {
         val encryptionKey = currentState.currentUser!!.encryptionKeys.pair.secretKey
         val signingKey = currentState.currentUser!!.signingKeys.pair.secretKey
