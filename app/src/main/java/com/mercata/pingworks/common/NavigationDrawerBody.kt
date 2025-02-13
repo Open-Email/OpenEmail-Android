@@ -38,8 +38,11 @@ fun NavigationDrawerBody(
     selected: HomeScreen,
     unread: Map<HomeScreen, Int>
 ) {
-    Column(modifier = modifier
-        .padding(MARGIN_DEFAULT).background(MaterialTheme.colorScheme.surface)) {
+    Column(
+        modifier = modifier
+            .padding(MARGIN_DEFAULT)
+            .background(MaterialTheme.colorScheme.surface)
+    ) {
         Logo(modifier = modifier.padding(horizontal = MARGIN_DEFAULT), size = LogoSize.Small)
         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
         HomeScreen.entries.forEach { screen ->
@@ -54,7 +57,13 @@ fun NavigationDrawerBody(
                 count = unread[screen]?.takeIf { it > 0 }
             )
         }
-        HorizontalDivider(modifier = modifier.fillMaxWidth().padding(vertical = MARGIN_DEFAULT), color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+        HorizontalDivider(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = MARGIN_DEFAULT),
+            color = MaterialTheme.colorScheme.outline,
+            thickness = 1.dp
+        )
         NavigationItem(
             modifier = modifier,
             onClick = {

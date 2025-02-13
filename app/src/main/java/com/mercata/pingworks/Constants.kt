@@ -82,6 +82,7 @@ const val SP_AUTOLOGIN = "sp_autologin"
 const val SP_BIOMETRY = "sp_biometry"
 const val SP_FIRST_TIME = "sp_first_time"
 const val SP_SELECTED_NAV_SCREEN = "sp_selected_nav_screen"
+const val QR_SCANNER_RESULT = "qr_scanner_result"
 val availableHosts = listOf("open.email")
 
 
