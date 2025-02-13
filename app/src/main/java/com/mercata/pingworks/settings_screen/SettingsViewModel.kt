@@ -61,6 +61,7 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
             ).joinAll()
         }.invokeOnCompletion {
             viewModelScope.launch(Dispatchers.Main) {
+                toggleBiometry(false)
                 toggleAutologin(false)
                 onComplete()
             }
