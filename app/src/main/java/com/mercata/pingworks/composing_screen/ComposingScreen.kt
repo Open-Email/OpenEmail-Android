@@ -646,55 +646,64 @@ fun AddressChip(
     onClick: (address: PublicUserData) -> Unit,
     onDismiss: ((address: PublicUserData) -> Unit)? = null
 ) {
-    Box(
-        modifier = modifier
-            .height(CHIP_HEIGHT)
-            .clip(shape = CircleShape)
-            .clickable { onClick(user) }
-            .border(1.dp, color = colorScheme.outline, shape = CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            modifier = modifier.padding(start = MARGIN_DEFAULT / 4),
-            verticalAlignment = Alignment.CenterVertically
+    Box {
+        Box(
+            modifier = modifier
+                .height(CHIP_HEIGHT)
+                .clip(shape = CircleShape)
+                .clickable { onClick(user) }
+                .border(1.dp, color = colorScheme.outline, shape = CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = modifier
-                    .clip(CircleShape)
-                    .size(CHIP_ICON_SIZE)
+            Row(
+                modifier = modifier.padding(start = MARGIN_DEFAULT / 4),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                ProfileImage(
-                    modifier,
-                    user.address.getProfilePictureUrl(),
-                    onError = {
-                        Icon(
-                            Icons.Default.AccountCircle,
-                            modifier = modifier,
-                            contentDescription = stringResource(id = R.string.profile_image)
-                        )
-                    })
-            }
-            Spacer(modifier = modifier.width(MARGIN_DEFAULT / 4))
-            Text(
-                text = user.fullName,
-                style = typography.bodySmall.copy(color = colorScheme.onSurface)
-            )
-            Spacer(modifier = modifier.width(MARGIN_DEFAULT / 4))
-            if (onDismiss != null) {
-                Icon(
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = modifier
-                        .size(18.dp)
-                        .clickable {
-                            onDismiss(user)
-                        },
-                    imageVector = Icons.Default.Clear,
-                    tint = colorScheme.onSurface,
-                    contentDescription = stringResource(id = R.string.dismiss_address)
+                        .clip(CircleShape)
+                        .size(CHIP_ICON_SIZE)
+                ) {
+                    ProfileImage(
+                        modifier,
+                        user.address.getProfilePictureUrl(),
+                        onError = {
+                            Icon(
+                                Icons.Default.AccountCircle,
+                                modifier = modifier,
+                                contentDescription = stringResource(id = R.string.profile_image)
+                            )
+                        })
+                }
+                Spacer(modifier = modifier.width(MARGIN_DEFAULT / 4))
+                Text(
+                    text = user.fullName,
+                    style = typography.bodySmall.copy(color = colorScheme.onSurface)
                 )
+                Spacer(modifier = modifier.width(MARGIN_DEFAULT / 4))
+                if (onDismiss != null) {
+                    Icon(
+                        modifier = modifier
+                            .size(18.dp)
+                            .clickable {
+                                onDismiss(user)
+                            },
+                        imageVector = Icons.Default.Clear,
+                        tint = colorScheme.onSurface,
+                        contentDescription = stringResource(id = R.string.dismiss_address)
+                    )
+                }
+                Spacer(modifier = modifier.width(MARGIN_DEFAULT / 2))
             }
-            Spacer(modifier = modifier.width(MARGIN_DEFAULT / 2))
         }
+        Box(
+            modifier = modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(if (user.away == true) colorScheme.error else colorScheme.secondary)
+
+        )
     }
 }
 
