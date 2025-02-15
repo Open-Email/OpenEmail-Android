@@ -107,6 +107,7 @@ data class ContactDetailsState(
 enum class ContactType(val id: String) {
     CurrentUser("current"),
     SavedContact("saved"),
+    DetailsOnly("details"),
     ContactNotification("notification");
 
     companion object {

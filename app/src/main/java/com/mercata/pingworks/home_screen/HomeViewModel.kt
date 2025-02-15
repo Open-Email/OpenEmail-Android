@@ -135,7 +135,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
 
         viewModelScope.launch {
-            delay(100)
             refresh()
         }
     }

@@ -33,7 +33,7 @@
     <string name="registered_title">You are registered!</string>
     <string name="biometry_suggestion">Do you want to enable biometric entry to %s</string>
     <string name="enable_button">Enable</string>
-    <string name="broadcast_title">Broadcasts</string>
+    <string name="broadcast_title">Broadcast</string>
     <string name="enable_autologin_feature">Autologin</string>
     <string name="enable_biometric_feature">Biometric Access</string>
     <string name="consider_saving_warning">Please, consider saving keys in a secure place, since this is the only way to access the app. Do not share it with anyone.</string>
@@ -157,4 +157,5 @@
     <string name="not_your_account_button">Not your account?</string>
     <string name="scan_qr_code">Scan QR-code</string>
     <string name="enter_private_keys_manually">Enter private keys manually</string>
+    <string name="readers">Readers:</string>
 </resources>
