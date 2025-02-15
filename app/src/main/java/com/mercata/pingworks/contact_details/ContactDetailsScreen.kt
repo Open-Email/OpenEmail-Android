@@ -50,7 +50,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
@@ -78,7 +77,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
     val state by viewModel.state.collectAsState()
     val imageSize = remember { 300.dp }
     val snackBarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current as FragmentActivity
+    val context = LocalContext.current
 
     LaunchedEffect(state.snackBarResId) {
         if (state.snackBarResId != null) {
@@ -128,7 +127,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     })
                 },
                 actions = {
-                    when(state.type) {
+                    when (state.type) {
                         ContactType.CurrentUser -> {
                             Button(
                                 modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
@@ -139,6 +138,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                                 Text(stringResource(R.string.edit))
                             }
                         }
+
                         ContactType.ContactNotification -> {
                             Button(
                                 modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
@@ -152,14 +152,14 @@ fun SharedTransitionScope.ContactDetailsScreen(
                             }
                         }
 
-                        ContactType.SavedContact -> {
+                        else -> {
                             //ignore
                         }
                     }
                 })
         },
         floatingActionButton = {
-            if (!state.loading && state.type != ContactType.CurrentUser) {
+            if (!state.loading && state.type != ContactType.CurrentUser && state.type != ContactType.DetailsOnly) {
                 ExtendedFloatingActionButton(
                     modifier = modifier.sharedBounds(
                         rememberSharedContentState(

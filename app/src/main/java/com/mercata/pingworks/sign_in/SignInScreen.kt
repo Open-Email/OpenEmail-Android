@@ -103,7 +103,7 @@ fun SignInScreen(
                         .background(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                    colorScheme.primary.copy(alpha = 0.3f),
                                     Color.Transparent,
                                 )
                             )
@@ -124,7 +124,7 @@ fun SignInScreen(
                     modifier
                         .padding(horizontal = MARGIN_DEFAULT)
                         .align(AbsoluteAlignment.Left),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = typography.headlineSmall,
                 )
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT / 2))
                 Text(
@@ -132,7 +132,7 @@ fun SignInScreen(
                     modifier
                         .padding(horizontal = MARGIN_DEFAULT)
                         .align(AbsoluteAlignment.Left),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = typography.bodyMedium
                 )
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT * 2))
                 if (state.currentUser == null) {
@@ -151,7 +151,7 @@ fun SignInScreen(
                             state.emailErrorResId?.run {
                                 Text(
                                     text = stringResource(id = this),
-                                    color = MaterialTheme.colorScheme.error
+                                    color = colorScheme.error
                                 )
                             }
                         },
@@ -266,8 +266,8 @@ fun SignInScreen(
                         stringResource(id = R.string.app_name)
                     ),
                     modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = typography.labelLarge,
+                    color = colorScheme.onSurface,
                 )
                 Spacer(modifier.height(MARGIN_DEFAULT))
                 Button(
@@ -275,10 +275,10 @@ fun SignInScreen(
                         .fillMaxWidth()
                         .padding(horizontal = MARGIN_DEFAULT),
                     colors = ButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.primary,
+                        containerColor = colorScheme.surfaceVariant,
+                        contentColor = colorScheme.primary,
                         disabledContainerColor = Color.Transparent,
-                        disabledContentColor = MaterialTheme.colorScheme.surfaceVariant
+                        disabledContentColor = colorScheme.surfaceVariant
                     ), onClick = {
                         navController.navigate("RegistrationScreen")
                     }, enabled = !state.loading

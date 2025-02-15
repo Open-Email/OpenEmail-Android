@@ -71,6 +71,11 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
         sharedPreferences.edit().putBoolean(SP_BIOMETRY, biometry).apply()
     }
 
+    fun clear() {
+        sharedPreferences.edit().clear().apply()
+    }
+
+
     fun isFirstTime() = sharedPreferences.getBoolean(SP_FIRST_TIME, true)
     fun setFirstTime(isFirstTime: Boolean) =
         sharedPreferences.edit().putBoolean(SP_FIRST_TIME, isFirstTime).apply()
