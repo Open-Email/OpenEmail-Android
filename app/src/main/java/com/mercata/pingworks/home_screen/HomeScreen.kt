@@ -8,8 +8,6 @@ package com.mercata.pingworks.home_screen
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -45,8 +43,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
@@ -68,6 +64,8 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -106,7 +104,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
@@ -135,6 +132,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+
 @Composable
 fun SharedTransitionScope.HomeScreen(
     navController: NavController,
@@ -151,12 +149,7 @@ fun SharedTransitionScope.HomeScreen(
     val focusManager = LocalFocusManager.current
     val searchFocusRequester = remember { FocusRequester() }
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current as FragmentActivity
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) {
-        //ignore
-    }
+    val context = LocalContext.current
 
     fun openComposingScreen() {
         navController.navigate(
@@ -283,8 +276,12 @@ fun SharedTransitionScope.HomeScreen(
                             )
                         }
                     },
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        backgroundColor = if (viewModel.selectedItems.isEmpty())
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = if (viewModel.selectedItems.isEmpty())
+                            colorScheme.surfaceVariant
+                        else
+                            colorScheme.onPrimary,
+                        unfocusedContainerColor = if (viewModel.selectedItems.isEmpty())
                             colorScheme.surfaceVariant
                         else
                             colorScheme.onPrimary,
@@ -512,18 +509,16 @@ fun SharedTransitionScope.HomeScreen(
                                                         is CachedAttachment -> {
                                                             val attachment =
                                                                 item as CachedAttachment
+
                                                             val intent: Intent = Intent().apply {
-                                                                action = Intent.ACTION_SEND
-                                                                putExtra(
-                                                                    Intent.EXTRA_STREAM,
-                                                                    attachment.uri
+                                                                setAction(Intent.ACTION_VIEW)
+                                                                setDataAndType(
+                                                                    attachment.uri,
+                                                                    attachment.type
                                                                 )
-                                                                type = attachment.type
                                                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                                             }
-                                                            val shareIntent =
-                                                                Intent.createChooser(intent, null)
-                                                            launcher.launch(shareIntent)
+                                                            context.startActivity(intent)
                                                         }
 
                                                         is DBDraftWithReaders -> navController.navigate(
@@ -695,10 +690,12 @@ fun SharedTransitionScope.MessageViewHolder(
             Box(contentAlignment = Alignment.TopStart) {
                 Box(contentAlignment = Alignment.Center,
                     modifier = modifier
+                        .border(width = 1.dp, color = colorScheme.outline, shape = CircleShape)
                         .clip(CircleShape)
                         .clickable {
                             onMessageSelected?.invoke(item)
                         }
+
                         .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                         .background(if (isSelected) colorScheme.primary else colorScheme.surface)) {
                     if (isSelected) {
@@ -723,7 +720,7 @@ fun SharedTransitionScope.MessageViewHolder(
                                 Icon(
                                     painter = painterResource(resId),
                                     contentDescription = null,
-                                    tint = colorScheme.onPrimary
+                                    tint = colorScheme.primary
                                 )
                             }
 
