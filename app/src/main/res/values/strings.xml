@@ -158,4 +158,5 @@
     <string name="scan_qr_code">Scan QR-code</string>
     <string name="enter_private_keys_manually">Enter private keys manually</string>
     <string name="readers">Readers:</string>
+    <string name="request">Request</string>
 </resources>

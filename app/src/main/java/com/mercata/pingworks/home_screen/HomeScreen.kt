@@ -785,7 +785,7 @@ fun SharedTransitionScope.MessageViewHolder(
                 }
             }
             Spacer(modifier = modifier.width(MARGIN_DEFAULT))
-            Column {
+            Column(modifier = modifier.weight(1f)) {
                 Row {
                     if (item.getTitle().isNotEmpty()) {
                         Text(
@@ -879,6 +879,22 @@ fun SharedTransitionScope.MessageViewHolder(
                             style = typography.bodyMedium
                         )
                     }
+                }
+            }
+            if (item is DBNotification) {
+                Box(
+                    modifier = modifier.padding(start = MARGIN_DEFAULT).clip(RoundedCornerShape(
+                        DEFAULT_CORNER_RADIUS/2)).background(color = colorScheme.primary)
+                ) {
+                    Text(
+                        stringResource(R.string.request).uppercase(),
+                        modifier = modifier.padding(
+                            horizontal = MARGIN_DEFAULT / 2,
+                            vertical = MARGIN_DEFAULT / 4
+                        ),
+                        maxLines = 1,
+                        style = typography.labelMedium.copy(color = colorScheme.onPrimary)
+                    )
                 }
             }
         }
