@@ -42,6 +42,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
@@ -177,7 +178,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         }
 
                     }) {
-                    Row {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Edit, stringResource(id = R.string.create_message))
                         Spacer(modifier.width(MARGIN_DEFAULT / 2))
                         Text(
