@@ -119,6 +119,18 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
         updateState(currentState.copy(shareIntent = sendIntent))
     }
 
+    fun getOpenIntent(attachment: FusedAttachment): Intent {
+        val uri = fileUtils.getUriForFile(currentState.attachmentsWithStatus[attachment]?.file!!)
+        return Intent().apply {
+            setAction(Intent.ACTION_VIEW)
+            setDataAndType(
+                uri,
+                attachment.fileType
+            )
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    }
+
     fun shared() {
         updateState(currentState.copy(shareIntent = null))
     }

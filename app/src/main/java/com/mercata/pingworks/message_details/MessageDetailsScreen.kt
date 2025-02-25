@@ -2,6 +2,7 @@
 
 package com.mercata.pingworks.message_details
 
+import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -58,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -77,6 +79,7 @@ import com.mercata.pingworks.db.messages.FusedAttachment
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloaded
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.Downloading
 import com.mercata.pingworks.message_details.AttachmentDownloadStatus.NotDownloaded
+import com.mercata.pingworks.models.CachedAttachment
 import com.mercata.pingworks.utils.Indefinite
 import com.mercata.pingworks.utils.getProfilePictureUrl
 import kotlinx.coroutines.launch
@@ -97,6 +100,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
@@ -343,6 +347,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                                     attachment = attachment,
                                     viewModel = viewModel,
                                     state = state,
+                                    context = context
                                 )
                             }
                         }
@@ -408,6 +413,7 @@ fun AttachmentViewHolder(
     modifier: Modifier = Modifier,
     attachment: FusedAttachment,
     state: MessageDetailsState,
+    context: Context,
     viewModel: MessageDetailsViewModel
 ) {
     val type = attachment.fileType.lowercase()
@@ -446,7 +452,7 @@ fun AttachmentViewHolder(
                     when (status) {
                         NotDownloaded -> viewModel.downloadFile(attachment)
                         Downloaded -> {
-                            viewModel.share(attachment)
+                            context.startActivity(viewModel.getOpenIntent(attachment))
                         }
 
                         Downloading -> {
@@ -480,6 +486,9 @@ fun AttachmentViewHolder(
                         contentAlignment = Alignment.Center,
                         modifier = modifier
                             .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
+                            .clickable {
+                                viewModel.share(attachment)
+                            }
                             .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                             .background(colorScheme.surfaceVariant)
                     ) {
