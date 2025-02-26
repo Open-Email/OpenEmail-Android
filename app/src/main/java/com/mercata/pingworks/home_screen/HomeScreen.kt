@@ -261,6 +261,7 @@ fun SharedTransitionScope.HomeScreen(
                     textStyle = typography.bodyLarge,
                     leadingIcon = {
                         IconButton(onClick = {
+                            focusManager.clearFocus()
                             coroutineScope.launch {
                                 if (drawerState.isOpen) {
                                     drawerState.close()
@@ -883,8 +884,14 @@ fun SharedTransitionScope.MessageViewHolder(
             }
             if (item is DBNotification) {
                 Box(
-                    modifier = modifier.padding(start = MARGIN_DEFAULT).clip(RoundedCornerShape(
-                        DEFAULT_CORNER_RADIUS/2)).background(color = colorScheme.primary)
+                    modifier = modifier
+                        .padding(start = MARGIN_DEFAULT)
+                        .clip(
+                            RoundedCornerShape(
+                                DEFAULT_CORNER_RADIUS / 2
+                            )
+                        )
+                        .background(color = colorScheme.primary)
                 ) {
                     Text(
                         stringResource(R.string.request).uppercase(),
