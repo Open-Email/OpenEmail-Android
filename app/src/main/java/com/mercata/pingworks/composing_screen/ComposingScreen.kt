@@ -184,6 +184,7 @@ fun SharedTransitionScope.ComposingScreen(
                 state.replyMessage?.message?.subject
             )
 
+            viewModel.updateSubject(state.replyMessage?.message?.subject ?: "")
             viewModel.updateBody(reply)
             viewModel.consumeReplyData()
         }
