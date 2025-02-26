@@ -37,7 +37,6 @@ import com.mercata.pingworks.utils.syncContacts
 import com.mercata.pingworks.utils.syncNotifications
 import com.mercata.pingworks.utils.uploadPendingMessages
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -130,6 +129,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
                 this@HomeViewModel.listUpdateState = listUpdateState
 
+                updateNotificationsCounter()
                 updateList()
             }
         }
@@ -187,6 +187,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
             updateState(currentState.copy(refreshing = false))
         }
+    }
+
+    private fun updateNotificationsCounter() {
+        updateState(currentState.copy(newContactsAmount = listUpdateState?.dbNotifications?.size ?: 0))
     }
 
     private suspend fun updateList() {
@@ -331,9 +335,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 is DBMessageWithDBAttachments -> {
                     val message = (currentState.itemToDelete as DBMessageWithDBAttachments)
                     db.archiveDao().insert(message.toArchive())
-                    db.archiveAttachmentsDao().insertAll(message.attachmentParts.map { it.toArchive() })
+                    db.archiveAttachmentsDao()
+                        .insertAll(message.attachmentParts.map { it.toArchive() })
                     db.messagesDao().update(
-                       message.message.message.copy(
+                        message.message.message.copy(
                             markedToDelete = true
                         )
                     )
@@ -501,6 +506,7 @@ data class HomeState(
     val addRequestsToContactsDialogShown: Boolean = false,
     val searchButtonActive: Boolean = false,
     val loading: Boolean = false,
+    val newContactsAmount: Int = 0,
     val addressNotFoundError: Boolean = false,
     val newContactSearchDialogShown: Boolean = false,
     val newContactAddressInput: String = "",

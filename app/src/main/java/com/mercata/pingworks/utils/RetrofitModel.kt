@@ -1099,7 +1099,6 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
                 }
             }.awaitAll()
 
-        println(localContacts)
         deleted.filterNotNull().forEach { deletedContact ->
             dao.delete(deletedContact)
         }
