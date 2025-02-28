@@ -99,11 +99,11 @@ import com.mercata.pingworks.CONTACT_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
+import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.contact_details.ContactType
-import com.mercata.pingworks.db.contacts.DBContact
-import com.mercata.pingworks.home_screen.MessageViewHolder
+import com.mercata.pingworks.db.contacts.toPublicUserData
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.utils.getMimeType
 import com.mercata.pingworks.utils.getNameFromURI
@@ -112,8 +112,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun SharedTransitionScope.ComposingScreen(
@@ -369,18 +371,24 @@ fun SharedTransitionScope.ComposingScreen(
                             value = state.addressFieldText,
                             shape = CircleShape,
                             suffix = {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    modifier = modifier.clickable {
-                                        viewModel.clearAddressField()
-                                        focusManager.clearFocus()
-                                        viewModel.toggleMode(false)
-                                    },
-                                    contentDescription = stringResource(
-                                        id = R.string.add_recipient
-                                    ),
-                                    tint = colorScheme.primary
-                                )
+                                val localModifier = modifier.size(22.dp).clickable {
+                                    viewModel.clearAddressField()
+                                    focusManager.clearFocus()
+                                    viewModel.toggleMode(false)
+                                }
+                                if (state.loading) {
+                                    CircularProgressIndicator(modifier = localModifier, strokeCap = StrokeCap.Round)
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        modifier = localModifier,
+                                        contentDescription = stringResource(
+                                            id = R.string.add_recipient
+                                        ),
+                                        tint = colorScheme.primary
+                                    )
+                                }
+
                             },
                             onValueChange = { str -> viewModel.updateTo(str) },
                             keyboardOptions = KeyboardOptions(
@@ -501,24 +509,20 @@ fun SharedTransitionScope.ComposingScreen(
 
             AnimatedVisibility(visible = state.mode == ComposingScreenMode.ContactSuggestion) {
                 Column {
-                    state.contacts.filter {
+                    (state.nonSavedContacts + state.contacts.filter {
                         it.name?.contains(
                             state.addressFieldText,
                             true
                         ) == true || it.address.contains(state.addressFieldText, true)
-                    }.forEach { contact ->
-                        MessageViewHolder(
+                    }.map { it.toPublicUserData() }).forEach { contact ->
+                        NewContactViewHolder (
                             modifier = modifier,
-                            animatedVisibilityScope = animatedVisibilityScope,
                             item = contact,
-                            isSelected = false,
                             onMessageClicked = { person ->
-                                viewModel.addContactSuggestion(person as DBContact)
+                                viewModel.addContactSuggestion(person)
                                 viewModel.clearAddressField()
                                 focusManager.clearFocus()
                             },
-                            onMessageSelected = null,
-                            currentUser = state.currentUser!!
                         )
                     }
                 }
@@ -705,6 +709,112 @@ fun AddressChip(
                 .background(if (user.away == true) colorScheme.error else colorScheme.secondary)
 
         )
+    }
+}
+
+@Composable
+fun NewContactViewHolder(
+    item: PublicUserData,
+    modifier: Modifier = Modifier,
+    onMessageClicked: (message: PublicUserData) -> Unit,
+) {
+
+    Box {
+        Row(verticalAlignment = Alignment.Top, modifier = modifier
+            .background(color = colorScheme.surface)
+            //.height(MESSAGE_LIST_ITEM_HEIGHT)
+            .fillMaxWidth()
+            .clickable {
+                onMessageClicked(item)
+            }
+            .padding(MARGIN_DEFAULT)
+
+        ) {
+            Box(contentAlignment = Alignment.TopStart) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = modifier
+                        .border(width = 1.dp, color = colorScheme.outline, shape = CircleShape)
+                        .clip(CircleShape)
+                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                        .background(colorScheme.surface)
+                ) {
+                    ProfileImage(
+                        modifier
+                            .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                            .clip(CircleShape),
+                        item.address.getProfilePictureUrl(),
+                        onError = {
+                            Box(
+                                modifier
+                                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                    .background(color = colorScheme.surface)
+                                    .border(
+                                        width = 1.dp,
+                                        color = colorScheme.outline,
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "${
+                                        item.fullName.firstOrNull() ?: ""
+                                    }${
+                                        item.fullName.getOrNull(1) ?: ""
+                                    }",
+                                    style = typography.titleMedium,
+                                    color = colorScheme.onSurface
+                                )
+                            }
+                        })
+                }
+            }
+            Spacer(modifier = modifier.width(MARGIN_DEFAULT))
+            Column(modifier = modifier.weight(1f)) {
+                Row {
+                    if (item.fullName.isNotEmpty()) {
+                        Text(
+                            text = item.fullName,
+                            modifier = modifier.weight(1f),
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                            style = typography.titleMedium,
+                        )
+                    } else {
+                        Spacer(modifier = modifier.weight(1f))
+                    }
+                    item.lastSeen?.let { instant ->
+                        val current = LocalDateTime.now()
+                        val localDateTime = LocalDateTime.ofInstant(
+                            instant,
+                            ZoneId.systemDefault()
+                        )
+                        val today =
+                            current.year == localDateTime.year && current.dayOfYear == localDateTime.dayOfYear
+                        val formatter =
+                            if (today) DateTimeFormatter.ofPattern("HH:mm") else DateTimeFormatter.ofPattern(
+                                "dd.MM.yyyy"
+                            )
+                        Text(
+                            String.format(
+                                stringResource(R.string.last_seen_placeholder),
+                                formatter.format(localDateTime)
+                            ),
+                            modifier = modifier.padding(start = MARGIN_DEFAULT),
+                            style = typography.titleSmall.copy(color = colorScheme.outlineVariant)
+                        )
+                    }
+                }
+
+                Spacer(modifier.height(MARGIN_DEFAULT / 2))
+                Text(
+                    text = item.address,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
+                    style = typography.titleSmall,
+                )
+            }
+        }
     }
 }
 

@@ -125,6 +125,7 @@
     <string name="last_seen_public">Last seen public</string>
     <string name="public_access">Public access</string>
     <string name="last_seen">Last seen</string>
+    <string name="last_seen_placeholder">Last seen: %s</string>
     <string name="message_deleted">Message deleted</string>
     <string name="login_title">Set Up Your Mailbox</string>
     <string name="contacts_placeholder">Your contacts list is empty.</string>
