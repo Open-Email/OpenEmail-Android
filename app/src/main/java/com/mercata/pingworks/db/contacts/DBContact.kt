@@ -4,7 +4,6 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.mercata.pingworks.db.HomeItem
-import com.mercata.pingworks.db.notifications.DBNotification
 import com.mercata.pingworks.models.PublicUserData
 import java.time.Instant
 
