@@ -172,7 +172,9 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 launch {
                     syncContacts(sp, db.userDao())
                     syncAllMessages(db, sp, dl)
-                    syncNotifications(currentUser, db)
+                    if (syncNotifications(currentUser, db)) {
+                        updateState(currentState.copy(snackBar = SnackBarData(R.string.you_have_new_contact_requests)))
+                    }
                 },
                 launch {
                     uploadPendingMessages(currentUser, db, fu, sp)
@@ -190,7 +192,11 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     }
 
     private fun updateNotificationsCounter() {
-        updateState(currentState.copy(newContactsAmount = listUpdateState?.dbNotifications?.size ?: 0))
+        updateState(
+            currentState.copy(
+                newContactsAmount = listUpdateState?.dbNotifications?.size ?: 0
+            )
+        )
     }
 
     private suspend fun updateList() {

@@ -159,4 +159,5 @@
     <string name="enter_private_keys_manually">Enter private keys manually</string>
     <string name="readers">Readers:</string>
     <string name="request">Request</string>
+    <string name="you_have_new_contact_requests">You have new constact requests</string>
 </resources>
