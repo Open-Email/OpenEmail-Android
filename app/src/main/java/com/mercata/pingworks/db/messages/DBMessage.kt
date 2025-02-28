@@ -6,7 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 import com.mercata.pingworks.db.contacts.DBContact
 
-@Entity(
+/*@Entity(
     foreignKeys = [
         ForeignKey(
             entity = DBContact::class,
@@ -15,7 +15,7 @@ import com.mercata.pingworks.db.contacts.DBContact
             onDelete = ForeignKey.CASCADE // Cascade delete
         )
     ]
-)
+)*/
 data class DBMessage(
     @PrimaryKey @ColumnInfo("message_id") val messageId: String,
     @ColumnInfo("author_address", index = true) val authorAddress: String,
