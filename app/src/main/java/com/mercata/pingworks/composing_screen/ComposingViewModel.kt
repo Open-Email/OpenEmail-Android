@@ -9,13 +9,14 @@ import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
 import com.mercata.pingworks.db.AppDatabase
 import com.mercata.pingworks.db.contacts.DBContact
-import com.mercata.pingworks.db.contacts.toPublicUserData
 import com.mercata.pingworks.db.drafts.DBDraft
 import com.mercata.pingworks.db.drafts.draft_reader.toPublicUserData
 import com.mercata.pingworks.db.messages.MessageWithAuthor
+import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.models.toDBDraftReader
 import com.mercata.pingworks.registration.UserData
+import com.mercata.pingworks.repository.AddContactRepository
 import com.mercata.pingworks.repository.SendMessageRepository
 import com.mercata.pingworks.utils.Address
 import com.mercata.pingworks.utils.CopyAttachmentService
@@ -28,6 +29,7 @@ import com.mercata.pingworks.utils.syncContacts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -69,7 +71,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                         launch(Dispatchers.IO) {
                             addAddress(address)
                         }
-                    }
+                    }?.joinAll()
                 updateState(currentState.copy(addressLoading = false))
             }
             launch { listenToDraftReaders() }
@@ -82,6 +84,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     private val fileUtils: FileUtils by inject()
     private val attachmentCopier: CopyAttachmentService by inject()
     private val sendMessageRepository: SendMessageRepository by inject()
+    private val addContactRepository: AddContactRepository by inject()
     private val draftDB = db.draftDao()
     private var instantPhotoUri: Uri? = null
 
@@ -149,6 +152,23 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
     fun updateTo(str: String) {
         updateState(currentState.copy(addressFieldText = str, addressErrorResId = null))
+        if (str.lowercase().matches(emailRegex) && !currentState.currentUser?.address?.lowercase().equals(str)) {
+            viewModelScope.launch {
+                updateState(currentState.copy(loading = true))
+                when(val call = safeApiCall { getProfilePublicData(str) }) {
+                    is HttpResult.Error -> {
+                        //ignore
+                    }
+                    is HttpResult.Success -> {
+                        currentState.nonSavedContacts.clear()
+                        call.data?.let {
+                            currentState.nonSavedContacts.add(it)
+                        }
+                    }
+                }
+                updateState(currentState.copy(loading = false))
+            }
+        }
     }
 
     fun updateSubject(str: String) {
@@ -336,12 +356,14 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         updateState(currentState.copy(mode = if (addressFieldFocused) ComposingScreenMode.ContactSuggestion else ComposingScreenMode.Default))
     }
 
-    fun addContactSuggestion(person: DBContact) {
-        val publicData = person.toPublicUserData()
-        if (!currentState.recipients.contains(publicData)) {
+    fun addContactSuggestion(person: PublicUserData) {
+        if (!currentState.recipients.contains(person)) {
             viewModelScope.launch(Dispatchers.IO) {
-                db.draftReaderDao().insert(person.toPublicUserData().toDBDraftReader(draftId))
+                updateState(currentState.copy(loading = true))
+                addContactRepository.addContact(person)
+                db.draftReaderDao().insert(person.toDBDraftReader(draftId))
                 updateAvailableContacts()
+                updateState(currentState.copy(loading = false))
             }
         }
     }
@@ -364,6 +386,7 @@ data class ComposingState(
     val addressFieldText: Address = "",
     val recipients: SnapshotStateList<PublicUserData> = mutableStateListOf(),
     val contacts: SnapshotStateList<DBContact> = mutableStateListOf(),
+    val nonSavedContacts: SnapshotStateList<PublicUserData> = mutableStateListOf(),
     val attachmentBottomSheetShown: Boolean = false,
     val addressLoading: Boolean = false,
     val loading: Boolean = false,
