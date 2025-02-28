@@ -124,8 +124,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 unread[HomeScreen.Broadcast] = unreadBroadcasts
                 unread[HomeScreen.Pending] = listUpdateState.dbPendingMessages.size
                 unread[HomeScreen.Drafts] = listUpdateState.dbDrafts.size
-
-                //unread[HomeScreen.Contacts] = listUpdateState.dbContacts.filterIsInstance<DBNotification>().size
+                unread[HomeScreen.Contacts] = listUpdateState.dbNotifications.size
 
                 this@HomeViewModel.listUpdateState = listUpdateState
 
@@ -313,10 +312,15 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
-    fun onCountdownSnackBarFinished() {
+    fun onDeleteSnackbarHide() {
         viewModelScope.launch(Dispatchers.IO) {
             onDeleteWaitComplete()
+            clearSnackbarData();
         }
+    }
+
+    fun clearSnackbarData() {
+        updateState(currentState.copy(snackBar = null))
     }
 
     suspend fun onDeleteWaitComplete() {

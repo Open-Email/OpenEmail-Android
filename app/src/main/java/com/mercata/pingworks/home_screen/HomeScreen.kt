@@ -178,10 +178,19 @@ fun SharedTransitionScope.HomeScreen(
         if (state.snackBar != null) {
             coroutineScope.launch {
                 state.snackBar?.let {
-                    snackbarHostState.showSnackbar(
+                    val snackbarResult = snackbarHostState.showSnackbar(
                         message = context.getString(it.titleResId),
                         duration = SnackbarDuration.Short
                     )
+                    when (snackbarResult) {
+                        SnackbarResult.Dismissed -> {
+                            viewModel.clearSnackbarData()
+                        }
+
+                        SnackbarResult.ActionPerformed -> {
+                            //ignore
+                        }
+                    }
                 }
             }
         }
@@ -197,7 +206,7 @@ fun SharedTransitionScope.HomeScreen(
                 )
                 when (snackbarResult) {
                     SnackbarResult.Dismissed -> {
-                        viewModel.onCountdownSnackBarFinished()
+                        viewModel.onDeleteSnackbarHide()
                     }
 
                     SnackbarResult.ActionPerformed -> {

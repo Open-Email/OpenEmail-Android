@@ -462,7 +462,7 @@ suspend fun syncNotifications(currentUser: UserData, db: AppDatabase): Boolean {
             ?.filterNot { notification -> contacts.any { notification.address == it.address } }
             ?: listOf()
 
-        val hasNewNotifications = oldNotifications.containsAll(notifications).not()
+        val hasNewNotifications = notifications.any { new -> !oldNotifications.any { old -> old.notificationId == new.notificationId } }
         db.notificationsDao().insertAll(notifications)
         return@withContext hasNewNotifications
     }
