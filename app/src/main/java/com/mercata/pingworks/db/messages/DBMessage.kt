@@ -6,7 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 import com.mercata.pingworks.db.contacts.DBContact
 
-/*@Entity(
+@Entity/*(
     foreignKeys = [
         ForeignKey(
             entity = DBContact::class,
