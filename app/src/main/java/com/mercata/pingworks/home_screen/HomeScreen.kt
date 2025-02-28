@@ -178,10 +178,19 @@ fun SharedTransitionScope.HomeScreen(
         if (state.snackBar != null) {
             coroutineScope.launch {
                 state.snackBar?.let {
-                    snackbarHostState.showSnackbar(
+                    val snackbarResult = snackbarHostState.showSnackbar(
                         message = context.getString(it.titleResId),
                         duration = SnackbarDuration.Short
                     )
+                    when (snackbarResult) {
+                        SnackbarResult.Dismissed -> {
+                            viewModel.clearSnackbarData()
+                        }
+
+                        SnackbarResult.ActionPerformed -> {
+                            //ignore
+                        }
+                    }
                 }
             }
         }
@@ -197,7 +206,7 @@ fun SharedTransitionScope.HomeScreen(
                 )
                 when (snackbarResult) {
                     SnackbarResult.Dismissed -> {
-                        viewModel.onCountdownSnackBarFinished()
+                        viewModel.onDeleteSnackbarHide()
                     }
 
                     SnackbarResult.ActionPerformed -> {
@@ -270,11 +279,33 @@ fun SharedTransitionScope.HomeScreen(
                                 }
                             }
                         }) {
-                            Icon(
-                                imageVector = Icons.Rounded.Menu,
-                                tint = colorScheme.onSurfaceVariant,
-                                contentDescription = stringResource(id = R.string.navigation_menu_title)
-                            )
+                            Box(contentAlignment = Alignment.TopEnd) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Menu,
+                                    tint = colorScheme.onSurfaceVariant,
+                                    contentDescription = stringResource(id = R.string.navigation_menu_title)
+                                )
+                                if (state.newContactsAmount > 0) {
+                                    Box(
+                                        modifier = modifier
+                                            .size(12.dp)
+                                            .border(
+                                                width = 2.dp,
+                                                color = colorScheme.surfaceVariant,
+                                                shape = CircleShape
+                                            )
+                                            .padding(1.dp)
+                                            .clip(CircleShape)
+                                            .background(color = colorScheme.error),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        /* Text(
+                                             100.toString(),
+                                             style = typography.labelSmall.copy(color = colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                                         )*/
+                                    }
+                                }
+                            }
                         }
                     },
                     colors = OutlinedTextFieldDefaults.colors(

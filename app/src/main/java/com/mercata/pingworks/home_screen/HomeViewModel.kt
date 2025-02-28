@@ -37,7 +37,6 @@ import com.mercata.pingworks.utils.syncContacts
 import com.mercata.pingworks.utils.syncNotifications
 import com.mercata.pingworks.utils.uploadPendingMessages
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -125,11 +124,11 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 unread[HomeScreen.Broadcast] = unreadBroadcasts
                 unread[HomeScreen.Pending] = listUpdateState.dbPendingMessages.size
                 unread[HomeScreen.Drafts] = listUpdateState.dbDrafts.size
-
-                //unread[HomeScreen.Contacts] = listUpdateState.dbContacts.filterIsInstance<DBNotification>().size
+                unread[HomeScreen.Contacts] = listUpdateState.dbNotifications.size
 
                 this@HomeViewModel.listUpdateState = listUpdateState
 
+                updateNotificationsCounter()
                 updateList()
             }
         }
@@ -172,7 +171,9 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 launch {
                     syncContacts(sp, db.userDao())
                     syncAllMessages(db, sp, dl)
-                    syncNotifications(currentUser, db)
+                    if (syncNotifications(currentUser, db)) {
+                        updateState(currentState.copy(snackBar = SnackBarData(R.string.you_have_new_contact_requests)))
+                    }
                 },
                 launch {
                     uploadPendingMessages(currentUser, db, fu, sp)
@@ -187,6 +188,14 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
             updateState(currentState.copy(refreshing = false))
         }
+    }
+
+    private fun updateNotificationsCounter() {
+        updateState(
+            currentState.copy(
+                newContactsAmount = listUpdateState?.dbNotifications?.size ?: 0
+            )
+        )
     }
 
     private suspend fun updateList() {
@@ -303,10 +312,15 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
-    fun onCountdownSnackBarFinished() {
+    fun onDeleteSnackbarHide() {
         viewModelScope.launch(Dispatchers.IO) {
             onDeleteWaitComplete()
+            clearSnackbarData();
         }
+    }
+
+    fun clearSnackbarData() {
+        updateState(currentState.copy(snackBar = null))
     }
 
     suspend fun onDeleteWaitComplete() {
@@ -331,9 +345,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 is DBMessageWithDBAttachments -> {
                     val message = (currentState.itemToDelete as DBMessageWithDBAttachments)
                     db.archiveDao().insert(message.toArchive())
-                    db.archiveAttachmentsDao().insertAll(message.attachmentParts.map { it.toArchive() })
+                    db.archiveAttachmentsDao()
+                        .insertAll(message.attachmentParts.map { it.toArchive() })
                     db.messagesDao().update(
-                       message.message.message.copy(
+                        message.message.message.copy(
                             markedToDelete = true
                         )
                     )
@@ -501,6 +516,7 @@ data class HomeState(
     val addRequestsToContactsDialogShown: Boolean = false,
     val searchButtonActive: Boolean = false,
     val loading: Boolean = false,
+    val newContactsAmount: Int = 0,
     val addressNotFoundError: Boolean = false,
     val newContactSearchDialogShown: Boolean = false,
     val newContactAddressInput: String = "",

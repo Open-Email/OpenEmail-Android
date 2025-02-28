@@ -432,8 +432,8 @@ suspend fun downloadMessage(
     }
 }
 
-suspend fun syncNotifications(currentUser: UserData, db: AppDatabase) {
-    withContext(Dispatchers.IO) {
+suspend fun syncNotifications(currentUser: UserData, db: AppDatabase): Boolean {
+    return withContext(Dispatchers.IO) {
         val expired = db.notificationsDao().getAll().filter { it.isExpired() }
         db.notificationsDao().deleteList(expired)
 
@@ -453,6 +453,7 @@ suspend fun syncNotifications(currentUser: UserData, db: AppDatabase) {
         }
 
         val contacts = db.userDao().getAll()
+        val oldNotifications = db.notificationsDao().getAll()
 
         val notifications: List<DBNotification> = result?.map {
             async { verifyNotification(it, currentUser) }
@@ -461,7 +462,9 @@ suspend fun syncNotifications(currentUser: UserData, db: AppDatabase) {
             ?.filterNot { notification -> contacts.any { notification.address == it.address } }
             ?: listOf()
 
+        val hasNewNotifications = notifications.any { new -> !oldNotifications.any { old -> old.notificationId == new.notificationId } }
         db.notificationsDao().insertAll(notifications)
+        return@withContext hasNewNotifications
     }
 }
 
@@ -1099,7 +1102,6 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
                 }
             }.awaitAll()
 
-        println(localContacts)
         deleted.filterNotNull().forEach { deletedContact ->
             dao.delete(deletedContact)
         }
