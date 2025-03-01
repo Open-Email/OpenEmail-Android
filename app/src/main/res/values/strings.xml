@@ -1,7 +1,6 @@
 <resources>
     <string name="app_name">OpenEmail</string>
     <string name="onboarding_title">Email of the future, today.</string>
-    <string name="onboarding_text">Experience Spam-Free, Private, and Secure Email by Design</string>
     <string name="address_input_hint">%s address</string>
     <string name="sign_in_button">Sign In</string>
     <string name="signup_button">Sign Up</string>
@@ -127,7 +126,6 @@
     <string name="last_seen">Last seen</string>
     <string name="last_seen_placeholder">Last seen: %s</string>
     <string name="message_deleted">Message deleted</string>
-    <string name="login_title">Set Up Your Mailbox</string>
     <string name="contacts_placeholder">Your contacts list is empty.</string>
     <string name="add_contact">Add to Contacts</string>
     <string name="contact_request_dismissed">Contact request dismissed</string>

@@ -4,7 +4,6 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,8 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -41,7 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
@@ -53,18 +49,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.QR_SCANNER_RESULT
 import com.mercata.pingworks.R
-import com.mercata.pingworks.SETTING_LIST_ITEM_SIZE
 import com.mercata.pingworks.common.Logo
-import com.mercata.pingworks.common.ProfileImage
+import com.mercata.pingworks.common.LogoSize
+import com.mercata.pingworks.common.ProfileView
 import com.mercata.pingworks.sign_in.RequestErrorDialog
 import com.mercata.pingworks.theme.roboto
-import com.mercata.pingworks.utils.getProfilePictureUrl
 
 @Composable
 fun EnterKeysScreen(
@@ -126,8 +120,9 @@ fun EnterKeysScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Logo(
-                        modifier
-                            .padding(top = padding.calculateTopPadding())
+                        modifier = modifier
+                            .padding(top = padding.calculateTopPadding()),
+                        size = LogoSize.Large
                     )
                 }
 
@@ -157,42 +152,11 @@ fun EnterKeysScreen(
                     }
                 }
                 if (state.publicUserData != null) {
-                    Row(
-                        modifier.padding(bottom = MARGIN_DEFAULT),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(modifier.width(MARGIN_DEFAULT))
-                        ProfileImage(
-                            modifier
-                                .size(SETTING_LIST_ITEM_SIZE)
-                                .clip(CircleShape),
-                            state.address.getProfilePictureUrl(),
-                            onError = {
-                                Box(
-                                    modifier
-                                        .size(SETTING_LIST_ITEM_SIZE)
-                                        .background(color = colorScheme.surface)
-                                        .border(
-                                            width = 1.dp,
-                                            color = colorScheme.outline,
-                                            shape = CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = (state.publicUserData?.fullName
-                                            ?: state.address).substring(0, 2),
-                                        style = typography.titleMedium,
-                                        color = colorScheme.onSurface
-                                    )
-                                }
-                            })
-                        Spacer(modifier.width(MARGIN_DEFAULT))
-                        Column(modifier = modifier.weight(1f)) {
-                            Text(state.publicUserData!!.fullName, style = typography.titleMedium)
-                            Text(state.address, style = typography.bodyMedium)
-                        }
-                    }
+                    ProfileView(
+                        modifier = Modifier.padding(MARGIN_DEFAULT),
+                        name = state.publicUserData!!.fullName,
+                        address = state.address
+                    )
                 }
 
                 OutlinedTextField(
