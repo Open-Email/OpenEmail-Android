@@ -20,13 +20,15 @@ import org.koin.core.component.inject
 
 class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
+    private var currentUser: UserData? = null
+
     init {
         val sharedPreferences: SharedPreferences by inject()
-        updateState(currentState.copy(currentUser = sharedPreferences.getUserData()))
-        if (!currentState.currentUser?.address.isNullOrBlank()) {
+        currentUser = sharedPreferences.getUserData()
+        if (!currentUser?.address.isNullOrBlank()) {
             updateState(
                 currentState.copy(
-                    emailInput = currentState.currentUser?.address ?: "",
+                    emailInput = currentUser?.address ?: "",
                     signInButtonActive = true
                 )
             )
@@ -36,6 +38,14 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                 } else {
                     authenticateWithKeys()
                 }
+            }
+            viewModelScope.launch {
+                updateState(currentState.copy(loading = true))
+                when(val call = safeApiCall { getProfilePublicData(currentUser!!.address) }) {
+                    is HttpResult.Error -> updateState(currentState.copy(currentUserPublic = null))
+                    is HttpResult.Success -> updateState(currentState.copy(currentUserPublic = call.data))
+                }
+                updateState(currentState.copy(loading = false))
             }
         }
     }
@@ -60,6 +70,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                 safeApiCall { getProfilePublicData(currentState.emailInput) }) {
                 is HttpResult.Success -> {
                     if (call.data != null) {
+                        updateState(currentState.copy(currentUserPublic = call.data))
                         if (sp.getUserAddress() == currentState.emailInput && sp.isBiometry()) {
                             updateState(currentState.copy(biometryShown = true))
                         } else {
@@ -102,12 +113,12 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
     }
 
     fun openManualEmailInput() {
-        updateState(currentState.copy(currentUser = null))
+        updateState(currentState.copy(currentUserPublic = null))
     }
 
     private fun authenticateWithKeys() {
-        val encryptionKey = currentState.currentUser!!.encryptionKeys.pair.secretKey
-        val signingKey = currentState.currentUser!!.signingKeys.pair.secretKey
+        val encryptionKey = currentUser!!.encryptionKeys.pair.secretKey
+        val signingKey = currentUser!!.signingKeys.pair.secretKey
 
         viewModelScope.launch {
             updateState(currentState.copy(loading = true))
@@ -164,7 +175,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
 
 data class SignInState(
     val emailInput: String = "",
-    val currentUser: UserData? = null,
+    val currentUserPublic: PublicUserData? = null,
     val registrationError: String? = null,
     val biometryShown: Boolean = false,
     val isLoggedIn: Boolean = false,

@@ -2,6 +2,7 @@ package com.mercata.pingworks.sign_in
 
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -112,7 +113,7 @@ fun SignInScreen(
                 }
 
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT * 2))
-                if (state.currentUser == null) {
+                AnimatedVisibility(visible = state.currentUserPublic == null) {
                     OutlinedTextField(
                         value = state.emailInput,
                         onValueChange = { str -> viewModel.onEmailChange(str) },
@@ -156,11 +157,13 @@ fun SignInScreen(
                             }
                         )
                     )
-                } else {
+                }
+
+                AnimatedVisibility(visible = state.currentUserPublic != null) {
                     ProfileView(
                         modifier = Modifier.padding(MARGIN_DEFAULT),
-                        name = state.currentUser!!.name,
-                        address = state.currentUser!!.address
+                        name = state.currentUserPublic?.fullName ?: "",
+                        address = state.currentUserPublic?.address ?: ""
                     )
                 }
 
@@ -182,57 +185,63 @@ fun SignInScreen(
                         fontFamily = roboto
                     )
                 }
-                Button(
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MARGIN_DEFAULT),
-                    colors = ButtonColors(
-                        containerColor = colorScheme.surfaceVariant,
-                        contentColor = colorScheme.primary,
-                        disabledContainerColor = Color.Transparent,
-                        disabledContentColor = colorScheme.surfaceVariant
-                    ), onClick = {
-                        viewModel.openManualEmailInput()
-                    }, enabled = !state.loading
-                ) {
-                    Text(
-                        stringResource(id = R.string.not_your_account_button),
-                    )
+
+                AnimatedVisibility(visible = state.currentUserPublic != null) {
+                    Button(
+                        modifier = modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MARGIN_DEFAULT),
+                        colors = ButtonColors(
+                            containerColor = colorScheme.surfaceVariant,
+                            contentColor = colorScheme.primary,
+                            disabledContainerColor = Color.Transparent,
+                            disabledContentColor = colorScheme.surfaceVariant
+                        ), onClick = {
+                            viewModel.openManualEmailInput()
+                        }, enabled = !state.loading
+                    ) {
+                        Text(
+                            stringResource(id = R.string.not_your_account_button),
+                        )
+                    }
                 }
 
                 Box(contentAlignment = Alignment.Center, modifier = modifier.weight(1f)) {
                     if (state.loading)
                         CircularProgressIndicator(strokeCap = StrokeCap.Round)
                 }
-                Text(
-
-                    String.format(
-                        stringResource(id = R.string.no_account_question),
-                        stringResource(id = R.string.app_name)
-                    ),
-                    modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
-                    style = typography.labelLarge,
-                    color = colorScheme.onSurface,
-                )
-                Spacer(modifier.height(MARGIN_DEFAULT))
-                Button(
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MARGIN_DEFAULT),
-                    colors = ButtonColors(
-                        containerColor = colorScheme.surfaceVariant,
-                        contentColor = colorScheme.primary,
-                        disabledContainerColor = Color.Transparent,
-                        disabledContentColor = colorScheme.surfaceVariant
-                    ), onClick = {
-                        navController.navigate("RegistrationScreen")
-                    }, enabled = !state.loading
-                ) {
-                    Text(
-                        stringResource(id = R.string.registration_button),
-                    )
+                AnimatedVisibility(visible = state.currentUserPublic == null) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            String.format(
+                                stringResource(id = R.string.no_account_question),
+                                stringResource(id = R.string.app_name)
+                            ),
+                            modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                            style = typography.labelLarge,
+                            color = colorScheme.onSurface,
+                        )
+                        Spacer(modifier.height(MARGIN_DEFAULT))
+                        Button(
+                            modifier = modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = MARGIN_DEFAULT),
+                            colors = ButtonColors(
+                                containerColor = colorScheme.surfaceVariant,
+                                contentColor = colorScheme.primary,
+                                disabledContainerColor = Color.Transparent,
+                                disabledContentColor = colorScheme.surfaceVariant
+                            ), onClick = {
+                                navController.navigate("RegistrationScreen")
+                            }, enabled = !state.loading
+                        ) {
+                            Text(
+                                stringResource(id = R.string.registration_button),
+                            )
+                        }
+                        Spacer(modifier = modifier.height(MARGIN_DEFAULT + padding.calculateBottomPadding()))
+                    }
                 }
-                Spacer(modifier = modifier.height(MARGIN_DEFAULT + padding.calculateBottomPadding()))
             }
 
             if (state.registrationError != null) {

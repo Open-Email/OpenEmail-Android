@@ -62,7 +62,7 @@ fun ProfileView(modifier: Modifier = Modifier, name: String, address: Address) {
                 ) {
                     Text(
                         text = (name.takeIf { it.isNotBlank() }
-                            ?: address).substring(0, 2),
+                            ?: address).takeIf { it.isNotBlank() }?.substring(0, 2) ?: "",
                         style = typography.titleMedium,
                         color = colorScheme.onSurface
                     )
