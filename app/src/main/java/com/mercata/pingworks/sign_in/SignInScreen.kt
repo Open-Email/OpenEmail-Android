@@ -2,12 +2,11 @@ package com.mercata.pingworks.sign_in
 
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,8 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -26,7 +23,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.OutlinedTextField
@@ -38,10 +34,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
@@ -52,18 +46,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.R
-import com.mercata.pingworks.SETTING_LIST_ITEM_SIZE
 import com.mercata.pingworks.common.Logo
-import com.mercata.pingworks.common.ProfileImage
+import com.mercata.pingworks.common.LogoSize
+import com.mercata.pingworks.common.ProfileView
 import com.mercata.pingworks.theme.roboto
-import com.mercata.pingworks.utils.getProfilePictureUrl
 
 @Composable
 fun SignInScreen(
@@ -114,28 +106,14 @@ fun SignInScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Logo(
-                        modifier
-                            .padding(top = padding.calculateTopPadding())
+                        modifier = modifier
+                            .padding(top = padding.calculateTopPadding()),
+                        size = LogoSize.Large
                     )
                 }
 
-                Text(
-                    stringResource(id = R.string.login_title),
-                    modifier
-                        .padding(horizontal = MARGIN_DEFAULT)
-                        .align(AbsoluteAlignment.Left),
-                    style = typography.headlineSmall,
-                )
-                Spacer(modifier = modifier.height(MARGIN_DEFAULT / 2))
-                Text(
-                    stringResource(id = R.string.onboarding_text),
-                    modifier
-                        .padding(horizontal = MARGIN_DEFAULT)
-                        .align(AbsoluteAlignment.Left),
-                    style = typography.bodyMedium
-                )
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT * 2))
-                if (state.currentUser == null) {
+                AnimatedVisibility(visible = state.currentUserPublic == null) {
                     OutlinedTextField(
                         value = state.emailInput,
                         onValueChange = { str -> viewModel.onEmailChange(str) },
@@ -179,66 +157,19 @@ fun SignInScreen(
                             }
                         )
                     )
-                } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            stringResource(id = R.string.your_account),
-                            modifier.padding(horizontal = MARGIN_DEFAULT),
-                            style = typography.bodyMedium
-                        )
-                        Spacer(modifier.weight(1f))
-                        TextButton(onClick = {
-                            viewModel.openManualEmailInput()
-                        }) {
-                            Text(
-                                stringResource(id = R.string.not_your_account_button),
-                                modifier.padding(horizontal = MARGIN_DEFAULT),
-                                style = typography.bodyMedium
-                            )
-                        }
-                    }
-                    Row(
-                        modifier.padding(bottom = MARGIN_DEFAULT),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Spacer(modifier.width(MARGIN_DEFAULT))
-                        ProfileImage(
-                            modifier
-                                .size(SETTING_LIST_ITEM_SIZE)
-                                .clip(CircleShape),
-                            state.currentUser!!.address.getProfilePictureUrl(),
-                            onError = {
-                                Box(
-                                    modifier
-                                        .size(SETTING_LIST_ITEM_SIZE)
-                                        .background(color = colorScheme.surface)
-                                        .border(
-                                            width = 1.dp,
-                                            color = colorScheme.outline,
-                                            shape = CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = (state.currentUser!!.name.takeIf { it.isNotBlank() }
-                                            ?: state.currentUser!!.address).substring(0, 2),
-                                        style = typography.titleMedium,
-                                        color = colorScheme.onSurface
-                                    )
-                                }
-                            })
-                        Spacer(modifier.width(MARGIN_DEFAULT))
-                        Column(modifier = modifier.weight(1f)) {
-                            Text(state.currentUser!!.name, style = typography.titleMedium)
-                            Text(state.currentUser!!.address, style = typography.bodyMedium)
-                        }
-                    }
+                }
+
+                AnimatedVisibility(visible = state.currentUserPublic != null) {
+                    ProfileView(
+                        modifier = Modifier.padding(MARGIN_DEFAULT),
+                        name = state.currentUserPublic?.fullName ?: "",
+                        address = state.currentUserPublic?.address ?: ""
+                    )
                 }
 
                 Button(
                     modifier = modifier
                         .padding(horizontal = MARGIN_DEFAULT)
-                        .padding(top = MARGIN_DEFAULT)
                         .fillMaxWidth(),
                     onClick = {
                         viewModel.signInClicked(onNewUser = {
@@ -255,39 +186,62 @@ fun SignInScreen(
                     )
                 }
 
+                AnimatedVisibility(visible = state.currentUserPublic != null) {
+                    Button(
+                        modifier = modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MARGIN_DEFAULT),
+                        colors = ButtonColors(
+                            containerColor = colorScheme.surfaceVariant,
+                            contentColor = colorScheme.primary,
+                            disabledContainerColor = Color.Transparent,
+                            disabledContentColor = colorScheme.surfaceVariant
+                        ), onClick = {
+                            viewModel.openManualEmailInput()
+                        }, enabled = !state.loading
+                    ) {
+                        Text(
+                            stringResource(id = R.string.not_your_account_button),
+                        )
+                    }
+                }
+
                 Box(contentAlignment = Alignment.Center, modifier = modifier.weight(1f)) {
                     if (state.loading)
                         CircularProgressIndicator(strokeCap = StrokeCap.Round)
                 }
-                Text(
-
-                    String.format(
-                        stringResource(id = R.string.no_account_question),
-                        stringResource(id = R.string.app_name)
-                    ),
-                    modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
-                    style = typography.labelLarge,
-                    color = colorScheme.onSurface,
-                )
-                Spacer(modifier.height(MARGIN_DEFAULT))
-                Button(
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MARGIN_DEFAULT),
-                    colors = ButtonColors(
-                        containerColor = colorScheme.surfaceVariant,
-                        contentColor = colorScheme.primary,
-                        disabledContainerColor = Color.Transparent,
-                        disabledContentColor = colorScheme.surfaceVariant
-                    ), onClick = {
-                        navController.navigate("RegistrationScreen")
-                    }, enabled = !state.loading
-                ) {
-                    Text(
-                        stringResource(id = R.string.registration_button),
-                    )
+                AnimatedVisibility(visible = state.currentUserPublic == null) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            String.format(
+                                stringResource(id = R.string.no_account_question),
+                                stringResource(id = R.string.app_name)
+                            ),
+                            modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                            style = typography.labelLarge,
+                            color = colorScheme.onSurface,
+                        )
+                        Spacer(modifier.height(MARGIN_DEFAULT))
+                        Button(
+                            modifier = modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = MARGIN_DEFAULT),
+                            colors = ButtonColors(
+                                containerColor = colorScheme.surfaceVariant,
+                                contentColor = colorScheme.primary,
+                                disabledContainerColor = Color.Transparent,
+                                disabledContentColor = colorScheme.surfaceVariant
+                            ), onClick = {
+                                navController.navigate("RegistrationScreen")
+                            }, enabled = !state.loading
+                        ) {
+                            Text(
+                                stringResource(id = R.string.registration_button),
+                            )
+                        }
+                        Spacer(modifier = modifier.height(MARGIN_DEFAULT + padding.calculateBottomPadding()))
+                    }
                 }
-                Spacer(modifier = modifier.height(MARGIN_DEFAULT + padding.calculateBottomPadding()))
             }
 
             if (state.registrationError != null) {
@@ -330,9 +284,9 @@ fun BiometryEffect(
     onCancelled: () -> Unit,
     onError: ((errorCode: Int) -> Unit)? = null
 ) {
-    val context = LocalContext.current as FragmentActivity
+    val context = LocalContext.current
     LaunchedEffect(key1 = isShown) {
-        if (!isShown) return@LaunchedEffect
+        if (!isShown || context !is FragmentActivity) return@LaunchedEffect
 
         val authCallback = object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
