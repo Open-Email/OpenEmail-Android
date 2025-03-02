@@ -103,7 +103,6 @@ fun SaveKeysSuggestionScreen(
 
             Text(
                 stringResource(id = R.string.review_login_settings),
-                fontFamily = roboto,
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold,
                 softWrap = true
@@ -116,7 +115,6 @@ fun SaveKeysSuggestionScreen(
             ) {
                 Text(
                     stringResource(id = R.string.enable_autologin_feature),
-                    fontFamily = roboto,
                     softWrap = true
                 )
                 Spacer(modifier = modifier.weight(1f))
@@ -132,7 +130,6 @@ fun SaveKeysSuggestionScreen(
                 ) {
                     Text(
                         stringResource(id = R.string.enable_biometric_feature),
-                        fontFamily = roboto,
                         softWrap = true
                     )
                     Spacer(modifier = modifier.weight(1f))
@@ -199,7 +196,6 @@ fun SaveKeysSuggestionScreen(
                     Text(
                         stringResource(id = R.string.consider_saving_warning),
                         textAlign = TextAlign.Center,
-                        fontFamily = roboto,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         softWrap = true
@@ -217,7 +213,6 @@ fun SaveKeysSuggestionScreen(
             ) {
                 Text(
                     stringResource(id = R.string.save_button),
-                    fontFamily = roboto
                 )
             }
 

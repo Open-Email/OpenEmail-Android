@@ -182,7 +182,6 @@ fun SignInScreen(
                 ) {
                     Text(
                         stringResource(id = R.string.sign_in_button),
-                        fontFamily = roboto
                     )
                 }
 

@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +34,7 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -156,6 +158,23 @@ fun EnterKeysScreen(
                     style = typography.headlineSmall,
                 )
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT / 2))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        stringResource(id = R.string.your_account),
+                        modifier.padding(horizontal = MARGIN_DEFAULT),
+                        style = typography.bodyMedium
+                    )
+                    Spacer(modifier.weight(1f))
+                    TextButton(onClick = {
+                        navController.popBackStack()
+                    }) {
+                        Text(
+                            stringResource(id = R.string.not_your_account_button),
+                            modifier.padding(horizontal = MARGIN_DEFAULT),
+                            style = typography.bodyMedium
+                        )
+                    }
+                }
                 AnimatedVisibility(visible = state.publicUserData != null) {
                     ProfileView(
                         modifier = Modifier.padding(MARGIN_DEFAULT),
@@ -247,7 +266,6 @@ fun EnterKeysScreen(
                 ) {
                     Text(
                         stringResource(id = R.string.authenticate_button),
-                        fontFamily = roboto
                     )
                 }
 

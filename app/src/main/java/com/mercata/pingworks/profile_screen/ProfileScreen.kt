@@ -2,6 +2,7 @@
 
 package com.mercata.pingworks.profile_screen
 
+import android.widget.Space
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -10,25 +11,34 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScrollableTabRow
@@ -52,7 +62,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.MARGIN_DEFAULT
+import com.mercata.pingworks.PROFILE_IMAGE_HEIGHT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.common.SwitchViewHolder
@@ -128,11 +140,61 @@ fun SharedTransitionScope.ProfileScreen(
 
         ) { padding ->
         Column(
-            modifier.padding(top = padding.calculateTopPadding())
+            modifier
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(top = padding.calculateTopPadding())
         ) {
+            Box(contentAlignment = Alignment.BottomCenter) {
+                ProfileImage(
+                    modifier
+                        .height(PROFILE_IMAGE_HEIGHT),
+                    imageUrl = state.selectedNewImage?.toString()
+                        ?: state.current?.address?.getProfilePictureUrl() ?: "",
+                    onError = {
+                        Icon(
+                            modifier = modifier.padding(MARGIN_DEFAULT),
+                            painter = painterResource(R.drawable.frame_person),
+                            contentDescription = null,
+                            tint = colorScheme.primary
+                        )
+                    })
+                Row(
+                    modifier = modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    ElevatedButton(onClick = {
+                        documentChooserLauncher.launch(
+                            PickVisualMediaRequest(
+                                mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    }) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(R.drawable.edit),
+                                contentDescription = stringResource(R.string.edit)
+                            )
+                            Spacer(modifier.width(MARGIN_DEFAULT/2))
+                            Text(stringResource(R.string.edit))
+                        }
+                    }
+                    ElevatedButton(onClick = {
+                        viewModel.deleteUserpic()
+                    }) {
+                        Icon(
+                            painter = painterResource(R.drawable.delete),
+                            contentDescription = stringResource(R.string.delete)
+                        )
+                        Spacer(modifier.width(MARGIN_DEFAULT/2))
+                        Text(stringResource(R.string.delete))
+                    }
+                }
+            }
             ScrollableTabRow(selectedTabIndex = pagerState.currentPage,
                 divider = {
-                    HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.outline)
+                    HorizontalDivider(thickness = 2.dp, color = colorScheme.outline)
                 }, tabs = {
                     state.tabs.forEachIndexed { index, tabData ->
                         Tab(selected = pagerState.currentPage == index, onClick = {
@@ -144,8 +206,8 @@ fun SharedTransitionScope.ProfileScreen(
                                 stringResource(tabData.titleResId),
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     color =
-                                    if (pagerState.currentPage == index) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface
+                                    if (pagerState.currentPage == index) colorScheme.primary
+                                    else colorScheme.onSurface
                                 ),
                                 modifier = modifier.padding(MARGIN_DEFAULT)
                             )
@@ -153,11 +215,10 @@ fun SharedTransitionScope.ProfileScreen(
                     }
                 })
 
-            HorizontalPager(state = pagerState) { index ->
+            HorizontalPager(modifier = modifier.fillMaxSize(), state = pagerState) { index ->
                 Column(
                     modifier
                         .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
                         .padding(
                             top = MARGIN_DEFAULT,
                             bottom = MARGIN_DEFAULT + padding.calculateBottomPadding()
@@ -188,7 +249,7 @@ fun SharedTransitionScope.ProfileScreen(
                                             modifier = imageModifier.padding(MARGIN_DEFAULT),
                                             painter = painterResource(R.drawable.frame_person),
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
+                                            tint = colorScheme.primary
                                         )
                                     },
                                     onLoading = {
@@ -199,50 +260,111 @@ fun SharedTransitionScope.ProfileScreen(
                                     })
                             }
 
-                            is ProfileViewModel.InputListItem -> {
-                                AnimatedVisibility(visible = tabData.hintResId != R.string.away_warning || state.current?.away == true) {
-                                    OutlinedTextField(
+                            is ProfileViewModel.InputWithSwitchListItem -> {
+                                Column {
+                                    HorizontalDivider(
                                         modifier = modifier
                                             .fillMaxWidth()
                                             .padding(
-                                                horizontal = MARGIN_DEFAULT,
-                                                vertical = MARGIN_DEFAULT / 2
+                                                start = MARGIN_DEFAULT,
+                                                end = MARGIN_DEFAULT,
+                                                top = MARGIN_DEFAULT
                                             ),
-                                        shape = CircleShape,
-                                        value = tabData.getValue(state),
-                                        label = {
-                                            Text(stringResource(id = tabData.hintResId))
-                                        },
-                                        supportingText = tabData.supportingStringResId?.let {
-                                            {
-                                                Text(
-                                                    text = stringResource(id = it),
-                                                    color = MaterialTheme.colorScheme.error
-                                                )
-                                            }
-                                        },
-                                        keyboardOptions = KeyboardOptions(
-                                            imeAction = ImeAction.Done,
-                                            showKeyboardOnFocus = true,
-                                        ),
-                                        keyboardActions = KeyboardActions(
-                                            onDone = {
-                                                focusManager.clearFocus()
-                                            }
-                                        ),
-                                        onValueChange = { str ->
-                                            tabData.onChanged(
+                                        color = colorScheme.outline,
+                                        thickness = 1.dp
+                                    )
+                                    SwitchViewHolder(
+                                        isChecked = tabData.getSwitchValue(state),
+                                        title = tabData.switchTitle,
+                                        hint = tabData.switchHint,
+                                        onChange = { isChecked ->
+                                            tabData.onSwitchChanged(
                                                 viewModel,
-                                                str
+                                                isChecked
                                             )
                                         })
+                                    AnimatedVisibility(visible = tabData.getSwitchValue(state)) {
+                                        OutlinedTextField(
+                                            modifier = modifier
+                                                .fillMaxWidth()
+                                                .padding(start = MARGIN_DEFAULT, end = MARGIN_DEFAULT, bottom = MARGIN_DEFAULT),
+                                            shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
+                                            value = tabData.getValue(state),
+                                            label = {
+                                                Text(stringResource(id = tabData.hintResId))
+                                            },
+                                            supportingText = tabData.supportingStringResId?.let {
+                                                {
+                                                    Text(
+                                                        text = stringResource(id = it),
+                                                        color = colorScheme.error
+                                                    )
+                                                }
+                                            },
+                                            keyboardOptions = KeyboardOptions(
+                                                imeAction = ImeAction.Unspecified,
+                                                showKeyboardOnFocus = true,
+                                            ),
+
+                                            onValueChange = { str ->
+                                                tabData.onChanged(
+                                                    viewModel,
+                                                    str
+                                                )
+                                            })
+                                    }
+                                    HorizontalDivider(
+                                        modifier = modifier
+                                            .fillMaxWidth()
+                                            .padding(
+                                                start = MARGIN_DEFAULT,
+                                                end = MARGIN_DEFAULT,
+                                            ),
+                                        color = colorScheme.outline,
+                                        thickness = 1.dp
+                                    )
                                 }
+                            }
+
+                            is ProfileViewModel.InputListItem -> {
+                                OutlinedTextField(
+                                    modifier = modifier
+                                        .fillMaxWidth()
+                                        .padding(
+                                            horizontal = MARGIN_DEFAULT,
+                                            vertical = MARGIN_DEFAULT / 2
+                                        ),
+                                    shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
+                                    value = tabData.getValue(state),
+                                    label = {
+                                        Text(stringResource(id = tabData.hintResId))
+                                    },
+                                    supportingText = tabData.supportingStringResId?.let {
+                                        {
+                                            Text(
+                                                text = stringResource(id = it),
+                                                color = colorScheme.error
+                                            )
+                                        }
+                                    },
+                                    keyboardOptions = KeyboardOptions(
+                                        imeAction = ImeAction.Unspecified,
+                                        showKeyboardOnFocus = true,
+                                    ),
+
+                                    onValueChange = { str ->
+                                        tabData.onChanged(
+                                            viewModel,
+                                            str
+                                        )
+                                    })
                             }
 
                             is ProfileViewModel.SwitchListItem -> {
                                 SwitchViewHolder(
                                     isChecked = tabData.getValue(state),
                                     title = tabData.titleResId,
+                                    hint = tabData.getHintResId(state),
                                     onChange = { isChecked ->
                                         tabData.onChanged(
                                             viewModel,
