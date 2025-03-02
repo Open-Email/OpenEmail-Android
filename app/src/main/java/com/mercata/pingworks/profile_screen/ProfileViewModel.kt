@@ -7,6 +7,7 @@ import com.mercata.pingworks.R
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.HttpResult
+import com.mercata.pingworks.utils.deleteUserImage
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.safeApiCall
 import com.mercata.pingworks.utils.updateCall
@@ -108,6 +109,22 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
         }
     }
 
+    fun deleteUserpic() {
+        viewModelScope.launch {
+            updateState(currentState.copy(loading = true))
+            when (safeApiCall { deleteUserImage(sp) }) {
+                is HttpResult.Error -> {
+                    //ignore
+                }
+
+                is HttpResult.Success -> {
+                    updateState(currentState)
+                }
+            }
+            updateState(currentState.copy(loading = false))
+        }
+    }
+
     interface TabData {
         val titleResId: Int
         val listItems: ArrayList<TabListItem>
@@ -116,7 +133,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
     data class GeneralTabData(
         override val titleResId: Int = R.string.general,
         override val listItems: ArrayList<TabListItem> = arrayListOf(
-            UserPicListItem(),
+            //UserPicListItem(),
             InputListItem(
                 hintResId = R.string.full_name_hint,
                 onChanged = { viewModel, str ->
@@ -153,11 +170,11 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                 getValue = { state -> state.current?.about ?: "" },
                 getSavedData = { state -> state.saved?.about ?: "" }
             ),
-            SwitchListItem(
-                R.string.away,
-                getValue = { state -> state.current?.away ?: false },
-                getSavedData = { state -> state.saved?.away ?: false },
-                onChanged = { viewModel, isChecked ->
+            InputWithSwitchListItem(
+                switchTitle = R.string.away,
+                getSwitchValue = { state -> state.current?.away ?: false },
+                getSwitchSavedData = { state -> state.saved?.away ?: false },
+                onSwitchChanged = { viewModel, isChecked ->
                     viewModel.updateState(
                         viewModel.currentState.copy(
                             current = viewModel.currentState.current?.copy(
@@ -165,8 +182,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                             )
                         )
                     )
-                }),
-            InputListItem(
+                },
                 hintResId = R.string.away_warning,
                 onChanged = { viewModel, str ->
                     viewModel.updateState(
@@ -187,6 +203,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
             SwitchListItem(
                 R.string.last_seen_public,
                 getValue = { state -> state.current?.lastSeenPublic ?: false },
+                getHintResId = { state -> if (state.current?.lastSeenPublic == true) R.string.enabled_last_seen_public_hint else R.string.disabled_last_seen_public_hint },
                 getSavedData = { state -> state.saved?.lastSeenPublic ?: false },
                 onChanged = { viewModel, isChecked ->
                     viewModel.updateState(
@@ -201,6 +218,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                 R.string.public_access,
                 getValue = { state -> state.current?.publicAccess ?: false },
                 getSavedData = { state -> state.saved?.publicAccess ?: false },
+                getHintResId = { state -> if (state.current?.publicAccess == true) R.string.enabled_public_access_hint else R.string.disabled_public_access_hint },
                 onChanged = { viewModel, isChecked ->
                     viewModel.updateState(
                         viewModel.currentState.copy(
@@ -486,6 +504,25 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
         override fun hasChanges(state: ProfileState): Boolean = state.selectedNewImage != null
     }
 
+    data class InputWithSwitchListItem(
+        val switchTitle: Int,
+        val switchHint: Int? = null,
+        val getSwitchValue: (state: ProfileState) -> Boolean,
+        val onSwitchChanged: (viewModel: ProfileViewModel, isChecked: Boolean) -> Unit,
+        val getSwitchSavedData: (state: ProfileState) -> Boolean,
+
+        val hintResId: Int,
+        val supportingStringResId: Int? = null,
+        val onChanged: (viewModel: ProfileViewModel, str: String) -> Unit,
+        val getValue: (state: ProfileState) -> String,
+        val getSavedData: (state: ProfileState) -> String
+    ) : TabListItem {
+        override fun hasChanges(state: ProfileState): Boolean =
+            getValue(state) != getSavedData(state) || getSwitchValue(state) != getSwitchSavedData(
+                state
+            )
+    }
+
     data class InputListItem(
         val hintResId: Int,
         val supportingStringResId: Int? = null,
@@ -500,7 +537,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
     data class SwitchListItem(
         val titleResId: Int,
-        val hintResId: Int? = null,
+        val getHintResId: (state: ProfileState) -> Int?,
         val getValue: (state: ProfileState) -> Boolean,
         val onChanged: (viewModel: ProfileViewModel, isChecked: Boolean) -> Unit,
         val getSavedData: (state: ProfileState) -> Boolean

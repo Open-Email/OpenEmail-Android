@@ -2,6 +2,8 @@
 
 package com.mercata.pingworks.contact_details
 
+import android.text.format.DateUtils
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -54,8 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
-import com.mercata.pingworks.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.pingworks.MARGIN_DEFAULT
+import com.mercata.pingworks.PROFILE_IMAGE_HEIGHT
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.common.SwitchViewHolder
@@ -63,8 +65,7 @@ import com.mercata.pingworks.utils.getProfilePictureUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.ZoneId
-import java.time.ZonedDateTime
+import java.time.Instant
 
 @Composable
 fun SharedTransitionScope.ContactDetailsScreen(
@@ -76,7 +77,6 @@ fun SharedTransitionScope.ContactDetailsScreen(
 
     val coroutineScope = rememberCoroutineScope()
     val state by viewModel.state.collectAsState()
-    val imageSize = remember { 300.dp }
     val snackBarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
@@ -105,12 +105,13 @@ fun SharedTransitionScope.ContactDetailsScreen(
         },
         topBar = {
             TopAppBar(title = {
-                if (state.loading) {
+                AnimatedVisibility(visible = state.loading) {
                     CircularProgressIndicator(
                         modifier = modifier.size(28.dp),
                         strokeCap = StrokeCap.Round
                     )
-                } else {
+                }
+                AnimatedVisibility(visible = state.loading.not()) {
                     Text(
                         state.dbContact?.name ?: state.contact?.fullName
                         ?: stringResource(R.string.profile)
@@ -199,7 +200,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
         ) {
             ProfileImage(
                 modifier
-                    .height(imageSize)
+                    .height(PROFILE_IMAGE_HEIGHT)
                 //Elevation bug under the navigation drawer
                 /*.sharedBounds(
                     sharedContentState = rememberSharedContentState(
@@ -217,22 +218,26 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     )
                 })
 
-            Spacer(modifier.height(MARGIN_DEFAULT * 2))
-            state.contact?.fullName?.let { name ->
-                Text(
-                    name,
-                    modifier.padding(horizontal = MARGIN_DEFAULT),
-                    style = typography.titleMedium
-                )
+            AnimatedVisibility(visible = state.contact != null) {
+                Column {
+                    Spacer(modifier.height(MARGIN_DEFAULT * 2))
+                    state.contact?.fullName?.let { name ->
+                        Text(
+                            name,
+                            modifier.padding(horizontal = MARGIN_DEFAULT),
+                            style = typography.titleMedium
+                        )
+                    }
+                    Spacer(modifier.height(MARGIN_DEFAULT / 4))
+                    Text(
+                        state.address,
+                        modifier.padding(horizontal = MARGIN_DEFAULT),
+                        style = typography.bodyMedium.copy(color = colorScheme.outlineVariant),
+                    )
+                    Spacer(modifier.height(MARGIN_DEFAULT))
+                    ContactDivider(modifier.padding(horizontal = MARGIN_DEFAULT))
+                }
             }
-            Spacer(modifier.height(MARGIN_DEFAULT / 4))
-            Text(
-                state.address,
-                modifier.padding(horizontal = MARGIN_DEFAULT),
-                style = typography.bodyMedium.copy(color = colorScheme.outlineVariant),
-            )
-            Spacer(modifier.height(MARGIN_DEFAULT))
-            ContactDivider(modifier.padding(horizontal = MARGIN_DEFAULT))
             if (state.type == ContactType.SavedContact) {
                 SwitchViewHolder(
                     isChecked = state.dbContact?.receiveBroadcasts ?: false,
@@ -242,18 +247,21 @@ fun SharedTransitionScope.ContactDetailsScreen(
                 Spacer(modifier.height(MARGIN_DEFAULT / 2))
             }
 
-            state.contact?.run {
+            state.contact.let {
                 Column(modifier.padding(MARGIN_DEFAULT)) {
-                    lastSeen?.let {
-                        DataRow(
-                            title = stringResource(R.string.last_seen),
-                            description = ZonedDateTime.ofInstant(
-                                it, ZoneId.systemDefault()
-                            ).format(DEFAULT_DATE_TIME_FORMAT)
-                        )
-                        ContactDivider(modifier.padding(top = MARGIN_DEFAULT))
+                    AnimatedVisibility(visible = it?.lastSeen != null) {
+                        Column {
+                            DataRow(
+                                title = stringResource(R.string.last_seen),
+                                description = DateUtils.getRelativeTimeSpanString(
+                                    (it?.lastSeen ?: Instant.now()).toEpochMilli(),
+                                ).toString()
+                            )
+                            ContactDivider(modifier.padding(top = MARGIN_DEFAULT))
+                        }
                     }
-                    if (!status.isNullOrBlank() || !about.isNullOrBlank()) {
+
+                    AnimatedVisibility(visible = !it?.status.isNullOrBlank() || !it?.about.isNullOrBlank()) {
                         Text(
                             stringResource(R.string.current),
                             modifier = modifier.padding(
@@ -263,13 +271,13 @@ fun SharedTransitionScope.ContactDetailsScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    if (!status.isNullOrBlank()) {
-                        Text("${stringResource(R.string.status)}: $status")
+                    AnimatedVisibility(visible = !it?.status.isNullOrBlank()) {
+                        Text("${stringResource(R.string.status)}: ${it?.status}")
                     }
-                    if (!about.isNullOrBlank()) {
-                        Text("${stringResource(R.string.about)}: $about")
+                    AnimatedVisibility(visible = !it?.about.isNullOrBlank()) {
+                        Text("${stringResource(R.string.about)}: ${it?.about}")
                     }
-                    if (!work.isNullOrBlank() || !organization.isNullOrBlank() || !department.isNullOrBlank() || !jobTitle.isNullOrBlank()) {
+                    AnimatedVisibility(visible = !it?.work.isNullOrBlank() || !it?.organization.isNullOrBlank() || !it?.department.isNullOrBlank() || !it?.jobTitle.isNullOrBlank()) {
                         Text(
                             stringResource(R.string.work),
                             modifier = modifier.padding(
@@ -279,19 +287,19 @@ fun SharedTransitionScope.ContactDetailsScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    if (!work.isNullOrBlank()) {
-                        Text("${stringResource(R.string.work)}: $work")
+                    AnimatedVisibility(visible = !it?.work.isNullOrBlank()) {
+                        Text("${stringResource(R.string.work)}: ${it?.work}")
                     }
-                    if (!organization.isNullOrBlank()) {
-                        Text("${stringResource(R.string.organization)}: $organization")
+                    AnimatedVisibility(visible = !it?.organization.isNullOrBlank()) {
+                        Text("${stringResource(R.string.organization)}: ${it?.organization}")
                     }
-                    if (!department.isNullOrBlank()) {
-                        Text("${stringResource(R.string.department)}: $department")
+                    AnimatedVisibility(visible = !it?.department.isNullOrBlank()) {
+                        Text("${stringResource(R.string.department)}: ${it?.department}")
                     }
-                    if (!jobTitle.isNullOrBlank()) {
-                        Text("${stringResource(R.string.jobTitle)}: $jobTitle")
+                    AnimatedVisibility(visible = !it?.jobTitle.isNullOrBlank()) {
+                        Text("${stringResource(R.string.jobTitle)}: ${it?.jobTitle}")
                     }
-                    if (!gender.isNullOrBlank() || !relationshipStatus.isNullOrBlank() || !education.isNullOrBlank() || !language.isNullOrBlank() || !placesLived.isNullOrBlank() || !notes.isNullOrBlank()) {
+                    AnimatedVisibility(visible = !it?.gender.isNullOrBlank() || !it?.relationshipStatus.isNullOrBlank() || !it?.education.isNullOrBlank() || !it?.language.isNullOrBlank() || !it?.placesLived.isNullOrBlank() || !it?.notes.isNullOrBlank()) {
                         Text(
                             stringResource(R.string.personal),
                             modifier = modifier.padding(
@@ -301,25 +309,25 @@ fun SharedTransitionScope.ContactDetailsScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    if (!gender.isNullOrBlank()) {
-                        Text("${stringResource(R.string.gender)}: $gender")
+                    AnimatedVisibility(visible = !it?.gender.isNullOrBlank()) {
+                        Text("${stringResource(R.string.gender)}: ${it?.gender}")
                     }
-                    if (!relationshipStatus.isNullOrBlank()) {
-                        Text("${stringResource(R.string.relationshipStatus)}: $relationshipStatus")
+                    AnimatedVisibility(visible = !it?.relationshipStatus.isNullOrBlank()) {
+                        Text("${stringResource(R.string.relationshipStatus)}: ${it?.relationshipStatus}")
                     }
-                    if (!education.isNullOrBlank()) {
-                        Text("${stringResource(R.string.education)}: $education")
+                    AnimatedVisibility(visible = !it?.education.isNullOrBlank()) {
+                        Text("${stringResource(R.string.education)}: ${it?.education}")
                     }
-                    if (!language.isNullOrBlank()) {
-                        Text("${stringResource(R.string.language)}: $language")
+                    AnimatedVisibility(visible = !it?.language.isNullOrBlank()) {
+                        Text("${stringResource(R.string.language)}: ${it?.language}")
                     }
-                    if (!placesLived.isNullOrBlank()) {
-                        Text("${stringResource(R.string.placesLived)}: $placesLived")
+                    AnimatedVisibility(visible = !it?.placesLived.isNullOrBlank()) {
+                        Text("${stringResource(R.string.placesLived)}: ${it?.placesLived}")
                     }
-                    if (!notes.isNullOrBlank()) {
-                        Text("${stringResource(R.string.notes)}: $notes")
+                    AnimatedVisibility(visible = !it?.notes.isNullOrBlank()) {
+                        Text("${stringResource(R.string.notes)}: ${it?.notes}")
                     }
-                    if (!interests.isNullOrBlank() || !books.isNullOrBlank() || !music.isNullOrBlank() || !movies.isNullOrBlank() || !sports.isNullOrBlank()) {
+                    AnimatedVisibility(visible = !it?.interests.isNullOrBlank() || !it?.books.isNullOrBlank() || !it?.music.isNullOrBlank() || !it?.movies.isNullOrBlank() || !it?.sports.isNullOrBlank()) {
                         Text(
                             stringResource(R.string.interests),
                             modifier = modifier.padding(
@@ -329,22 +337,22 @@ fun SharedTransitionScope.ContactDetailsScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    if (!interests.isNullOrBlank()) {
-                        Text("${stringResource(R.string.interests)}: $interests")
+                    AnimatedVisibility(visible = !it?.interests.isNullOrBlank()) {
+                        Text("${stringResource(R.string.interests)}: ${it?.interests}")
                     }
-                    if (!books.isNullOrBlank()) {
-                        Text("${stringResource(R.string.books)}: $books")
+                    AnimatedVisibility(visible = !it?.books.isNullOrBlank()) {
+                        Text("${stringResource(R.string.books)}: ${it?.books}")
                     }
-                    if (!movies.isNullOrBlank()) {
-                        Text("${stringResource(R.string.movies)}: $movies")
+                    AnimatedVisibility(visible = !it?.movies.isNullOrBlank()) {
+                        Text("${stringResource(R.string.movies)}: ${it?.movies}")
                     }
-                    if (!music.isNullOrBlank()) {
-                        Text("${stringResource(R.string.music)}: $music")
+                    AnimatedVisibility(visible = !it?.music.isNullOrBlank()) {
+                        Text("${stringResource(R.string.music)}: ${it?.music}")
                     }
-                    if (!sports.isNullOrBlank()) {
-                        Text("${stringResource(R.string.sports)}: $sports")
+                    AnimatedVisibility(visible = !it?.sports.isNullOrBlank()) {
+                        Text("${stringResource(R.string.sports)}: ${it?.sports}")
                     }
-                    if (!website.isNullOrBlank() || !location.isNullOrBlank() || !mailingAddress.isNullOrBlank() || !phone.isNullOrBlank() || !streams.isNullOrBlank()) {
+                    AnimatedVisibility(visible = !it?.website.isNullOrBlank() || !it?.location.isNullOrBlank() || !it?.mailingAddress.isNullOrBlank() || !it?.phone.isNullOrBlank() || !it?.streams.isNullOrBlank()) {
                         Text(
                             stringResource(R.string.contacts),
                             modifier = modifier.padding(
@@ -354,20 +362,20 @@ fun SharedTransitionScope.ContactDetailsScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    if (!website.isNullOrBlank()) {
-                        Text("${stringResource(R.string.website)}: $website")
+                    AnimatedVisibility(visible = !it?.website.isNullOrBlank()) {
+                        Text("${stringResource(R.string.website)}: ${it?.website}")
                     }
-                    if (!location.isNullOrBlank()) {
-                        Text("${stringResource(R.string.location)}: $location")
+                    AnimatedVisibility(visible = !it?.location.isNullOrBlank()) {
+                        Text("${stringResource(R.string.location)}: ${it?.location}")
                     }
-                    if (!mailingAddress.isNullOrBlank()) {
-                        Text("${stringResource(R.string.mailingAddress)}: $mailingAddress")
+                    AnimatedVisibility(visible = !it?.mailingAddress.isNullOrBlank()) {
+                        Text("${stringResource(R.string.mailingAddress)}: ${it?.mailingAddress}")
                     }
-                    if (!phone.isNullOrBlank()) {
-                        Text("${stringResource(R.string.phone)}: $phone")
+                    AnimatedVisibility(visible = !it?.phone.isNullOrBlank()) {
+                        Text("${stringResource(R.string.phone)}: ${it?.phone}")
                     }
-                    if (!streams.isNullOrBlank()) {
-                        Text("${stringResource(R.string.streams)}: $streams")
+                    AnimatedVisibility(visible = !it?.streams.isNullOrBlank()) {
+                        Text("${stringResource(R.string.streams)}: ${it?.streams}")
                     }
                 }
             }

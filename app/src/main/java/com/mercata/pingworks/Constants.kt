@@ -4,6 +4,7 @@ import androidx.compose.ui.unit.dp
 import java.time.format.DateTimeFormatter
 
 val MESSAGE_LIST_ITEM_HEIGHT = 152.dp
+val PROFILE_IMAGE_HEIGHT = 300.dp
 val CONTACT_LIST_ITEM_HEIGHT = 72.dp
 val ATTACHMENT_LIST_ITEM_HEIGHT = 64.dp
 val CONTACT_LIST_ITEM_IMAGE_SIZE = 40.dp

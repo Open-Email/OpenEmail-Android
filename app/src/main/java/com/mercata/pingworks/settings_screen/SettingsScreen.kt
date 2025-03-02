@@ -191,7 +191,6 @@ fun SettingsScreen(
                                 Text(
                                     text = stringResource(id = R.string.logout_button),
                                     color = MaterialTheme.colorScheme.error,
-                                    fontFamily = roboto,
                                     fontWeight = FontWeight.Bold,
                                     softWrap = true
                                 )

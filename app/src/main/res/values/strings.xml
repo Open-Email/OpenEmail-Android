@@ -94,11 +94,11 @@
     <string name="personal_settings">Personal</string>
     <string name="status">Status</string>
     <string name="about">About</string>
-    <string name="gender">Gender</string>
-    <string name="language">Language</string>
+    <string name="gender">Gender/Nouns</string>
+    <string name="language">Languages</string>
     <string name="relationshipStatus">Relationship status</string>
     <string name="education">Education</string>
-    <string name="placesLived">Places lived</string>
+    <string name="placesLived">Places</string>
     <string name="notes">Notes</string>
     <string name="work">Work</string>
     <string name="department">Department</string>
@@ -159,4 +159,8 @@
     <string name="readers">Readers:</string>
     <string name="request">Request</string>
     <string name="you_have_new_contact_requests">You have new contact requests</string>
+    <string name="enabled_last_seen_public_hint">Your last activity time is shown in your profile.</string>
+    <string name="disabled_last_seen_public_hint">Your last activity time is not tracked in your profile.</string>
+    <string name="enabled_public_access_hint">You will receive contact requests.</string>
+    <string name="disabled_public_access_hint">You will not receive contact requests.</string>
 </resources>
