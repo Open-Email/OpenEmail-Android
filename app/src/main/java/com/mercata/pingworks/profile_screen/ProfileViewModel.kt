@@ -202,9 +202,9 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
         override val listItems: ArrayList<TabListItem> = arrayListOf(
             SwitchListItem(
                 R.string.last_seen_public,
-                getValue = { state -> state.current?.lastSeenPublic ?: false },
-                getHintResId = { state -> if (state.current?.lastSeenPublic == true) R.string.enabled_last_seen_public_hint else R.string.disabled_last_seen_public_hint },
-                getSavedData = { state -> state.saved?.lastSeenPublic ?: false },
+                getValue = { state -> state.current?.lastSeenPublic ?: true },
+                getHintResId = { state -> if (state.current?.lastSeenPublic != false) R.string.enabled_last_seen_public_hint else R.string.disabled_last_seen_public_hint },
+                getSavedData = { state -> state.saved?.lastSeenPublic ?: true },
                 onChanged = { viewModel, isChecked ->
                     viewModel.updateState(
                         viewModel.currentState.copy(
@@ -216,9 +216,9 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                 }),
             SwitchListItem(
                 R.string.public_access,
-                getValue = { state -> state.current?.publicAccess ?: false },
-                getSavedData = { state -> state.saved?.publicAccess ?: false },
-                getHintResId = { state -> if (state.current?.publicAccess == true) R.string.enabled_public_access_hint else R.string.disabled_public_access_hint },
+                getValue = { state -> state.current?.publicAccess ?: true },
+                getSavedData = { state -> state.saved?.publicAccess ?: true },
+                getHintResId = { state -> if (state.current?.publicAccess != false) R.string.enabled_public_access_hint else R.string.disabled_public_access_hint },
                 onChanged = { viewModel, isChecked ->
                     viewModel.updateState(
                         viewModel.currentState.copy(
