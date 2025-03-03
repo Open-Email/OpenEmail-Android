@@ -44,6 +44,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     init {
         viewModelScope.launch(Dispatchers.IO) {
             val db: AppDatabase by inject()
+            val sp: SharedPreferences by inject()
             initDraftId()
 
             launch {
@@ -67,7 +68,8 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                 updateState(currentState.copy(addressLoading = true))
                 val selectedContactAddresses: String =
                     savedStateHandle.get<String>("contactAddress") ?: ""
-                selectedContactAddresses.split(",").filterNot { it.isBlank() }
+                selectedContactAddresses.split(",")
+                    .filterNot { it.isBlank() || it == sp.getUserAddress() }
                     .takeIf { it.isNotEmpty() }?.map { address ->
                         launch(Dispatchers.IO) {
                             addAddress(address)
