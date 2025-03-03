@@ -57,7 +57,7 @@
     <string name="clear_button">Clear</string>
     <string name="attachments_label">Attachments:</string>
     <string name="subject">Subject</string>
-    <string name="to_placeholder">To:</string>
+    <string name="search_contacts">Search contacts</string>
     <string name="subject_placeholder">Subject:</string>
     <string name="body_placeholder">Say something…</string>
     <string name="empty_email_error">Add address field or use Broadcast</string>
