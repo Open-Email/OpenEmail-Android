@@ -215,6 +215,20 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                     )
                 }),
             SwitchListItem(
+                R.string.public_links_querying,
+                getValue = { state -> state.current?.publicLinks ?: true },
+                getHintResId = { _ -> R.string.public_links_querying_hint },
+                getSavedData = { state -> state.saved?.publicLinks ?: true },
+                onChanged = { viewModel, isChecked ->
+                    viewModel.updateState(
+                        viewModel.currentState.copy(
+                            current = viewModel.currentState.current?.copy(
+                                publicLinks = isChecked
+                            )
+                        )
+                    )
+                }),
+            SwitchListItem(
                 R.string.public_access,
                 getValue = { state -> state.current?.publicAccess ?: true },
                 getSavedData = { state -> state.saved?.publicAccess ?: true },

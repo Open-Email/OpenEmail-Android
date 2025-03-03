@@ -2,7 +2,6 @@
 
 package com.mercata.pingworks.profile_screen
 
-import android.widget.Space
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -153,10 +152,10 @@ fun SharedTransitionScope.ProfileScreen(
                         ?: state.current?.address?.getProfilePictureUrl() ?: "",
                     onError = {
                         Icon(
-                            modifier = modifier.padding(MARGIN_DEFAULT),
-                            painter = painterResource(R.drawable.frame_person),
+                            painter = painterResource(R.drawable.contacts),
+                            modifier = Modifier.size(100.dp),
                             contentDescription = null,
-                            tint = colorScheme.primary
+                            tint = colorScheme.outline
                         )
                     })
                 Row(
@@ -176,7 +175,7 @@ fun SharedTransitionScope.ProfileScreen(
                                 painter = painterResource(R.drawable.edit),
                                 contentDescription = stringResource(R.string.edit)
                             )
-                            Spacer(modifier.width(MARGIN_DEFAULT/2))
+                            Spacer(modifier.width(MARGIN_DEFAULT / 2))
                             Text(stringResource(R.string.edit))
                         }
                     }
@@ -187,7 +186,7 @@ fun SharedTransitionScope.ProfileScreen(
                             painter = painterResource(R.drawable.delete),
                             contentDescription = stringResource(R.string.delete)
                         )
-                        Spacer(modifier.width(MARGIN_DEFAULT/2))
+                        Spacer(modifier.width(MARGIN_DEFAULT / 2))
                         Text(stringResource(R.string.delete))
                     }
                 }
@@ -287,7 +286,11 @@ fun SharedTransitionScope.ProfileScreen(
                                         OutlinedTextField(
                                             modifier = modifier
                                                 .fillMaxWidth()
-                                                .padding(start = MARGIN_DEFAULT, end = MARGIN_DEFAULT, bottom = MARGIN_DEFAULT),
+                                                .padding(
+                                                    start = MARGIN_DEFAULT,
+                                                    end = MARGIN_DEFAULT,
+                                                    bottom = MARGIN_DEFAULT
+                                                ),
                                             shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
                                             value = tabData.getValue(state),
                                             label = {

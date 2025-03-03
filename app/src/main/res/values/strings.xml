@@ -163,4 +163,6 @@
     <string name="disabled_last_seen_public_hint">Your last activity time is not tracked in your profile.</string>
     <string name="enabled_public_access_hint">You will receive contact requests.</string>
     <string name="disabled_public_access_hint">You will not receive contact requests.</string>
+    <string name="public_links_querying">Public links querying</string>
+    <string name="public_links_querying_hint">When enabled, others may query for existence of a particular contact in your address book.</string>
 </resources>

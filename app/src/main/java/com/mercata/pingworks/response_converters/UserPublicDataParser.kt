@@ -66,6 +66,7 @@ class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
             lastSigningKeyAlgorithm = lastSigningData?.get("algorithm".lowercase()),
             away = map["Away".lowercase()]?.equals("Yes", true),
             publicAccess = map["Public-Access".lowercase()]?.equals("Yes", true),
+            publicLinks = map["Public-Links".lowercase()]?.equals("Yes", true),
             awayWarning = map["Away-Warning".lowercase()],
             status = map["Status".lowercase()],
             about = map["About".lowercase()],
