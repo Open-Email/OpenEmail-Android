@@ -109,7 +109,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
         }
     }
 
-    fun deleteUserpic() {
+    fun deleteUserpic(onSuccess: () -> Unit) {
         viewModelScope.launch {
             updateState(currentState.copy(loading = true))
             when (safeApiCall { deleteUserImage(sp) }) {
@@ -119,6 +119,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
                 is HttpResult.Success -> {
                     updateState(currentState)
+                    onSuccess()
                 }
             }
             updateState(currentState.copy(loading = false))
@@ -554,5 +555,5 @@ data class ProfileState(
     val selectedNewImage: Uri? = null,
     val tabs: ArrayList<ProfileViewModel.TabData> = arrayListOf()
 ) {
-    fun hasChanges(): Boolean = tabs.any { it.listItems.any { item -> item.hasChanges(this) } }
+    fun hasChanges(): Boolean = selectedNewImage != null || tabs.any { it.listItems.any { item -> item.hasChanges(this) } }
 }

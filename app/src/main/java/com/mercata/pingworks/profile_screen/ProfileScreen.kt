@@ -2,7 +2,6 @@
 
 package com.mercata.pingworks.profile_screen
 
-import android.widget.Space
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -55,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -62,6 +62,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.Coil
 import com.mercata.pingworks.DEFAULT_CORNER_RADIUS
 import com.mercata.pingworks.MARGIN_DEFAULT
 import com.mercata.pingworks.PROFILE_IMAGE_HEIGHT
@@ -83,6 +84,7 @@ fun SharedTransitionScope.ProfileScreen(
     val pagerState = rememberPagerState(pageCount = { state.tabs.size })
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
 
     val documentChooserLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -153,10 +155,10 @@ fun SharedTransitionScope.ProfileScreen(
                         ?: state.current?.address?.getProfilePictureUrl() ?: "",
                     onError = {
                         Icon(
-                            modifier = modifier.padding(MARGIN_DEFAULT),
-                            painter = painterResource(R.drawable.frame_person),
+                            painterResource(R.drawable.contacts),
+                            modifier = Modifier.size(100.dp),
                             contentDescription = null,
-                            tint = colorScheme.primary
+                            tint = colorScheme.outline
                         )
                     })
                 Row(
@@ -176,18 +178,26 @@ fun SharedTransitionScope.ProfileScreen(
                                 painter = painterResource(R.drawable.edit),
                                 contentDescription = stringResource(R.string.edit)
                             )
-                            Spacer(modifier.width(MARGIN_DEFAULT/2))
+                            Spacer(modifier.width(MARGIN_DEFAULT / 2))
                             Text(stringResource(R.string.edit))
                         }
                     }
                     ElevatedButton(onClick = {
-                        viewModel.deleteUserpic()
+                        viewModel.deleteUserpic {
+                            state.current?.address?.let { address ->
+
+                                //TODO remove cached image from coil
+                                Coil.imageLoader(context).diskCache?.remove(
+                                    address
+                                )
+                            }
+                        }
                     }) {
                         Icon(
                             painter = painterResource(R.drawable.delete),
                             contentDescription = stringResource(R.string.delete)
                         )
-                        Spacer(modifier.width(MARGIN_DEFAULT/2))
+                        Spacer(modifier.width(MARGIN_DEFAULT / 2))
                         Text(stringResource(R.string.delete))
                     }
                 }
@@ -287,7 +297,11 @@ fun SharedTransitionScope.ProfileScreen(
                                         OutlinedTextField(
                                             modifier = modifier
                                                 .fillMaxWidth()
-                                                .padding(start = MARGIN_DEFAULT, end = MARGIN_DEFAULT, bottom = MARGIN_DEFAULT),
+                                                .padding(
+                                                    start = MARGIN_DEFAULT,
+                                                    end = MARGIN_DEFAULT,
+                                                    bottom = MARGIN_DEFAULT
+                                                ),
                                             shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
                                             value = tabData.getValue(state),
                                             label = {
