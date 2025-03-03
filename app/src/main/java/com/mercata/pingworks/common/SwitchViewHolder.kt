@@ -4,7 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -33,7 +32,12 @@ fun SwitchViewHolder(
             }
             .padding(horizontal = MARGIN_DEFAULT, vertical = MARGIN_DEFAULT / 2)
     ) {
-        Column(verticalArrangement = Arrangement.Center) {
+        Column(
+            modifier = modifier
+                .weight(1f)
+                .padding(end = MARGIN_DEFAULT),
+            verticalArrangement = Arrangement.Center
+        ) {
             Text(
                 stringResource(id = title),
                 softWrap = true
@@ -47,7 +51,6 @@ fun SwitchViewHolder(
             }
 
         }
-        Spacer(modifier = modifier.weight(1f))
         Switch(
             checked = isChecked,
             onCheckedChange = { onChange(it) })

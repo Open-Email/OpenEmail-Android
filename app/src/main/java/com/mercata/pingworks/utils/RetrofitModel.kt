@@ -160,6 +160,9 @@ suspend fun updateCall(user: UserData, updateData: PublicUserData): Response<Voi
             publicAccess?.let {
                 postData.add("Public-Access: ${if (it) "Yes" else "No"}")
             }
+            publicLinks?.let {
+                postData.add("Public-Links: ${if (it) "Yes" else "No"}")
+            }
             away?.let {
                 postData.add("Away: ${if (it) "Yes" else "No"}")
             }
@@ -1012,9 +1015,6 @@ suspend fun saveMessagesToDb(
 ) {
     withContext(Dispatchers.IO) {
         val saved = messagesDao.getAll()
-
-        val newResults =
-            results.filterNot { envelope -> saved.any { dbMessage -> dbMessage.messageId == envelope.messageId } }
 
         val removed =
             saved.filterNot { dbMessage -> results.any { envelope -> envelope.messageId == dbMessage.messageId } }
