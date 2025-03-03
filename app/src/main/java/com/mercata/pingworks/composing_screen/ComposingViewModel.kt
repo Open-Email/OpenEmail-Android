@@ -8,10 +8,11 @@ import androidx.lifecycle.viewModelScope
 import com.mercata.pingworks.AbstractViewModel
 import com.mercata.pingworks.R
 import com.mercata.pingworks.db.AppDatabase
-import com.mercata.pingworks.db.contacts.DBContact
+import com.mercata.pingworks.db.contacts.toPublicUserData
 import com.mercata.pingworks.db.drafts.DBDraft
 import com.mercata.pingworks.db.drafts.draft_reader.toPublicUserData
 import com.mercata.pingworks.db.messages.MessageWithAuthor
+import com.mercata.pingworks.db.notifications.toPublicUserData
 import com.mercata.pingworks.emailRegex
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.models.toDBDraftReader
@@ -90,10 +91,21 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
     private suspend fun updateAvailableContacts() {
         withContext(Dispatchers.IO) {
+            val allContacts: List<PublicUserData> =
+                (db.userDao().getAll().map { it.toPublicUserData() } + db.notificationsDao()
+                    .getAll()
+                    .map { it.toPublicUserData() }).toSet().toList()
+                    .sortedBy { it.fullName.takeIf { name -> name.isNotBlank() } ?: it.address }
+
+            val currentUserAddress: String = sp.getUserAddress() ?: ""
             currentState.contacts.clear()
             currentState.contacts.addAll(
-                db.userDao().getAll()
-                    .filterNot { contact -> contact.address == sp.getUserAddress() || currentState.recipients.any { contact.address == it.address } }
+                allContacts
+                    .filterNot { contact ->
+                        contact.address == currentUserAddress ||
+                                currentState.recipients.toList()
+                                    .any { contact.address == it.address }
+                    }
                     .toList()
             )
         }
@@ -123,6 +135,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         db.draftReaderDao().getAllAsFlow(draftId = draftId).collect { draftReaders ->
             currentState.recipients.clear()
             currentState.recipients.addAll(draftReaders.map { it.toPublicUserData() })
+            updateAvailableContacts()
         }
     }
 
@@ -152,18 +165,18 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
     fun updateTo(str: String) {
         updateState(currentState.copy(addressFieldText = str, addressErrorResId = null))
-        if (str.lowercase().matches(emailRegex) && !currentState.currentUser?.address?.lowercase().equals(str)) {
+        if (str.lowercase().matches(emailRegex) && !currentState.currentUser?.address?.lowercase()
+                .equals(str)
+        ) {
             viewModelScope.launch {
                 updateState(currentState.copy(loading = true))
-                when(val call = safeApiCall { getProfilePublicData(str) }) {
+                when (val call = safeApiCall { getProfilePublicData(str) }) {
                     is HttpResult.Error -> {
                         //ignore
                     }
+
                     is HttpResult.Success -> {
-                        currentState.nonSavedContacts.clear()
-                        call.data?.let {
-                            currentState.nonSavedContacts.add(it)
-                        }
+                        updateState(currentState.copy(externalContact = call.data))
                     }
                 }
                 updateState(currentState.copy(loading = false))
@@ -314,7 +327,6 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     fun removeRecipient(user: PublicUserData) {
         viewModelScope.launch(Dispatchers.IO) {
             db.draftReaderDao().delete(user.address)
-            updateAvailableContacts()
         }
     }
 
@@ -359,10 +371,21 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     fun addContactSuggestion(person: PublicUserData) {
         if (!currentState.recipients.contains(person)) {
             viewModelScope.launch(Dispatchers.IO) {
+                addFoundContact(person)
+                db.draftReaderDao().insert(person.toDBDraftReader(draftId))
+            }
+        }
+    }
+
+    private fun addFoundContact(person: PublicUserData) {
+        viewModelScope.launch {
+            val allContacts = db.userDao().getAll()
+            if (!allContacts.any { it.address == person.address }) {
+                if (currentState.externalContact?.address == person.address) {
+                    updateState(currentState.copy(externalContact = null))
+                }
                 updateState(currentState.copy(loading = true))
                 addContactRepository.addContact(person)
-                db.draftReaderDao().insert(person.toDBDraftReader(draftId))
-                updateAvailableContacts()
                 updateState(currentState.copy(loading = false))
             }
         }
@@ -385,8 +408,8 @@ data class ComposingState(
     val body: String = "",
     val addressFieldText: Address = "",
     val recipients: SnapshotStateList<PublicUserData> = mutableStateListOf(),
-    val contacts: SnapshotStateList<DBContact> = mutableStateListOf(),
-    val nonSavedContacts: SnapshotStateList<PublicUserData> = mutableStateListOf(),
+    val contacts: SnapshotStateList<PublicUserData> = mutableStateListOf(),
+    val externalContact: PublicUserData? = null,
     val attachmentBottomSheetShown: Boolean = false,
     val addressLoading: Boolean = false,
     val loading: Boolean = false,

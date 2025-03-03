@@ -103,7 +103,6 @@ import com.mercata.pingworks.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.pingworks.R
 import com.mercata.pingworks.common.ProfileImage
 import com.mercata.pingworks.contact_details.ContactType
-import com.mercata.pingworks.db.contacts.toPublicUserData
 import com.mercata.pingworks.models.PublicUserData
 import com.mercata.pingworks.utils.getMimeType
 import com.mercata.pingworks.utils.getNameFromURI
@@ -156,11 +155,15 @@ fun SharedTransitionScope.ComposingScreen(
         }
     }
 
-    BackHandler(enabled = true) {
+    fun backAction() {
         when (state.mode) {
             ComposingScreenMode.Default -> viewModel.confirmExit()
             ComposingScreenMode.ContactSuggestion -> viewModel.toggleMode(false)
         }
+    }
+
+    BackHandler(enabled = true) {
+        backAction()
     }
 
     LaunchedEffect(state.sent) {
@@ -234,13 +237,21 @@ fun SharedTransitionScope.ComposingScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        viewModel.confirmExit()
+                        backAction()
                     }) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(id = R.string.back_button),
-                            tint = colorScheme.onSurface
-                        )
+                        when(state.mode) {
+                            ComposingScreenMode.Default -> Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(id = R.string.back_button),
+                                tint = colorScheme.onSurface
+                            )
+                            ComposingScreenMode.ContactSuggestion -> Icon(
+                                painter = painterResource(R.drawable.back),
+                                contentDescription = stringResource(id = R.string.back_button),
+                                tint = colorScheme.onSurface
+                            )
+                        }
+
                     }
                 },
                 actions = {
@@ -403,7 +414,7 @@ fun SharedTransitionScope.ComposingScreen(
                                 }
                             ),
                             label = {
-                                Text(stringResource(id = R.string.to_placeholder))
+                                Text(stringResource(id = R.string.search_contacts))
                             },
                             supportingText = {
                                 state.addressErrorResId?.let {
@@ -427,9 +438,6 @@ fun SharedTransitionScope.ComposingScreen(
                     }
 
                 }
-            }
-            AnimatedVisibility(visible = !state.broadcast) {
-                Spacer(modifier = modifier.height(MARGIN_DEFAULT / 2))
             }
             AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
                 OutlinedTextField(
@@ -462,9 +470,6 @@ fun SharedTransitionScope.ComposingScreen(
                         .focusRequester(subjectFocusRequester)
                         .fillMaxWidth()
                 )
-            }
-            AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
-                Spacer(modifier = modifier.height(MARGIN_DEFAULT))
             }
             AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
                 OutlinedTextField(
@@ -509,15 +514,15 @@ fun SharedTransitionScope.ComposingScreen(
 
             AnimatedVisibility(visible = state.mode == ComposingScreenMode.ContactSuggestion) {
                 Column {
-                    (state.nonSavedContacts + state.contacts.filter {
-                        it.name?.contains(
+                    (state.contacts + state.externalContact).filter {
+                        it != null && (it.fullName.contains(
                             state.addressFieldText,
                             true
-                        ) == true || it.address.contains(state.addressFieldText, true)
-                    }.map { it.toPublicUserData() }).forEach { contact ->
+                        ) || it.address.contains(state.addressFieldText, true))
+                    }.forEach { contact ->
                         NewContactViewHolder (
                             modifier = modifier,
-                            item = contact,
+                            item = contact!!,
                             onMessageClicked = { person ->
                                 viewModel.addContactSuggestion(person)
                                 viewModel.clearAddressField()

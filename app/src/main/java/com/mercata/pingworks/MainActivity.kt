@@ -44,25 +44,25 @@ class MainActivity : AppCompatActivity() {
                         enterTransition = {
                             slideIntoContainer(
                                 AnimatedContentTransitionScope.SlideDirection.Start,
-                                tween(300)
+                                tween(animationDuration)
                             )
                         },
                         exitTransition = {
                             slideOutOfContainer(
                                 AnimatedContentTransitionScope.SlideDirection.Start,
-                                tween(300)
+                                tween(animationDuration)
                             )
                         },
                         popEnterTransition = {
                             slideIntoContainer(
                                 AnimatedContentTransitionScope.SlideDirection.End,
-                                tween(300)
+                                tween(animationDuration)
                             )
                         },
                         popExitTransition = {
                             slideOutOfContainer(
                                 AnimatedContentTransitionScope.SlideDirection.End,
-                                tween(300)
+                                tween(animationDuration)
                             )
                         },
                         navController = navController,
