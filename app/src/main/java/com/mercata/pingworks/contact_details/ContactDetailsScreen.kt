@@ -232,7 +232,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                     Text(
                         state.address,
                         modifier.padding(horizontal = MARGIN_DEFAULT),
-                        style = typography.bodyMedium.copy(color = colorScheme.outlineVariant),
+                        style = typography.bodyMedium,
                     )
                     Spacer(modifier.height(MARGIN_DEFAULT))
                     ContactDivider(modifier.padding(horizontal = MARGIN_DEFAULT))
@@ -272,10 +272,10 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         )
                     }
                     AnimatedVisibility(visible = !it?.status.isNullOrBlank()) {
-                        Text("${stringResource(R.string.status)}: ${it?.status}")
+                        TitledData(titleRes = R.string.status, data = it?.status ?: "")
                     }
                     AnimatedVisibility(visible = !it?.about.isNullOrBlank()) {
-                        Text("${stringResource(R.string.about)}: ${it?.about}")
+                        TitledData(titleRes = R.string.about, data = it?.about ?: "")
                     }
                     AnimatedVisibility(visible = !it?.work.isNullOrBlank() || !it?.organization.isNullOrBlank() || !it?.department.isNullOrBlank() || !it?.jobTitle.isNullOrBlank()) {
                         Text(
@@ -288,16 +288,16 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         )
                     }
                     AnimatedVisibility(visible = !it?.work.isNullOrBlank()) {
-                        Text("${stringResource(R.string.work)}: ${it?.work}")
+                        TitledData(titleRes = R.string.work, data = it?.work ?: "")
                     }
                     AnimatedVisibility(visible = !it?.organization.isNullOrBlank()) {
-                        Text("${stringResource(R.string.organization)}: ${it?.organization}")
+                        TitledData(titleRes = R.string.organization, data = it?.organization ?: "")
                     }
                     AnimatedVisibility(visible = !it?.department.isNullOrBlank()) {
-                        Text("${stringResource(R.string.department)}: ${it?.department}")
+                        TitledData(titleRes = R.string.department, data = it?.department ?: "")
                     }
                     AnimatedVisibility(visible = !it?.jobTitle.isNullOrBlank()) {
-                        Text("${stringResource(R.string.jobTitle)}: ${it?.jobTitle}")
+                        TitledData(titleRes = R.string.jobTitle, data = it?.jobTitle ?: "")
                     }
                     AnimatedVisibility(visible = !it?.gender.isNullOrBlank() || !it?.relationshipStatus.isNullOrBlank() || !it?.education.isNullOrBlank() || !it?.language.isNullOrBlank() || !it?.placesLived.isNullOrBlank() || !it?.notes.isNullOrBlank()) {
                         Text(
@@ -310,22 +310,22 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         )
                     }
                     AnimatedVisibility(visible = !it?.gender.isNullOrBlank()) {
-                        Text("${stringResource(R.string.gender)}: ${it?.gender}")
+                        TitledData(titleRes = R.string.gender, data = it?.gender ?: "")
                     }
                     AnimatedVisibility(visible = !it?.relationshipStatus.isNullOrBlank()) {
-                        Text("${stringResource(R.string.relationshipStatus)}: ${it?.relationshipStatus}")
+                        TitledData(titleRes = R.string.relationshipStatus, data = it?.relationshipStatus ?: "")
                     }
                     AnimatedVisibility(visible = !it?.education.isNullOrBlank()) {
-                        Text("${stringResource(R.string.education)}: ${it?.education}")
+                        TitledData(titleRes = R.string.education, data = it?.education ?: "")
                     }
                     AnimatedVisibility(visible = !it?.language.isNullOrBlank()) {
-                        Text("${stringResource(R.string.language)}: ${it?.language}")
+                        TitledData(titleRes = R.string.language, data = it?.language ?: "")
                     }
                     AnimatedVisibility(visible = !it?.placesLived.isNullOrBlank()) {
-                        Text("${stringResource(R.string.placesLived)}: ${it?.placesLived}")
+                        TitledData(titleRes = R.string.placesLived, data = it?.placesLived ?: "")
                     }
                     AnimatedVisibility(visible = !it?.notes.isNullOrBlank()) {
-                        Text("${stringResource(R.string.notes)}: ${it?.notes}")
+                        TitledData(titleRes = R.string.notes, data = it?.notes ?: "")
                     }
                     AnimatedVisibility(visible = !it?.interests.isNullOrBlank() || !it?.books.isNullOrBlank() || !it?.music.isNullOrBlank() || !it?.movies.isNullOrBlank() || !it?.sports.isNullOrBlank()) {
                         Text(
@@ -338,19 +338,19 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         )
                     }
                     AnimatedVisibility(visible = !it?.interests.isNullOrBlank()) {
-                        Text("${stringResource(R.string.interests)}: ${it?.interests}")
+                        TitledData(titleRes = R.string.interests, data = it?.interests ?: "")
                     }
                     AnimatedVisibility(visible = !it?.books.isNullOrBlank()) {
-                        Text("${stringResource(R.string.books)}: ${it?.books}")
+                        TitledData(titleRes = R.string.books, data = it?.books ?: "")
                     }
                     AnimatedVisibility(visible = !it?.movies.isNullOrBlank()) {
-                        Text("${stringResource(R.string.movies)}: ${it?.movies}")
+                        TitledData(titleRes = R.string.movies, data = it?.movies ?: "")
                     }
                     AnimatedVisibility(visible = !it?.music.isNullOrBlank()) {
-                        Text("${stringResource(R.string.music)}: ${it?.music}")
+                        TitledData(titleRes = R.string.music, data = it?.music ?: "")
                     }
                     AnimatedVisibility(visible = !it?.sports.isNullOrBlank()) {
-                        Text("${stringResource(R.string.sports)}: ${it?.sports}")
+                        TitledData(titleRes = R.string.sports, data = it?.sports ?: "")
                     }
                     AnimatedVisibility(visible = !it?.website.isNullOrBlank() || !it?.location.isNullOrBlank() || !it?.mailingAddress.isNullOrBlank() || !it?.phone.isNullOrBlank() || !it?.streams.isNullOrBlank()) {
                         Text(
@@ -363,19 +363,19 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         )
                     }
                     AnimatedVisibility(visible = !it?.website.isNullOrBlank()) {
-                        Text("${stringResource(R.string.website)}: ${it?.website}")
+                        TitledData(titleRes = R.string.website, data = it?.website ?: "")
                     }
                     AnimatedVisibility(visible = !it?.location.isNullOrBlank()) {
-                        Text("${stringResource(R.string.location)}: ${it?.location}")
+                        TitledData(titleRes = R.string.location, data = it?.location ?: "")
                     }
                     AnimatedVisibility(visible = !it?.mailingAddress.isNullOrBlank()) {
-                        Text("${stringResource(R.string.mailingAddress)}: ${it?.mailingAddress}")
+                        TitledData(titleRes = R.string.mailingAddress, data = it?.mailingAddress ?: "")
                     }
                     AnimatedVisibility(visible = !it?.phone.isNullOrBlank()) {
-                        Text("${stringResource(R.string.phone)}: ${it?.phone}")
+                        TitledData(titleRes = R.string.phone, data = it?.phone ?: "")
                     }
                     AnimatedVisibility(visible = !it?.streams.isNullOrBlank()) {
-                        Text("${stringResource(R.string.streams)}: ${it?.streams}")
+                        TitledData(titleRes = R.string.streams, data = it?.streams ?: "")
                     }
                 }
             }
@@ -432,6 +432,19 @@ fun SharedTransitionScope.ContactDetailsScreen(
                 },
             )
         }
+    }
+}
+
+@Composable
+fun TitledData(modifier: Modifier = Modifier, titleRes: Int, data: String) {
+    Column(modifier = modifier.padding(
+        bottom = MARGIN_DEFAULT / 2
+    )) {
+        Text(
+            stringResource(titleRes),
+            style = typography.bodyMedium.copy(color = colorScheme.outlineVariant),
+        )
+        Text(data)
     }
 }
 

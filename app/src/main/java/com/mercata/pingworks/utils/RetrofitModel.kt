@@ -167,73 +167,73 @@ suspend fun updateCall(user: UserData, updateData: PublicUserData): Response<Voi
                 postData.add("Away: ${if (it) "Yes" else "No"}")
             }
             awayWarning?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Away-Warning: $it")
+                postData.add("Away-Warning: ${it.trim()}")
             }
             status?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Status: $it")
+                postData.add("Status: ${it.trim()}")
             }
             about?.takeIf { it.isNotBlank() }?.let {
-                postData.add("About: $it")
+                postData.add("About: ${it.trim()}")
             }
             gender?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Gender: $it")
+                postData.add("Gender: ${it.trim()}")
             }
             language?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Languages: $it")
+                postData.add("Languages: ${it.trim()}")
             }
             relationshipStatus?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Relationship-Status: $it")
+                postData.add("Relationship-Status: ${it.trim()}")
             }
             education?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Education: $it")
+                postData.add("Education: ${it.trim()}")
             }
             placesLived?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Places-Lived: $it")
+                postData.add("Places-Lived: ${it.trim()}")
             }
             notes?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Notes: $it")
+                postData.add("Notes: ${it.trim()}")
             }
             work?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Work: $it")
+                postData.add("Work: ${it.trim()}")
             }
             department?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Department: $it")
+                postData.add("Department: ${it.trim()}")
             }
             organization?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Organization: $it")
+                postData.add("Organization: ${it.trim()}")
             }
             jobTitle?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Job-Title: $it")
+                postData.add("Job-Title: ${it.trim()}")
             }
             interests?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Interests: $it")
+                postData.add("Interests: ${it.trim()}")
             }
             books?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Books: $it")
+                postData.add("Books: ${it.trim()}")
             }
             music?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Music: $it")
+                postData.add("Music: ${it.trim()}")
             }
             movies?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Movies: $it")
+                postData.add("Movies: ${it.trim()}")
             }
             sports?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Sports: $it")
+                postData.add("Sports: ${it.trim()}")
             }
             website?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Website: $it")
+                postData.add("Website: ${it.trim()}")
             }
             mailingAddress?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Mailing-Address: $it")
+                postData.add("Mailing-Address: ${it.trim()}")
             }
             location?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Location: $it")
+                postData.add("Location: ${it.trim()}")
             }
             phone?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Phone: $it")
+                postData.add("Phone: ${it.trim()}")
             }
             streams?.takeIf { it.isNotBlank() }?.let {
-                postData.add("Streams: $it")
+                postData.add("Streams: ${it.trim()}")
             }
         }
 

@@ -96,7 +96,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             val allContacts: List<PublicUserData> =
                 (db.userDao().getAll().map { it.toPublicUserData() } + db.notificationsDao()
                     .getAll()
-                    .map { it.toPublicUserData() }).toSet().toList()
+                    .map { it.toPublicUserData() }).distinctBy { it.address }.toList()
                     .sortedBy { it.fullName.takeIf { name -> name.isNotBlank() } ?: it.address }
 
             val currentUserAddress: String = sp.getUserAddress() ?: ""

@@ -159,7 +159,7 @@ fun SharedTransitionScope.ProfileScreen(
                         )
                     })
                 Row(
-                    modifier = modifier.fillMaxWidth(),
+                    modifier = modifier.fillMaxWidth().padding(bottom = MARGIN_DEFAULT),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {

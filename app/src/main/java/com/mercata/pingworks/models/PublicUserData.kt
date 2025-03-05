@@ -49,15 +49,7 @@ data class PublicUserData(
     val location: String?,
     val phone: String?,
     val streams: String?,
-) {
-    override fun equals(other: Any?): Boolean {
-        return other is PublicUserData && other.address == address
-    }
-
-    override fun hashCode(): Int {
-        return 42 * address.hashCode()
-    }
-}
+)
 
 fun PublicUserData.toDBContact() = DBContact(
     address = this.address,
