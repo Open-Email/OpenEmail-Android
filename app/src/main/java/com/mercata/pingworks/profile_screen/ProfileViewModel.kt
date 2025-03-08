@@ -568,5 +568,5 @@ data class ProfileState(
     val selectedNewImage: Uri? = null,
     val tabs: ArrayList<ProfileViewModel.TabData> = arrayListOf()
 ) {
-    fun hasChanges(): Boolean = tabs.any { it.listItems.any { item -> item.hasChanges(this) } }
+    fun hasChanges(): Boolean = selectedNewImage != null || tabs.any { it.listItems.any { item -> item.hasChanges(this) } }
 }

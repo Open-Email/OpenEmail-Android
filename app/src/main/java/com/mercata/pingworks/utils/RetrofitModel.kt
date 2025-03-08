@@ -157,6 +157,9 @@ suspend fun updateCall(user: UserData, updateData: PublicUserData): Response<Voi
         )
 
         updateData.run {
+            lastSeenPublic?.let {
+                postData.add("Last-Seen-Public: ${if (it) "Yes" else "No"}")
+            }
             publicAccess?.let {
                 postData.add("Public-Access: ${if (it) "Yes" else "No"}")
             }

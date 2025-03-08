@@ -54,7 +54,7 @@ class UserPublicDataConverter : Converter<ResponseBody, PublicUserData> {
         return PublicUserData(
             address = address,
             fullName = map["Name".lowercase()] ?: "",
-            lastSeenPublic = map["Last-Seen-Public".lowercase()] == "Yes",
+            lastSeenPublic = map["Last-Seen-Public".lowercase()]?.let { it == "Yes" } ?: true,
             lastSeen = map["Last-Seen".lowercase()]?.run { Instant.parse(this) },
             updated = map["Updated".lowercase()]?.run { Instant.parse(this) },
             encryptionKeyId = encryptionData["id".lowercase()]!!,

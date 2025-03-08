@@ -12,7 +12,7 @@ import java.util.UUID
 data class PublicUserData(
     val fullName: String,
     val address: Address,
-    val lastSeenPublic: Boolean,
+    val lastSeenPublic: Boolean?,
     val lastSeen: Instant?,
     val updated: Instant?,
     val encryptionKeyId: String,
@@ -53,7 +53,7 @@ data class PublicUserData(
 
 fun PublicUserData.toDBContact() = DBContact(
     address = this.address,
-    lastSeenPublic = this.lastSeenPublic,
+    lastSeenPublic = this.lastSeenPublic ?: true,
     encryptionKeyAlgorithm = this.encryptionKeyAlgorithm,
     signingKeyAlgorithm = this.signingKeyAlgorithm,
     publicEncryptionKey = this.publicEncryptionKey,
@@ -99,7 +99,7 @@ fun PublicUserData.toDBPendingReaderPublicData(messageId: String) = DBPendingRea
     uuid = UUID.randomUUID().toString(),
     fullName = this.fullName,
     address = this.address,
-    lastSeenPublic = this.lastSeenPublic,
+    lastSeenPublic = this.lastSeenPublic ?: true,
     lastSeenTimestamp = this.lastSeen?.toEpochMilli(),
     updatedTimestamp = this.updated?.toEpochMilli(),
     encryptionKeyId = this.encryptionKeyId,
@@ -141,7 +141,7 @@ fun PublicUserData.toDBPendingReaderPublicData(messageId: String) = DBPendingRea
 fun PublicUserData.toDBDraftReader(draftId: String) = DBDraftReader(
     fullName = fullName,
     address = address,
-    lastSeenPublic = lastSeenPublic,
+    lastSeenPublic = lastSeenPublic ?: true,
     lastSeenTimestamp = lastSeen?.toEpochMilli(),
     updatedTimestamp = updated?.toEpochMilli(),
     encryptionKeyId = encryptionKeyId,
@@ -187,7 +187,7 @@ fun PublicUserData.toDBNotification(id: String, link: String) = DBNotification(
     name = this.fullName,
     address = this.address,
     dismissed = false,
-    lastSeenPublic = this.lastSeenPublic,
+    lastSeenPublic = this.lastSeenPublic ?: true,
     lastSeen = this.lastSeen?.toEpochMilli(),
     updated = this.updated?.toEpochMilli(),
     encryptionKeyId = this.encryptionKeyId,
