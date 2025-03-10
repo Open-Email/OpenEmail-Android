@@ -6,12 +6,12 @@ plugins {
 }
 
 android {
-    namespace = "com.mercata.pingworks"
+    namespace = "com.mercata.openemail"
     compileSdk = 35
     android.buildFeatures.buildConfig = true
 
     defaultConfig {
-        applicationId = "com.mercata.pingworks"
+        applicationId = "com.mercata.openemail"
         minSdk = 28
         targetSdk = 35
         versionCode = 1
