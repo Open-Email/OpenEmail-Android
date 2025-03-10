@@ -11,7 +11,7 @@ import com.mercata.openemail.db.AppDatabase
 import com.mercata.openemail.db.contacts.toPublicUserData
 import com.mercata.openemail.db.drafts.DBDraft
 import com.mercata.openemail.db.drafts.draft_reader.toPublicUserData
-import com.mercata.openemail.db.messages.MessageWithAuthor
+import com.mercata.openemail.db.messages.DBMessage
 import com.mercata.openemail.db.notifications.toPublicUserData
 import com.mercata.openemail.emailRegex
 import com.mercata.openemail.models.PublicUserData
@@ -155,7 +155,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         val db: AppDatabase by inject()
         updateState(currentState.copy(loading = true))
 
-        val replyMessage: MessageWithAuthor? =
+        val replyMessage: DBMessage? =
             db.messagesDao().getById(savedStateHandle.get<String>("replyMessageId") ?: "")?.message
 
         updateState(
@@ -406,7 +406,7 @@ data class ComposingState(
     val sent: Boolean = false,
     val mode: ComposingScreenMode = ComposingScreenMode.Default,
     val subject: String = "",
-    val replyMessage: MessageWithAuthor? = null,
+    val replyMessage: DBMessage? = null,
     val body: String = "",
     val addressFieldText: Address = "",
     val recipients: SnapshotStateList<PublicUserData> = mutableStateListOf(),

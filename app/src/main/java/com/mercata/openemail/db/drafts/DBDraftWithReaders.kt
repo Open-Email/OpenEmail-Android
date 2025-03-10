@@ -15,9 +15,9 @@ data class DBDraftWithReaders(
     )
     val readers: List<DBDraftReader>
 ) : HomeItem {
-    override fun getContacts(): List<PublicUserData> = readers.map { it.toPublicUserData() }
+    override suspend fun getContacts(): List<PublicUserData> = readers.map { it.toPublicUserData() }
 
-    override fun getTitle(): String = getContacts().firstOrNull()?.fullName ?: ""
+    override suspend fun getTitle(): String = getContacts().firstOrNull()?.fullName ?: ""
 
     override fun getAddressValue(): String? = draft.readerAddresses?.split(",")?.firstOrNull()
 

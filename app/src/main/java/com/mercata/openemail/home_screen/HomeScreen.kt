@@ -121,6 +121,7 @@ import com.mercata.openemail.db.drafts.DBDraftWithReaders
 import com.mercata.openemail.db.messages.DBMessageWithDBAttachments
 import com.mercata.openemail.db.notifications.DBNotification
 import com.mercata.openemail.models.CachedAttachment
+import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.registration.UserData
 import com.mercata.openemail.utils.getProfilePictureUrl
 import com.mercata.openemail.utils.measureTextWidth
@@ -691,6 +692,16 @@ fun SharedTransitionScope.MessageViewHolder(
     onMessageSelected: ((message: HomeItem) -> Unit)?
 ) {
     val primaryColor = colorScheme.primary
+    var contacts by remember { mutableStateOf(listOf<PublicUserData>()) }
+    var title by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        contacts = item.getContacts()
+    }
+
+    LaunchedEffect(Unit) {
+        title = item.getTitle()
+    }
 
     Box {
         Row(verticalAlignment = Alignment.Top, modifier = modifier
@@ -781,7 +792,7 @@ fun SharedTransitionScope.MessageViewHolder(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                text = if (item.getContacts().isEmpty()) {
+                                                text = if (contacts.isEmpty()) {
                                                     "${currentUser.name.firstOrNull() ?: ""}${
                                                         currentUser.name.getOrNull(
                                                             1
@@ -789,16 +800,17 @@ fun SharedTransitionScope.MessageViewHolder(
                                                     }"
                                                 } else {
                                                     "${
-                                                        item.getContacts()
+                                                        contacts
                                                             .first().fullName.firstOrNull() ?: ""
                                                     }${
-                                                        item.getContacts()
+                                                        contacts
                                                             .first().fullName.getOrNull(1) ?: ""
                                                     }"
                                                 },
                                                 style = typography.titleMedium,
                                                 color = colorScheme.onSurface
                                             )
+
                                         }
                                     })
                             }
@@ -818,9 +830,9 @@ fun SharedTransitionScope.MessageViewHolder(
             Spacer(modifier = modifier.width(MARGIN_DEFAULT))
             Column(modifier = modifier.weight(1f)) {
                 Row {
-                    if (item.getTitle().isNotEmpty()) {
+                    if (title.isNotEmpty()) {
                         Text(
-                            text = item.getTitle(),
+                            text = title,
                             modifier = modifier.weight(1f),
                             overflow = TextOverflow.Ellipsis,
                             maxLines = 1,

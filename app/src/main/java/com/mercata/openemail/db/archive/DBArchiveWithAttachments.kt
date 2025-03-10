@@ -1,6 +1,7 @@
 package com.mercata.openemail.db.archive
 
 import androidx.room.Embedded
+import androidx.room.Ignore
 import androidx.room.Relation
 import com.mercata.openemail.db.HomeItem
 import com.mercata.openemail.db.archive.archive_attachments.DBArchivedAttachment
@@ -10,6 +11,9 @@ import com.mercata.openemail.db.contacts.toPublicUserData
 import com.mercata.openemail.db.messages.DBMessageWithDBAttachments
 import com.mercata.openemail.db.messages.FusedAttachment
 import com.mercata.openemail.models.PublicUserData
+import com.mercata.openemail.utils.HttpResult
+import com.mercata.openemail.utils.getProfilePublicData
+import com.mercata.openemail.utils.safeApiCall
 
 data class DBArchiveWitAttachments(
     @Embedded val archive: DBArchivedMessage,
@@ -20,19 +24,16 @@ data class DBArchiveWitAttachments(
     )
     val attachments: List<DBArchivedAttachment>,
 
-    @Relation(
-        parentColumn = "author_address",
-        entityColumn = "address"
-    )
-    val author: DBContact?
-
 ) : HomeItem {
-    override fun getContacts(): List<PublicUserData> = author?.toPublicUserData()?.let { listOf(it) } ?: listOf()
 
-    override fun getTitle(): String = getContacts().firstOrNull()?.fullName ?: ""
+    override suspend fun getContacts(): List<PublicUserData> {
+        return archive.getAuthorPublicData()?.let { listOf(it) } ?: listOf()
+    }
 
-    override fun getAddressValue(): String? {
-        return archive.readerAddresses?.split(",")?.firstOrNull().takeIf { it?.isNotBlank() == true } ?: author?.address
+    override suspend fun getTitle(): String = getContacts().firstOrNull()?.fullName ?: ""
+
+    override fun getAddressValue(): String {
+        return archive.readerAddresses?.split(",")?.firstOrNull().takeIf { it?.isNotBlank() == true } ?: archive.authorAddress
     }
 
     override fun getSubtitle(): String = archive.subject
@@ -47,7 +48,7 @@ data class DBArchiveWitAttachments(
 
     override fun getTimestamp(): Long = archive.timestamp
 
-    fun getFusedAttachments(): List<FusedAttachment> =
+    private fun getFusedAttachments(): List<FusedAttachment> =
         attachments.groupBy { dbAttachment -> dbAttachment.name }.map { multipart ->
             FusedAttachment(
                 multipart.key,
@@ -60,14 +61,14 @@ data class DBArchiveWitAttachments(
 
 fun DBMessageWithDBAttachments.toArchive(): DBArchivedMessage =
     DBArchivedMessage(
-        archiveId = message.message.messageId,
-        authorAddress = message.message.authorAddress,
-        subject = message.message.subject,
-        textBody = message.message.textBody,
-        isBroadcast = message.message.isBroadcast,
-        isUnread = message.message.isUnread,
-        timestamp = message.message.timestamp,
-        readerAddresses = message.message.readerAddresses,
+        archiveId = message.messageId,
+        authorAddress = message.authorAddress,
+        subject = message.subject,
+        textBody = message.textBody,
+        isBroadcast = message.isBroadcast,
+        isUnread = message.isUnread,
+        timestamp = message.timestamp,
+        readerAddresses = message.readerAddresses,
     )
 
 fun DBAttachment.toArchive(): DBArchivedAttachment = DBArchivedAttachment(

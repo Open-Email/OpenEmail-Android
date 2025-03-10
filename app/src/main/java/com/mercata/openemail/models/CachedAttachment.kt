@@ -5,11 +5,11 @@ import com.mercata.openemail.db.HomeItem
 
 data class CachedAttachment(val uri: Uri, val name: String, val type: String?) : HomeItem {
 
-    override fun getContacts(): List<PublicUserData> = listOf()
+    override suspend fun getContacts(): List<PublicUserData> = listOf()
 
     override fun getAddressValue(): String? = null
 
-    override fun getTitle(): String = name
+    override suspend fun getTitle(): String = name
 
     override fun getSubtitle(): String? = null
 
