@@ -5,6 +5,8 @@ import androidx.room.Ignore
 import androidx.room.Relation
 import com.mercata.openemail.db.HomeItem
 import com.mercata.openemail.db.attachments.DBAttachment
+import com.mercata.openemail.db.contacts.DBContact
+import com.mercata.openemail.db.contacts.toPublicUserData
 import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.getProfilePublicData
@@ -16,11 +18,16 @@ data class DBMessageWithDBAttachments(
         parentColumn = "message_id",
         entityColumn = "parent_id"
     )
-    val attachmentParts: List<DBAttachment>
+    val attachmentParts: List<DBAttachment>,
+    @Relation(
+        parentColumn = "author_address",
+        entityColumn = "address"
+    )
+    val author: DBContact?
 ) : HomeItem {
 
     override suspend fun getContacts(): List<PublicUserData> {
-        return message.getAuthorPublicData()?.let { listOf(it) } ?: listOf()
+        return author?.let { listOf(it.toPublicUserData()) } ?: message.getAuthorPublicData()?.let { listOf(it) } ?: listOf()
     }
 
     override suspend fun getTitle(): String = getContacts().firstOrNull()?.fullName ?: ""

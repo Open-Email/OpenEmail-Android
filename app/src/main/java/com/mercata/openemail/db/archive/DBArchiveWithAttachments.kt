@@ -1,7 +1,6 @@
 package com.mercata.openemail.db.archive
 
 import androidx.room.Embedded
-import androidx.room.Ignore
 import androidx.room.Relation
 import com.mercata.openemail.db.HomeItem
 import com.mercata.openemail.db.archive.archive_attachments.DBArchivedAttachment
@@ -11,9 +10,6 @@ import com.mercata.openemail.db.contacts.toPublicUserData
 import com.mercata.openemail.db.messages.DBMessageWithDBAttachments
 import com.mercata.openemail.db.messages.FusedAttachment
 import com.mercata.openemail.models.PublicUserData
-import com.mercata.openemail.utils.HttpResult
-import com.mercata.openemail.utils.getProfilePublicData
-import com.mercata.openemail.utils.safeApiCall
 
 data class DBArchiveWitAttachments(
     @Embedded val archive: DBArchivedMessage,
@@ -24,16 +20,23 @@ data class DBArchiveWitAttachments(
     )
     val attachments: List<DBArchivedAttachment>,
 
+    @Relation(
+        parentColumn = "author_address",
+        entityColumn = "address"
+    )
+    val author: DBContact?
 ) : HomeItem {
 
     override suspend fun getContacts(): List<PublicUserData> {
-        return archive.getAuthorPublicData()?.let { listOf(it) } ?: listOf()
+        return author?.let { listOf(it.toPublicUserData()) } ?: archive.getAuthorPublicData()
+            ?.let { listOf(it) } ?: listOf()
     }
 
     override suspend fun getTitle(): String = getContacts().firstOrNull()?.fullName ?: ""
 
     override fun getAddressValue(): String {
-        return archive.readerAddresses?.split(",")?.firstOrNull().takeIf { it?.isNotBlank() == true } ?: archive.authorAddress
+        return archive.readerAddresses?.split(",")?.firstOrNull()
+            .takeIf { it?.isNotBlank() == true } ?: archive.authorAddress
     }
 
     override fun getSubtitle(): String = archive.subject
@@ -84,8 +87,6 @@ fun DBAttachment.toArchive(): DBArchivedAttachment = DBArchivedAttachment(
     partsAmount = partsAmount,
     createdTimestamp = createdTimestamp,
 )
-
-
 
 
 fun DBArchivedAttachment.fromArchive(): DBAttachment = DBAttachment(
