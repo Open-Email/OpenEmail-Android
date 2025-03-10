@@ -629,7 +629,6 @@ fun SharedTransitionScope.HomeScreen(
                                     coroutineScope.launch(Dispatchers.Main) {
                                         viewModel.addSelectedNotificationsToContacts()
                                     }.invokeOnCompletion {
-                                        viewModel.syncWithServer()
                                         openComposingScreen()
                                     }
                                 }) {

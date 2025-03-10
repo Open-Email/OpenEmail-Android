@@ -408,18 +408,23 @@ private suspend fun getAllPrivateEnvelopesForContact(
 }
 
 private suspend fun getAllPrivateEnvelopes(
-    sharedPreferences: SharedPreferences,
-    contactsDao: ContactsDao
+    sp: SharedPreferences,
+    db: AppDatabase
 ): List<Envelope> {
     return withContext(Dispatchers.IO) {
-        contactsDao.getAll().map { contact ->
+        val contacts = db.userDao().getAll()
+
+        getNewNotifications(sp, db).dataNotifications.map { new ->
             async {
-                getAllPrivateEnvelopesForContact(sharedPreferences, contact)
+                val envelopes = getAllPrivateEnvelopesForContact(
+                    sp,
+                    contacts.first { contact -> contact.address == new.address })
+                db.notificationsDao().insert(new)
+                envelopes
             }
-        }.awaitAll()
-            .fold(initial = arrayListOf(), operation = { initial, new ->
-                initial.apply { addAll(new) }
-            })
+        }.awaitAll().fold(
+            initial = arrayListOf(),
+            operation = { initial, new -> initial.apply { addAll(new) } })
     }
 }
 
@@ -438,10 +443,12 @@ suspend fun downloadMessage(
     }
 }
 
-suspend fun syncNotifications(currentUser: UserData, db: AppDatabase): Boolean {
+suspend fun getNewNotifications(sp: SharedPreferences, db: AppDatabase): NotificationsResult {
     return withContext(Dispatchers.IO) {
-        val expired = db.notificationsDao().getAll().filter { it.isExpired() }
-        db.notificationsDao().deleteList(expired)
+        val currentUser = sp.getUserData()!!
+        db.notificationsDao().getAll().filter { it.isExpired() }.let { expired ->
+            db.notificationsDao().deleteList(expired)
+        }
 
         val result: List<String>? = when (val call = safeApiCall {
             getInstance("https://${currentUser.address.getMailHost()}").getNotifications(
@@ -461,18 +468,30 @@ suspend fun syncNotifications(currentUser: UserData, db: AppDatabase): Boolean {
         val contacts = db.userDao().getAll()
         val oldNotifications = db.notificationsDao().getAll()
 
-        val notifications: List<DBNotification> = result?.map {
+        val newNotifications: List<DBNotification> = result?.map {
             async { verifyNotification(it, currentUser) }
         }?.awaitAll()
             ?.filterNotNull()
-            ?.filterNot { notification -> contacts.any { notification.address == it.address } }
+            ?.filterNot { oldNotifications.any { old -> old.notificationId == it.notificationId } }
             ?: listOf()
 
-        val hasNewNotifications = notifications.any { new -> !oldNotifications.any { old -> old.notificationId == new.notificationId } }
-        db.notificationsDao().insertAll(notifications)
-        return@withContext hasNewNotifications
+
+        val splitResults =
+            newNotifications.partition { notification ->
+                contacts.any { contact -> contact.address == notification.address }
+            }
+
+        val newContactRequests = splitResults.second
+        val newDataNotification = splitResults.first
+
+        return@withContext NotificationsResult(newContactRequests, newDataNotification)
     }
 }
+
+data class NotificationsResult(
+    val contactRequests: List<DBNotification>,
+    val dataNotifications: List<DBNotification>
+)
 
 suspend fun verifyNotification(
     notificationLine: String,
@@ -624,7 +643,7 @@ suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: Download
         val privateEnvelopes: Deferred<List<Envelope>> = async {
             getAllPrivateEnvelopes(
                 sp,
-                db.userDao()
+                db
             )
         }
 

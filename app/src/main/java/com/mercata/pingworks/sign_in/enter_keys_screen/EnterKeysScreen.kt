@@ -65,7 +65,6 @@ import com.mercata.pingworks.common.Logo
 import com.mercata.pingworks.common.LogoSize
 import com.mercata.pingworks.common.ProfileView
 import com.mercata.pingworks.sign_in.RequestErrorDialog
-import com.mercata.pingworks.theme.roboto
 
 @Composable
 fun EnterKeysScreen(

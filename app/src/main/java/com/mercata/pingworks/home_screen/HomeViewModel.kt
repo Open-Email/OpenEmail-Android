@@ -28,15 +28,17 @@ import com.mercata.pingworks.utils.Address
 import com.mercata.pingworks.utils.DownloadRepository
 import com.mercata.pingworks.utils.FileUtils
 import com.mercata.pingworks.utils.HttpResult
+import com.mercata.pingworks.utils.NotificationsResult
 import com.mercata.pingworks.utils.SharedPreferences
+import com.mercata.pingworks.utils.getNewNotifications
 import com.mercata.pingworks.utils.getProfilePublicData
 import com.mercata.pingworks.utils.revokeMarkedOutboxMessages
 import com.mercata.pingworks.utils.safeApiCall
 import com.mercata.pingworks.utils.syncAllMessages
 import com.mercata.pingworks.utils.syncContacts
-import com.mercata.pingworks.utils.syncNotifications
 import com.mercata.pingworks.utils.uploadPendingMessages
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -53,13 +55,19 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     val items: SnapshotStateList<HomeItem> = mutableStateListOf()
     val selectedItems: SnapshotStateList<HomeItem> = mutableStateListOf()
     val unread: SnapshotStateMap<HomeScreen, Int> = mutableStateMapOf()
+    private val notificationsFlow: MutableStateFlow<NotificationsResult> = MutableStateFlow(
+        NotificationsResult(
+            listOf(),
+            listOf()
+        )
+    )
 
     data class HomeListUpdateState(
         val dbMessages: List<DBMessageWithDBAttachments>,
         val dbPendingMessages: List<DBPendingMessage>,
         val dbDrafts: List<DBDraftWithReaders>,
         val dbContacts: List<DBContact>,
-        val dbNotifications: List<DBNotification>,
+        val notifications: NotificationsResult,
         val attachments: List<CachedAttachment>,
         val archive: List<DBArchiveWitAttachments>
     )
@@ -91,16 +99,14 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 db.pendingMessagesDao().getAllAsFlowWithAttachments(),
                 db.draftDao().getAllFlow(),
                 db.userDao().getAllAsFlow(),
-                db.notificationsDao().getAllAsFlow(),
-            ) { dbMessages, dbPendingMessages, dbDrafts, dbContacts, dbNotifications ->
+                notificationsFlow
+            ) { dbMessages, dbPendingMessages, dbDrafts, dbContacts, notifications ->
                 HomeListUpdateState(
                     dbMessages.filterNot { it.message.message.markedToDelete }.toList(),
                     dbPendingMessages,
                     dbDrafts,
                     dbContacts.filterNot { it.address == sp.getUserAddress() },
-                    dbNotifications.filterNot {
-                        it.address == sp.getUserAddress() || it.isExpired() || it.dismissed
-                    },
+                    notifications,
                     listOf(),
                     listOf()
                 )
@@ -120,15 +126,24 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                         }
                     }
                 }
+
+                if (listUpdateState.notifications.contactRequests.isNotEmpty()) {
+                    updateState(
+                        currentState.copy(
+                            newContactsAmount = listUpdateState.notifications.contactRequests.size,
+                            snackBar = SnackBarData(R.string.you_have_new_contact_requests)
+                        )
+                    )
+                }
+
                 unread[HomeScreen.Inbox] = unreadMessages
                 unread[HomeScreen.Broadcast] = unreadBroadcasts
                 unread[HomeScreen.Pending] = listUpdateState.dbPendingMessages.size
                 unread[HomeScreen.Drafts] = listUpdateState.dbDrafts.size
-                unread[HomeScreen.Contacts] = listUpdateState.dbNotifications.size
+                unread[HomeScreen.Contacts] = listUpdateState.notifications.contactRequests.size
 
                 this@HomeViewModel.listUpdateState = listUpdateState
 
-                updateNotificationsCounter()
                 updateList()
             }
         }
@@ -171,9 +186,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 launch {
                     syncContacts(sp, db.userDao())
                     syncAllMessages(db, sp, dl)
-                    if (syncNotifications(currentUser, db)) {
-                        updateState(currentState.copy(snackBar = SnackBarData(R.string.you_have_new_contact_requests)))
-                    }
+                    notificationsFlow.value = getNewNotifications(sp, db)
                 },
                 launch {
                     uploadPendingMessages(currentUser, db, fu, sp)
@@ -188,14 +201,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
             updateState(currentState.copy(refreshing = false))
         }
-    }
-
-    private fun updateNotificationsCounter() {
-        updateState(
-            currentState.copy(
-                newContactsAmount = listUpdateState?.dbNotifications?.size ?: 0
-            )
-        )
     }
 
     private suspend fun updateList() {
@@ -236,8 +241,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                         .toList())
 
                     HomeScreen.Contacts -> {
-                        val filteredNotifications: List<DBNotification> =
-                            dbNotifications.filter { it.searchMatched() }.toList()
+                        val filteredNotifications: List<DBNotification> = notifications.contactRequests
                         val filteredContacts: List<DBContact> =
                             dbContacts.filter { it.searchMatched() }.toList()
 
@@ -315,7 +319,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     fun onDeleteSnackbarHide() {
         viewModelScope.launch(Dispatchers.IO) {
             onDeleteWaitComplete()
-            clearSnackbarData();
+            clearSnackbarData()
         }
     }
 
@@ -419,7 +423,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
-    fun syncWithServer() {
+    private fun syncWithServer() {
         viewModelScope.launch {
             onDeleteWaitComplete()
             addContactRepository.syncWithServer()
