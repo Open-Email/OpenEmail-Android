@@ -53,7 +53,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -79,6 +82,7 @@ import com.mercata.openemail.db.messages.FusedAttachment
 import com.mercata.openemail.message_details.AttachmentDownloadStatus.Downloaded
 import com.mercata.openemail.message_details.AttachmentDownloadStatus.Downloading
 import com.mercata.openemail.message_details.AttachmentDownloadStatus.NotDownloaded
+import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.utils.Indefinite
 import com.mercata.openemail.utils.getProfilePictureUrl
 import kotlinx.coroutines.launch
@@ -106,9 +110,12 @@ fun SharedTransitionScope.MessageDetailsScreen(
         viewModel.shared()
     }
 
-    val messageWithAttachments = state.message
-    val messageWithAuthor = messageWithAttachments?.message
-    val message = messageWithAuthor?.message
+    val message = state.message?.message
+    var contacts by remember { mutableStateOf(listOf<PublicUserData>()) }
+
+    LaunchedEffect(Unit) {
+        contacts = state.message?.getContacts() ?: listOf()
+    }
 
     val subject = message?.subject ?: ""
 
@@ -208,7 +215,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         modifier = modifier
                             .clip(CircleShape)
                             .size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
-                        imageUrl = messageWithAuthor?.author?.address?.getProfilePictureUrl()
+                        imageUrl =  message?.authorAddress?.getProfilePictureUrl()
                             ?: "",
                         onError = {
                             Box(
@@ -236,9 +243,9 @@ fun SharedTransitionScope.MessageDetailsScreen(
 
                     Spacer(modifier = modifier.width(MARGIN_DEFAULT * 0.75f))
 
-                    messageWithAuthor?.author?.let { author ->
+                    contacts.firstOrNull()?.let { author ->
                         Column {
-                            author.name?.let { name ->
+                            author.fullName.let { name ->
                                 Row {
                                     SelectionContainer {
                                         Text(
@@ -249,7 +256,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                                         )
                                     }
 
-                                    state.message?.message?.message?.timestamp?.let { timestamp ->
+                                    message?.timestamp?.let { timestamp ->
                                         Spacer(modifier.weight(1f))
                                         SelectionContainer {
                                             Text(
@@ -284,7 +291,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         color = colorScheme.outline
                     )
                     OutlinedButton(onClick = {
-                        navController.navigate("ComposingScreen/${state.message?.message?.message?.authorAddress}/${state.message?.getMessageId()}/null")
+                        navController.navigate("ComposingScreen/${message?.authorAddress}/${state.message?.getMessageId()}/null")
                     }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -321,7 +328,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                     )
                 }
 
-                messageWithAttachments?.getFusedAttachments()?.takeIf { it.isNotEmpty() }
+                state.message?.getFusedAttachments()?.takeIf { it.isNotEmpty() }
                     ?.let { attachments ->
                         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                         HorizontalDivider(

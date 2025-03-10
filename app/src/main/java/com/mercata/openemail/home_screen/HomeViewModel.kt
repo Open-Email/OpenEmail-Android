@@ -102,7 +102,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 notificationsFlow
             ) { dbMessages, dbPendingMessages, dbDrafts, dbContacts, notifications ->
                 HomeListUpdateState(
-                    dbMessages.filterNot { it.message.message.markedToDelete }.toList(),
+                    dbMessages.filterNot { it.message.markedToDelete }.toList(),
                     dbPendingMessages,
                     dbDrafts,
                     dbContacts.filterNot { it.address == sp.getUserAddress() },
@@ -119,7 +119,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 var unreadMessages = 0
                 listUpdateState.dbMessages.forEach {
                     if (it.isUnread()) {
-                        if (it.message.message.isBroadcast) {
+                        if (it.message.isBroadcast) {
                             unreadBroadcasts++
                         } else {
                             unreadMessages++
@@ -219,21 +219,21 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                     }
 
                     HomeScreen.Broadcast -> items.addAll(dbMessages.filter {
-                        it.message.message.isBroadcast
-                                && it.message.author?.address != currentUserAddress
+                        it.message.isBroadcast
+                                && it.message.authorAddress != currentUserAddress
                                 && it.searchMatched()
                     }.toList())
 
                     HomeScreen.Outbox -> {
                         items.addAll(dbMessages.filter {
-                            it.message.author?.address == currentUserAddress && it.searchMatched()
+                            it.message.authorAddress == currentUserAddress && it.searchMatched()
                         }.toList())
                     }
 
                     HomeScreen.Inbox -> {
                         items.addAll(dbMessages.filter {
-                            it.message.message.isBroadcast.not() &&
-                                    it.message.author?.address != currentUserAddress && it.searchMatched()
+                            it.message.isBroadcast.not() &&
+                                    it.message.authorAddress != currentUserAddress && it.searchMatched()
                         }.toList())
                     }
 
@@ -267,7 +267,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
-    private fun HomeItem.searchMatched(): Boolean =
+    private suspend fun HomeItem.searchMatched(): Boolean =
         this.getMessageId() != currentState.itemToDelete?.getMessageId()
                 && (this.getSubtitle()?.lowercase()
             ?.contains(currentState.query.lowercase()) ?: false
@@ -352,7 +352,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                     db.archiveAttachmentsDao()
                         .insertAll(message.attachmentParts.map { it.toArchive() })
                     db.messagesDao().update(
-                        message.message.message.copy(
+                        message.message.copy(
                             markedToDelete = true
                         )
                     )
@@ -397,7 +397,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     fun updateRead(item: DBMessageWithDBAttachments) {
         viewModelScope.launch(Dispatchers.IO) {
             db.messagesDao()
-                .update(item.message.message.copy(isUnread = item.message.message.isUnread.not()))
+                .update(item.message.copy(isUnread = item.message.isUnread.not()))
         }
     }
 
@@ -411,22 +411,18 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
     suspend fun addSelectedNotificationsToContacts() {
         withContext(Dispatchers.IO) {
+            updateState(currentState.copy(refreshing = true))
             val selectedRequests = selectedItems.filterIsInstance<DBNotification>()
             val approvedRequests = selectedRequests.map { request ->
                 request.toPublicUserData().toDBContact().copy(uploaded = false)
             }
 
             db.userDao().insertAll(approvedRequests)
-            db.notificationsDao().deleteList(selectedRequests)
+            notificationsFlow.value = getNewNotifications(sp, db)
             hideRequestApprovingConfirmationDialog()
-            syncWithServer()
-        }
-    }
-
-    private fun syncWithServer() {
-        viewModelScope.launch {
             onDeleteWaitComplete()
             addContactRepository.syncWithServer()
+            updateState(currentState.copy(refreshing = false))
         }
     }
 

@@ -11,11 +11,11 @@ import kotlin.uuid.ExperimentalUuidApi
 abstract class Separator: HomeItem {
     abstract fun getSeparatorTitle(context: Context): String
 
-    override fun getContacts(): List<PublicUserData> = listOf()
+    override suspend fun getContacts(): List<PublicUserData> = listOf()
 
     override fun getAddressValue(): String? = null
 
-    override fun getTitle(): String = ""
+    override suspend fun getTitle(): String = ""
 
     override fun getSubtitle(): String? = null
 

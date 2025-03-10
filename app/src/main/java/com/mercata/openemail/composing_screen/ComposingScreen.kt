@@ -175,7 +175,7 @@ fun SharedTransitionScope.ComposingScreen(
     LaunchedEffect(state.replyMessage) {
         if (state.replyMessage != null) {
 
-            val time: String? = state.replyMessage?.message?.timestamp?.let {
+            val time: String? = state.replyMessage?.timestamp?.let {
                 ZonedDateTime.ofInstant(
                     Instant.ofEpochMilli(it), ZoneId.systemDefault()
                 ).format(DEFAULT_DATE_TIME_FORMAT)
@@ -184,12 +184,12 @@ fun SharedTransitionScope.ComposingScreen(
             val reply = String.format(
                 context.getString(R.string.reply_header),
                 time,
-                state.replyMessage?.author?.name,
-                state.replyMessage?.message?.textBody,
-                state.replyMessage?.message?.subject
+                state.replyMessage?.getAuthorPublicData(),
+                state.replyMessage?.textBody,
+                state.replyMessage?.subject
             )
 
-            viewModel.updateSubject(state.replyMessage?.message?.subject ?: "")
+            viewModel.updateSubject(state.replyMessage?.subject ?: "")
             viewModel.updateBody(reply)
             viewModel.consumeReplyData()
         }

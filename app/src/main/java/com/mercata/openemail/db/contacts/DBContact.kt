@@ -52,11 +52,11 @@ data class DBContact(
     @ColumnInfo(name = "streams") val streams: String?
 ) : ContactItem {
 
-    override fun getContacts(): List<PublicUserData> = listOf()
+    override suspend fun getContacts(): List<PublicUserData> = listOf()
 
     override fun getAddressValue(): String = address
 
-    override fun getTitle(): String = name ?: ""
+    override suspend fun getTitle(): String = name ?: ""
 
     override fun getSubtitle(): String? = null
 

@@ -61,9 +61,9 @@ data class DBNotification(
         return currentTimestamp - SEVEN_DAYS_MILLIS > receivedOnTimestamp
     }
 
-    override fun getContacts(): List<PublicUserData> = listOf()
+    override suspend fun getContacts(): List<PublicUserData> = listOf()
 
-    override fun getTitle(): String = name
+    override suspend fun getTitle(): String = name
 
     override fun getAddressValue(): String = address
 

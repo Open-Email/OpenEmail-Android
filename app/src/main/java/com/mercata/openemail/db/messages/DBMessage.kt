@@ -2,9 +2,15 @@ package com.mercata.openemail.db.messages
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
+import com.mercata.openemail.models.PublicUserData
+import com.mercata.openemail.utils.HttpResult
+import com.mercata.openemail.utils.getProfilePublicData
+import com.mercata.openemail.utils.safeApiCall
 
-@Entity/*(
+@Entity
+/*(
     foreignKeys = [
         ForeignKey(
             entity = DBContact::class,
@@ -24,4 +30,18 @@ data class DBMessage(
     @ColumnInfo("marked_to_delete") val markedToDelete: Boolean,
     @ColumnInfo("timestamp") val timestamp: Long,
     @ColumnInfo("reader") val readerAddresses: String? // joined to string with "," separator
-)
+) {
+    @Ignore
+    private var userData: PublicUserData? = null
+
+    suspend fun getAuthorPublicData(): PublicUserData? {
+        if (userData == null) {
+            userData = when (val call = safeApiCall { getProfilePublicData(authorAddress) }) {
+                is HttpResult.Error -> null
+                is HttpResult.Success -> call.data
+            }
+        }
+
+        return userData
+    }
+}

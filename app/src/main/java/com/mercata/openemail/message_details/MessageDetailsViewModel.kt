@@ -43,14 +43,14 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
             val message = db.messagesDao().getById(currentState.messageId)
 
             launch {
-                message?.message?.message?.copy(isUnread = false)?.let {
+                message?.message?.copy(isUnread = false)?.let {
                     db.messagesDao().update(it)
                 }
             }
 
             launch {
                 when (val call =
-                    safeApiCall { getProfilePublicData(message?.message?.author?.address ?: "") }) {
+                    safeApiCall { getProfilePublicData(message?.message?.authorAddress ?: "") }) {
                     is HttpResult.Error -> updateState(currentState.copy(noReply = true))
                     is HttpResult.Success -> updateState(currentState.copy(noReply = call.data?.publicEncryptionKey.isNullOrBlank()))
                 }
@@ -74,7 +74,7 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
             launch {
                 if (savedStateHandle.get<Boolean>("outbox")!!) {
                     val readersPublicData: List<PublicUserData?>? =
-                        message?.message?.message?.readerAddresses?.split(",")?.map {
+                        message?.message?.readerAddresses?.split(",")?.map {
                             async {
                                 when (val call = safeApiCall { getProfilePublicData(it) }) {
                                     is HttpResult.Error -> null
@@ -138,7 +138,7 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
     suspend fun deleteMessage() {
         withContext(Dispatchers.IO) {
             toggleDeletionConfirmation(false)
-            currentState.message?.message?.message?.copy(
+            currentState.message?.message?.copy(
                 markedToDelete = true
             )?.let { db.messagesDao().update(it) }
         }

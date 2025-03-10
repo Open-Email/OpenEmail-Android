@@ -414,15 +414,27 @@ private suspend fun getAllPrivateEnvelopes(
     return withContext(Dispatchers.IO) {
         val contacts = db.userDao().getAll()
 
-        getNewNotifications(sp, db).dataNotifications.map { new ->
-            async {
-                val envelopes = getAllPrivateEnvelopesForContact(
-                    sp,
-                    contacts.first { contact -> contact.address == new.address })
-                db.notificationsDao().insert(new)
-                envelopes
+        val tasks: ArrayList<Deferred<List<Envelope>>> =
+            arrayListOf<Deferred<List<Envelope>>>().apply {
+                addAll(getNewNotifications(sp, db).dataNotifications.map { new ->
+                    async {
+                        val envelopes = getAllPrivateEnvelopesForContact(
+                            sp,
+                            contacts.first { contact -> contact.address == new.address })
+                        db.notificationsDao().insert(new)
+                        envelopes
+                    }
+                })
             }
-        }.awaitAll().fold(
+
+        //add self to fetch outbox
+        tasks.add(async {
+            getAllPrivateEnvelopesForContact(
+                sp,
+                contacts.first { contact -> contact.address == sp.getUserAddress() })
+        })
+
+        tasks.awaitAll().fold(
             initial = arrayListOf(),
             operation = { initial, new -> initial.apply { addAll(new) } })
     }
@@ -1036,12 +1048,12 @@ suspend fun saveMessagesToDb(
     sp: SharedPreferences,
 ) {
     withContext(Dispatchers.IO) {
-        val saved = messagesDao.getAll()
 
-        val removed =
-            saved.filterNot { dbMessage -> results.any { envelope -> envelope.messageId == dbMessage.messageId } }
+        val removedOutbox =
+            messagesDao.getAll()
+                .filterNot { dbMessage -> dbMessage.authorAddress != sp.getUserAddress() || results.any { envelope -> envelope.messageId == dbMessage.messageId } }
 
-        messagesDao.deleteList(removed)
+        messagesDao.deleteList(removedOutbox)
 
         val envelopesPair = results.partition { envelope -> envelope.isRootMessage() }
 
