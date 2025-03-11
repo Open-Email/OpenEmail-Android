@@ -8,6 +8,7 @@ import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.utils.FileUtils
 import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.deleteUserImage
+import com.mercata.openemail.utils.getProfilePictureUrl
 import com.mercata.openemail.utils.getProfilePublicData
 import com.mercata.openemail.utils.safeApiCall
 import com.mercata.openemail.utils.updateCall
@@ -15,15 +16,22 @@ import com.mercata.openemail.utils.uploadUserImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
 
 class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            updateCall()
+            updateState(currentState.copy(loading = true))
+            listOf(
+                launch { updateCall() }
+            ).joinAll()
+            updateState(currentState.copy(loading = false))
         }
+
         currentState.tabs.addAll(
             listOf(
                 GeneralTabData(),
@@ -41,7 +49,6 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
     private val fu: FileUtils by inject()
 
     private suspend fun updateCall() {
-        updateState(currentState.copy(loading = true))
         when (val call = safeApiCall { getProfilePublicData(sp.getUserAddress()!!) }) {
             is HttpResult.Error -> {
                 //ignore
@@ -55,7 +62,6 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                 )
             }
         }
-        updateState(currentState.copy(loading = false))
     }
 
     fun setUserImage(uri: Uri?) {
@@ -109,19 +115,21 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
         }
     }
 
-    fun deleteUserpic() {
-        viewModelScope.launch {
+    suspend fun deleteUserpic(): String? {
+        return withContext(Dispatchers.IO) {
             updateState(currentState.copy(loading = true))
-            when (safeApiCall { deleteUserImage(sp) }) {
+            val rv: String? = when (safeApiCall { deleteUserImage(sp) }) {
                 is HttpResult.Error -> {
-                    //ignore
+                    null
                 }
 
                 is HttpResult.Success -> {
-                    updateState(currentState)
+                    sp.getUserAddress()?.getProfilePictureUrl()
                 }
             }
+
             updateState(currentState.copy(loading = false))
+            rv
         }
     }
 
@@ -563,10 +571,12 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
 data class ProfileState(
     val loading: Boolean = false,
+    val imageUrl: String? = null,
     val saved: PublicUserData? = null,
     val current: PublicUserData? = null,
     val selectedNewImage: Uri? = null,
     val tabs: ArrayList<ProfileViewModel.TabData> = arrayListOf()
 ) {
-    fun hasChanges(): Boolean = selectedNewImage != null || tabs.any { it.listItems.any { item -> item.hasChanges(this) } }
+    fun hasChanges(): Boolean =
+        selectedNewImage != null || tabs.any { it.listItems.any { item -> item.hasChanges(this) } }
 }

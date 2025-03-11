@@ -1,4 +1,7 @@
-@file:OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
+@file:OptIn(
+    ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class,
+    ExperimentalCoilApi::class
+)
 
 package com.mercata.openemail.profile_screen
 
@@ -54,6 +57,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -61,6 +65,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.annotation.ExperimentalCoilApi
+import coil.imageLoader
+import coil.memory.MemoryCache
 import com.mercata.openemail.DEFAULT_CORNER_RADIUS
 import com.mercata.openemail.MARGIN_DEFAULT
 import com.mercata.openemail.PROFILE_IMAGE_HEIGHT
@@ -82,6 +89,7 @@ fun SharedTransitionScope.ProfileScreen(
     val pagerState = rememberPagerState(pageCount = { state.tabs.size })
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
 
     val documentChooserLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -159,7 +167,9 @@ fun SharedTransitionScope.ProfileScreen(
                         )
                     })
                 Row(
-                    modifier = modifier.fillMaxWidth().padding(bottom = MARGIN_DEFAULT),
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .padding(bottom = MARGIN_DEFAULT),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
@@ -180,7 +190,13 @@ fun SharedTransitionScope.ProfileScreen(
                         }
                     }
                     ElevatedButton(onClick = {
-                        viewModel.deleteUserpic()
+                        coroutineScope.launch {
+                            viewModel.deleteUserpic()/*?.let { userpicId ->
+                                context.imageLoader.diskCache?.remove(userpicId)
+                                context.imageLoader.memoryCache?.remove(MemoryCache.Key(userpicId))
+                            }*/
+                        }
+
                     }) {
                         Icon(
                             painter = painterResource(R.drawable.delete),
