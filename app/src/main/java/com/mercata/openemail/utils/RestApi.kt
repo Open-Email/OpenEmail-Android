@@ -106,6 +106,13 @@ interface RestApi {
         @Path("localPart") localPart: String,
     ): Response<List<String>>
 
+    @GET("/mail/{hostPart}/{localPart}/image")
+    @ContactsList
+    suspend fun checkUserImage(
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+    ): Response<Void>
+
     @GET("/mail/{hostPart}/{localPart}/messages")
     @EnvelopeIdsList
     suspend fun getAllBroadcastMessagesIdsForContact(

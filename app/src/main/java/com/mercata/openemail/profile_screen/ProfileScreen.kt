@@ -191,21 +191,23 @@ fun SharedTransitionScope.ProfileScreen(
                             Text(stringResource(R.string.edit))
                         }
                     }
-                    ElevatedButton(onClick = {
-                        coroutineScope.launch {
-                            viewModel.deleteUserpic()?.let { userpicId ->
-                                context.imageLoader.diskCache?.remove(userpicId)
-                                context.imageLoader.memoryCache?.remove(MemoryCache.Key(userpicId))
+                    if (state.imagePresented) {
+                        ElevatedButton(onClick = {
+                            coroutineScope.launch {
+                                viewModel.deleteUserpic()?.let { userpicId ->
+                                    context.imageLoader.diskCache?.remove(userpicId)
+                                    context.imageLoader.memoryCache?.remove(MemoryCache.Key(userpicId))
+                                }
                             }
-                        }
 
-                    }) {
-                        Icon(
-                            painter = painterResource(R.drawable.delete),
-                            contentDescription = stringResource(R.string.delete)
-                        )
-                        Spacer(modifier.width(MARGIN_DEFAULT / 2))
-                        Text(stringResource(R.string.delete))
+                        }) {
+                            Icon(
+                                painter = painterResource(R.drawable.delete),
+                                contentDescription = stringResource(R.string.delete)
+                            )
+                            Spacer(modifier.width(MARGIN_DEFAULT / 2))
+                            Text(stringResource(R.string.delete))
+                        }
                     }
                 }
             }
