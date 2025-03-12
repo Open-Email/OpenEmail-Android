@@ -51,7 +51,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.typography
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -63,7 +62,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -101,6 +99,7 @@ import com.mercata.openemail.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.openemail.MARGIN_DEFAULT
 import com.mercata.openemail.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.openemail.R
+import com.mercata.openemail.common.AttachmentTypeBottomSheet
 import com.mercata.openemail.common.ProfileImage
 import com.mercata.openemail.contact_details.ContactType
 import com.mercata.openemail.models.PublicUserData
@@ -124,7 +123,6 @@ fun SharedTransitionScope.ComposingScreen(
     viewModel: ComposingViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val sheetState = rememberModalBottomSheetState()
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     //val toFocusRequester = remember { FocusRequester() }
@@ -239,12 +237,13 @@ fun SharedTransitionScope.ComposingScreen(
                     IconButton(onClick = {
                         backAction()
                     }) {
-                        when(state.mode) {
+                        when (state.mode) {
                             ComposingScreenMode.Default -> Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = stringResource(id = R.string.back_button),
                                 tint = colorScheme.onSurface
                             )
+
                             ComposingScreenMode.ContactSuggestion -> Icon(
                                 painter = painterResource(R.drawable.back),
                                 contentDescription = stringResource(id = R.string.back_button),
@@ -382,13 +381,18 @@ fun SharedTransitionScope.ComposingScreen(
                             value = state.addressFieldText,
                             shape = CircleShape,
                             suffix = {
-                                val localModifier = modifier.size(22.dp).clickable {
-                                    viewModel.clearAddressField()
-                                    focusManager.clearFocus()
-                                    viewModel.toggleMode(false)
-                                }
+                                val localModifier = modifier
+                                    .size(22.dp)
+                                    .clickable {
+                                        viewModel.clearAddressField()
+                                        focusManager.clearFocus()
+                                        viewModel.toggleMode(false)
+                                    }
                                 if (state.loading) {
-                                    CircularProgressIndicator(modifier = localModifier, strokeCap = StrokeCap.Round)
+                                    CircularProgressIndicator(
+                                        modifier = localModifier,
+                                        strokeCap = StrokeCap.Round
+                                    )
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.Close,
@@ -520,7 +524,7 @@ fun SharedTransitionScope.ComposingScreen(
                             true
                         ) || it.address.contains(state.addressFieldText, true))
                     }.forEach { contact ->
-                        NewContactViewHolder (
+                        NewContactViewHolder(
                             modifier = modifier,
                             item = contact!!,
                             onMessageClicked = { person ->
@@ -588,63 +592,13 @@ fun SharedTransitionScope.ComposingScreen(
             )
         }
         if (state.attachmentBottomSheetShown) {
-            ModalBottomSheet(
-                tonalElevation = 0.dp,
-                shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
-                onDismissRequest = {
-                    viewModel.toggleAttachmentBottomSheet(false)
-                },
-                sheetState = sheetState
-            ) {
-                // Sheet content
-                OutlinedButton(
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MARGIN_DEFAULT),
-                    onClick = {
-                        coroutineScope.launch { sheetState.hide() }.invokeOnCompletion {
-                            if (!sheetState.isVisible) {
-                                viewModel.toggleAttachmentBottomSheet(false)
-                            }
-                        }
-                        documentChooserLauncher.launch(arrayOf("*/*"))
-                    }) {
-                    Row {
-                        Icon(
-                            painterResource(R.drawable.file),
-                            contentDescription = stringResource(R.string.attach_file),
-                            tint = colorScheme.primary
-                        )
-                        Spacer(modifier.width(MARGIN_DEFAULT))
-                        Text(stringResource(R.string.attach_file))
-                    }
-                }
-                Spacer(modifier.height(MARGIN_DEFAULT / 2))
-                OutlinedButton(
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MARGIN_DEFAULT),
-                    onClick = {
-                        coroutineScope.launch { sheetState.hide() }.invokeOnCompletion {
-                            if (!sheetState.isVisible) {
-                                viewModel.toggleAttachmentBottomSheet(false)
-                            }
-                        }
-                        photoSnapLauncher.launch(viewModel.getNewFileUri())
-                    }) {
-                    Row {
-                        Icon(
-                            painterResource(R.drawable.camera),
-                            contentDescription = stringResource(R.string.add_instant_photo),
-                            tint = colorScheme.primary
-                        )
-                        Spacer(modifier.width(MARGIN_DEFAULT))
-                        Text(stringResource(R.string.add_instant_photo))
-                    }
-                }
-                Spacer(modifier.height(MARGIN_DEFAULT))
-
-            }
+            AttachmentTypeBottomSheet(onDismissRequest = {
+                viewModel.toggleAttachmentBottomSheet(false)
+            }, onSelectFromStorageClick = {
+                documentChooserLauncher.launch(arrayOf("*/*"))
+            }, onPhotoAttachClick = {
+                photoSnapLauncher.launch(viewModel.getNewFileUri())
+            })
         }
     }
 }

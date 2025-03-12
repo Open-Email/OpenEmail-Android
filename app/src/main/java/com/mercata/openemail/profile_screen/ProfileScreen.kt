@@ -72,6 +72,7 @@ import com.mercata.openemail.DEFAULT_CORNER_RADIUS
 import com.mercata.openemail.MARGIN_DEFAULT
 import com.mercata.openemail.PROFILE_IMAGE_HEIGHT
 import com.mercata.openemail.R
+import com.mercata.openemail.common.AttachmentTypeBottomSheet
 import com.mercata.openemail.common.ProfileImage
 import com.mercata.openemail.common.SwitchViewHolder
 import com.mercata.openemail.utils.getProfilePictureUrl
@@ -96,6 +97,11 @@ fun SharedTransitionScope.ProfileScreen(
             uri?.let {
                 viewModel.setUserImage(it)
             }
+        }
+
+    val photoSnapLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) {
+            viewModel.addInstantPhotoAsAttachment(it)
         }
 
     LaunchedEffect(pagerState) {
@@ -174,11 +180,7 @@ fun SharedTransitionScope.ProfileScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     ElevatedButton(onClick = {
-                        documentChooserLauncher.launch(
-                            PickVisualMediaRequest(
-                                mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly
-                            )
-                        )
+                        viewModel.toggleAttachmentBottomSheet(true)
                     }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -247,11 +249,7 @@ fun SharedTransitionScope.ProfileScreen(
                                 val imageModifier = modifier
                                     .size(80.dp)
                                     .clickable {
-                                        documentChooserLauncher.launch(
-                                            PickVisualMediaRequest(
-                                                mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly
-                                            )
-                                        )
+                                        viewModel.toggleAttachmentBottomSheet(true)
                                     }
                                     .clip(CircleShape)
                                     .align(alignment = Alignment.CenterHorizontally)
@@ -395,29 +393,23 @@ fun SharedTransitionScope.ProfileScreen(
                     }
                 }
             }
+        }
 
-
-            /* ProfileImage(
-                 modifier
-                     .height(imageSize)
-                 //Elevation bug under the navigation drawer
-                 *//*.sharedBounds(
-                    sharedContentState = rememberSharedContentState(
-                        key = "message_image/${state.address}"
-                    ),
-                    animatedVisibilityScope = animatedVisibilityScope,
-                )*//*,
-                state.address.getProfilePictureUrl() ?: "",
-                onError = {
-                    Icon(
-                        painterResource(R.drawable.contacts),
-                        modifier = Modifier.size(100.dp),
-                        contentDescription = null,
-                        tint = colorScheme.outline
+        if (state.attachmentBottomSheetShown) {
+            AttachmentTypeBottomSheet(onDismissRequest = {
+                viewModel.toggleAttachmentBottomSheet(false)
+            }, onSelectFromStorageClick = {
+                documentChooserLauncher.launch(
+                    PickVisualMediaRequest(
+                        mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly
                     )
-                })*/
-
-
+                )
+            }, onPhotoAttachClick = {
+                photoSnapLauncher.launch(viewModel.getNewFileUri())
+            },
+                selectFileIconRes = R.drawable.image,
+                selectFileTitleRes = R.string.select_image
+            )
         }
     }
 }

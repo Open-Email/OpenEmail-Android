@@ -47,6 +47,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
     }
 
     private val fu: FileUtils by inject()
+    private var instantPhotoUri: Uri? = null
 
     private suspend fun updateCall() {
         when (val call = safeApiCall { getProfilePublicData(sp.getUserAddress()!!) }) {
@@ -66,6 +67,23 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
     fun setUserImage(uri: Uri?) {
         updateState(currentState.copy(selectedNewImage = uri))
+    }
+
+    fun toggleAttachmentBottomSheet(shown: Boolean) {
+        updateState(currentState.copy(attachmentBottomSheetShown = shown))
+    }
+
+    fun getNewFileUri(): Uri {
+        instantPhotoUri = fu.getUriForFile(fu.createImageFile())
+        return instantPhotoUri!!
+    }
+
+    fun addInstantPhotoAsAttachment(success: Boolean) {
+        if (success) {
+            updateState(currentState.copy(selectedNewImage = instantPhotoUri))
+        } else {
+            instantPhotoUri = null
+        }
     }
 
     fun saveChanges() {
@@ -571,6 +589,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
 data class ProfileState(
     val loading: Boolean = false,
+    val attachmentBottomSheetShown: Boolean = false,
     val saved: PublicUserData? = null,
     val current: PublicUserData? = null,
     val selectedNewImage: Uri? = null,
