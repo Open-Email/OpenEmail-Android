@@ -165,4 +165,5 @@
     <string name="disabled_public_access_hint">You will not receive contact requests.</string>
     <string name="public_links_querying">Public links querying</string>
     <string name="public_links_querying_hint">When enabled, others may query for existence of a particular contact in your address book.</string>
+    <string name="select_image">Select image</string>
 </resources>

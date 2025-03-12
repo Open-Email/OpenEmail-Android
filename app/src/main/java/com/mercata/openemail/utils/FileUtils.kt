@@ -73,24 +73,18 @@ class FileUtils(val context: Context) {
         val width = this.width
         val height = this.height
 
-        val aspectRatio = width.toFloat() / height.toFloat()
+        val squareSize = minOf(width, height)
 
-        var newWidth = width
-        var newHeight = height
+        val xOffset = (width - squareSize) / 2
+        val yOffset = (height - squareSize) / 2
 
-        if (width > height) {
-            if (width > maxSize) {
-                newWidth = maxSize
-                newHeight = (maxSize / aspectRatio).toInt()
-            }
+        val croppedBitmap = Bitmap.createBitmap(this, xOffset, yOffset, squareSize, squareSize)
+
+        return if (squareSize > maxSize) {
+            Bitmap.createScaledBitmap(croppedBitmap, maxSize, maxSize, true)
         } else {
-            if (height > maxSize) {
-                newHeight = maxSize
-                newWidth = (maxSize * aspectRatio).toInt()
-            }
+            croppedBitmap
         }
-
-        return Bitmap.createScaledBitmap(this, newWidth, newHeight, true)
     }
 
     fun Bitmap.getByteArrayFromBitmap(quality: Int = 100): ByteArray {
