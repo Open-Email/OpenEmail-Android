@@ -571,7 +571,6 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
 data class ProfileState(
     val loading: Boolean = false,
-    val imageUrl: String? = null,
     val saved: PublicUserData? = null,
     val current: PublicUserData? = null,
     val selectedNewImage: Uri? = null,

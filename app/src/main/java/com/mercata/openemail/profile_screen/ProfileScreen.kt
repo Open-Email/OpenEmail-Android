@@ -191,10 +191,10 @@ fun SharedTransitionScope.ProfileScreen(
                     }
                     ElevatedButton(onClick = {
                         coroutineScope.launch {
-                            viewModel.deleteUserpic()/*?.let { userpicId ->
+                            viewModel.deleteUserpic()?.let { userpicId ->
                                 context.imageLoader.diskCache?.remove(userpicId)
                                 context.imageLoader.memoryCache?.remove(MemoryCache.Key(userpicId))
-                            }*/
+                            }
                         }
 
                     }) {

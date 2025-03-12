@@ -63,8 +63,7 @@ class MainApplication : Application(), ImageLoaderFactory {
     }
 
     override fun newImageLoader(): ImageLoader {
-
-
+        //TODO enable caching after cloudflare cache timeout adjustment
         return ImageLoader(this).newBuilder()
             .okHttpClient {
 
