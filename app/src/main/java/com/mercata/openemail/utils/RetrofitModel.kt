@@ -104,6 +104,14 @@ fun Address.getProfilePictureUrl(): String =
     //"https://mail.open.email/mail/open.email/babe/image"
     "https://$DEFAULT_MAIL_SUBDOMAIN.${this.getHost()}/mail/${this.getHost()}/${this.getLocal()}/image"
 
+suspend fun checkUserImage(address: Address): Response<Void> {
+    return withContext(Dispatchers.IO) {
+        getInstance("https://$DEFAULT_MAIL_SUBDOMAIN.${address.getHost()}").checkUserImage(
+            hostPart = address.getHost(),
+            localPart = address.getLocal(),
+        )
+    }
+}
 
 suspend fun isAddressAvailable(address: String): Response<Void> {
     return withContext(Dispatchers.IO) {

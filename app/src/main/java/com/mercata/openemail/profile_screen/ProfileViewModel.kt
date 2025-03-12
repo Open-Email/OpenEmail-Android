@@ -7,6 +7,7 @@ import com.mercata.openemail.R
 import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.utils.FileUtils
 import com.mercata.openemail.utils.HttpResult
+import com.mercata.openemail.utils.checkUserImage
 import com.mercata.openemail.utils.deleteUserImage
 import com.mercata.openemail.utils.getProfilePictureUrl
 import com.mercata.openemail.utils.getProfilePublicData
@@ -27,7 +28,8 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(loading = true))
             listOf(
-                launch { updateCall() }
+                launch { updateCall() },
+                launch { checkImageDeletionStatus() }
             ).joinAll()
             updateState(currentState.copy(loading = false))
         }
@@ -48,6 +50,13 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
     private val fu: FileUtils by inject()
     private var instantPhotoUri: Uri? = null
+
+    private suspend fun checkImageDeletionStatus() {
+        when(safeApiCall { checkUserImage(sp.getUserAddress()!!) }) {
+            is HttpResult.Error -> updateState(currentState.copy(imagePresented = false))
+            is HttpResult.Success -> updateState(currentState.copy(imagePresented = true))
+        }
+    }
 
     private suspend fun updateCall() {
         when (val call = safeApiCall { getProfilePublicData(sp.getUserAddress()!!) }) {
@@ -129,6 +138,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                 updateCall()
                 setUserImage(null)
             }
+            checkImageDeletionStatus()
             updateState(currentState.copy(loading = false))
         }
     }
@@ -589,6 +599,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
 data class ProfileState(
     val loading: Boolean = false,
+    val imagePresented: Boolean = false,
     val attachmentBottomSheetShown: Boolean = false,
     val saved: PublicUserData? = null,
     val current: PublicUserData? = null,
