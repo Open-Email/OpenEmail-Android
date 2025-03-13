@@ -2,6 +2,7 @@
 
 package com.mercata.openemail
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -13,6 +14,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -24,14 +26,21 @@ import com.mercata.openemail.home_screen.HomeScreen
 import com.mercata.openemail.message_details.MessageDetailsScreen
 import com.mercata.openemail.profile_screen.ProfileScreen
 import com.mercata.openemail.registration.RegistrationScreen
+import com.mercata.openemail.repository.ProcessIncomingIntentsRepository
 import com.mercata.openemail.save_keys_suggestion.SaveKeysSuggestionScreen
 import com.mercata.openemail.settings_screen.SettingsScreen
 import com.mercata.openemail.sign_in.SignInScreen
 import com.mercata.openemail.sign_in.enter_keys_screen.EnterKeysScreen
 import com.mercata.openemail.sign_in.qr_code_scanner_screen.QRCodeScannerScreen
 import com.mercata.openemail.theme.AppTheme
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), KoinComponent {
+
+    private lateinit var navController: NavHostController
+
+    private val newIntentRepository: ProcessIncomingIntentsRepository by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         setContent {
             AppTheme {
                 SharedTransitionLayout {
-                    val navController = rememberNavController()
+                    navController = rememberNavController()
                     NavHost(
                         enterTransition = {
                             slideIntoContainer(
@@ -162,7 +171,7 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                         composable(
-                            route = "ComposingScreen/{contactAddress}/{replyMessageId}/{draftId}",
+                            route = "ComposingScreen/{contactAddress}/{replyMessageId}/{draftId}/{attachmentUri}",
                             arguments = listOf(
                                 navArgument("contactAddress") {
                                     type = NavType.StringType
@@ -173,6 +182,10 @@ class MainActivity : AppCompatActivity() {
                                     nullable = true
                                 },
                                 navArgument("draftId") {
+                                    type = NavType.StringType
+                                    nullable = true
+                                },
+                                navArgument("attachmentUri") {
                                     type = NavType.StringType
                                     nullable = true
                                 },
@@ -190,6 +203,15 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
+
+            intent?.let {
+                newIntentRepository.processNewIntent(it)
+            }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        newIntentRepository.processNewIntent(intent)
     }
 }

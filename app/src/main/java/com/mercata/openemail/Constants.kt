@@ -65,6 +65,7 @@ const val HEADER_CONTENT_FILES = "files"
 const val HEADER_CONTENT_CATEGORY = "category"
 const val HEADER_CONTENT_READERS = "readers"
 const val DEFAULT_SERVER_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssX"
+const val URI_CACHED_FOLDER_NAME = "sharedContent"
 val CHECKSUM_HEADERS = arrayOf(
     HEADER_MESSAGE_ID,
     HEADER_MESSAGE_STREAM,

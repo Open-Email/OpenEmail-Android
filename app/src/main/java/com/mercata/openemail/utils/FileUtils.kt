@@ -10,6 +10,7 @@ import androidx.core.content.FileProvider
 import androidx.core.net.toFile
 import com.mercata.openemail.BUFFER_SIZE
 import com.mercata.openemail.BuildConfig
+import com.mercata.openemail.URI_CACHED_FOLDER_NAME
 import com.mercata.openemail.models.URLInfo
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -216,6 +217,22 @@ class FileUtils(val context: Context) {
             return unencrypted
         }
         return null
+    }
+
+    fun copyUriToInternalStorage(uri: Uri): File? {
+        return try {
+            val uriCacheFolder = File(context.cacheDir, URI_CACHED_FOLDER_NAME)
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                val file = File(uriCacheFolder, uri.getNameFromURI(context) ?: System.currentTimeMillis().toString())
+                file.outputStream().use { outputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+                file
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
     fun getURLInfo(uri: Uri): URLInfo {

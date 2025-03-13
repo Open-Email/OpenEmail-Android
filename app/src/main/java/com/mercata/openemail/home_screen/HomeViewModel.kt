@@ -1,5 +1,6 @@
 package com.mercata.openemail.home_screen
 
+import android.net.Uri
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -23,6 +24,7 @@ import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.models.toDBContact
 import com.mercata.openemail.registration.UserData
 import com.mercata.openemail.repository.AddContactRepository
+import com.mercata.openemail.repository.ProcessIncomingIntentsRepository
 import com.mercata.openemail.repository.SendMessageRepository
 import com.mercata.openemail.utils.Address
 import com.mercata.openemail.utils.DownloadRepository
@@ -50,6 +52,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     private val dl: DownloadRepository by inject()
     private val fu: FileUtils by inject()
     private val addContactRepository: AddContactRepository by inject()
+    private val newIntentRepository: ProcessIncomingIntentsRepository by inject()
     private var listUpdateState: HomeListUpdateState? = null
 
     val items: SnapshotStateList<HomeItem> = mutableStateListOf()
@@ -77,6 +80,15 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         val db: AppDatabase by inject()
         val dl: DownloadRepository by inject()
         val sendMessageRepository: SendMessageRepository by inject()
+
+        viewModelScope.launch {
+            newIntentRepository.cachedUris.collect { uris ->
+                if (uris.isNotEmpty()) {
+                    updateState(currentState.copy(intentUris = arrayListOf<Uri>().apply { addAll(uris) }))
+                    newIntentRepository.clear()
+                }
+            }
+        }
 
         viewModelScope.launch {
             sendMessageRepository.sendingState.collect { isSending ->
@@ -507,12 +519,17 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     fun clearSelection() {
         selectedItems.clear()
     }
+
+    fun consumeIntentUris() {
+        updateState(currentState.copy(intentUris = null))
+    }
 }
 
 data class HomeState(
     val itemToDelete: HomeItem? = null,
     val currentUser: UserData? = null,
     val snackBar: SnackBarData? = null,
+    val intentUris: List<Uri>? = null,
     val addRequestsToContactsDialogShown: Boolean = false,
     val searchButtonActive: Boolean = false,
     val loading: Boolean = false,

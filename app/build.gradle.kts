@@ -95,7 +95,7 @@ dependencies {
     implementation(libs.androidx.foundation.android)
     implementation(libs.compose.qr.code)
     implementation(libs.androidx.browser)
-    implementation("com.google.guava:guava:32.1.3-android")
+    implementation(libs.guava)
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)

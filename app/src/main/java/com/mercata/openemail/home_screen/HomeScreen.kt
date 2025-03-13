@@ -128,6 +128,8 @@ import com.mercata.openemail.utils.measureTextWidth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -173,6 +175,22 @@ fun SharedTransitionScope.HomeScreen(
 
     BackHandler(enabled = viewModel.selectedItems.isNotEmpty()) {
         viewModel.selectedItems.clear()
+    }
+
+    LaunchedEffect(state.intentUris) {
+        if (state.intentUris != null) {
+            navController.navigate(
+                "ComposingScreen/null/null/null/${
+                    state.intentUris!!.joinToString(",") {
+                        URLEncoder.encode(
+                            it.toString(),
+                            StandardCharsets.UTF_8.toString()
+                        )
+                    }
+                }"
+            )
+            viewModel.consumeIntentUris()
+        }
     }
 
     LaunchedEffect(state.snackBar) {

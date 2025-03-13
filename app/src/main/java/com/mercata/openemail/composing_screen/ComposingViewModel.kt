@@ -3,6 +3,7 @@ package com.mercata.openemail.composing_screen
 import android.net.Uri
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mercata.openemail.AbstractViewModel
@@ -34,17 +35,18 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import java.util.UUID
 
 class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     AbstractViewModel<ComposingState>(
-        ComposingState()
+        ComposingState(intentAttachments = savedStateHandle.get<String>("attachmentUri"))
     ) {
 
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-
             initDraftId()
 
             launch {
@@ -81,6 +83,8 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             launch { listenToDraftChanges() }
             launch { consumeReplyMessage() }
         }
+
+        consumeIntentAttachments()
     }
 
     private lateinit var draftId: String
@@ -400,6 +404,17 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     fun toggleAttachmentBottomSheet(shown: Boolean) {
         updateState(currentState.copy(attachmentBottomSheetShown = shown))
     }
+
+    private fun consumeIntentAttachments() {
+        val intentUris = URLDecoder.decode(
+            currentState.intentAttachments ?: "",
+            StandardCharsets.UTF_8.toString()
+        ).split(",").map { Uri.parse(it) }
+        addAttachments(intentUris)
+        updateState(
+            currentState.copy(intentAttachments = null)
+        )
+    }
 }
 
 data class ComposingState(
@@ -408,6 +423,7 @@ data class ComposingState(
     val subject: String = "",
     val replyMessage: DBMessage? = null,
     val body: String = "",
+    val intentAttachments: String? = null,
     val addressFieldText: Address = "",
     val recipients: SnapshotStateList<PublicUserData> = mutableStateListOf(),
     val contacts: SnapshotStateList<PublicUserData> = mutableStateListOf(),
