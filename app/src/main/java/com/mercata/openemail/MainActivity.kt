@@ -3,8 +3,6 @@
 package com.mercata.openemail
 
 import android.content.Intent
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -28,19 +26,21 @@ import com.mercata.openemail.home_screen.HomeScreen
 import com.mercata.openemail.message_details.MessageDetailsScreen
 import com.mercata.openemail.profile_screen.ProfileScreen
 import com.mercata.openemail.registration.RegistrationScreen
+import com.mercata.openemail.repository.ProcessIncomingIntentsRepository
 import com.mercata.openemail.save_keys_suggestion.SaveKeysSuggestionScreen
 import com.mercata.openemail.settings_screen.SettingsScreen
 import com.mercata.openemail.sign_in.SignInScreen
 import com.mercata.openemail.sign_in.enter_keys_screen.EnterKeysScreen
 import com.mercata.openemail.sign_in.qr_code_scanner_screen.QRCodeScannerScreen
 import com.mercata.openemail.theme.AppTheme
-import com.mercata.pingworks.utils.getMimeType
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), KoinComponent {
 
     private lateinit var navController: NavHostController
+
+    private val newIntentRepository: ProcessIncomingIntentsRepository by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -203,40 +203,15 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-            processNewIntent()
+
+            intent?.let {
+                newIntentRepository.processNewIntent(it)
+            }
         }
     }
 
-    private fun processNewIntent() {
-        val uris: ArrayList<Uri> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent?.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
-        } else {
-            intent?.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
-        } ?: arrayListOf()
-
-        if (uris.isEmpty()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                intent?.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)?.let {
-                    uris.add(it)
-                }
-            } else {
-                intent?.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)?.let {
-                    uris.add(it)
-                }
-            }
-        }
-
-        val fileUris =
-            uris.filter { it.getMimeType(this) != null }.takeIf { it.isNotEmpty() } ?: return
-        navController.navigate(
-            "ComposingScreen/null/null/null/${
-                fileUris.joinToString(",") {
-                    URLEncoder.encode(
-                        it.toString(),
-                        StandardCharsets.UTF_8.toString()
-                    )
-                }
-            }"
-        )
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        newIntentRepository.processNewIntent(intent)
     }
 }

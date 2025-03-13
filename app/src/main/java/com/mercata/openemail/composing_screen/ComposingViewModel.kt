@@ -3,6 +3,7 @@ package com.mercata.openemail.composing_screen
 import android.net.Uri
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mercata.openemail.AbstractViewModel
@@ -46,7 +47,6 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-
             initDraftId()
 
             launch {
@@ -83,6 +83,8 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             launch { listenToDraftChanges() }
             launch { consumeReplyMessage() }
         }
+
+        consumeIntentAttachments()
     }
 
     private lateinit var draftId: String
@@ -403,7 +405,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         updateState(currentState.copy(attachmentBottomSheetShown = shown))
     }
 
-    fun consumeIntentAttachments() {
+    private fun consumeIntentAttachments() {
         val intentUris = URLDecoder.decode(
             currentState.intentAttachments ?: "",
             StandardCharsets.UTF_8.toString()
