@@ -133,6 +133,7 @@ fun SharedTransitionScope.ProfileScreen(
                     Button(modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
                         enabled = !state.loading,
                         onClick = {
+                            focusManager.clearFocus()
                             viewModel.saveChanges()
                         }) {
                         Text(stringResource(R.string.save_button))

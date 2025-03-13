@@ -41,10 +41,10 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         ComposingState()
     ) {
 
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            val db: AppDatabase by inject()
-            val sp: SharedPreferences by inject()
+
             initDraftId()
 
             launch {

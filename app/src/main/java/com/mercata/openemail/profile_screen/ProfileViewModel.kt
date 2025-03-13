@@ -5,12 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.mercata.openemail.AbstractViewModel
 import com.mercata.openemail.R
 import com.mercata.openemail.models.PublicUserData
+import com.mercata.openemail.repository.UserDataUpdateRepository
 import com.mercata.openemail.utils.FileUtils
 import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.checkUserImage
 import com.mercata.openemail.utils.deleteUserImage
 import com.mercata.openemail.utils.getProfilePictureUrl
-import com.mercata.openemail.utils.getProfilePublicData
 import com.mercata.openemail.utils.safeApiCall
 import com.mercata.openemail.utils.updateCall
 import com.mercata.openemail.utils.uploadUserImage
@@ -24,15 +24,28 @@ import org.koin.core.component.inject
 
 class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
+    private val userDataUpdateRepository: UserDataUpdateRepository by inject()
+    private val fu: FileUtils by inject()
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(loading = true))
             listOf(
-                launch { updateCall() },
                 launch { checkImageDeletionStatus() }
             ).joinAll()
             updateState(currentState.copy(loading = false))
         }
+
+        viewModelScope.launch {
+            userDataUpdateRepository.userData.collect { data ->
+                updateState(
+                    currentState.copy(
+                        saved = data?.copy(), current = data?.copy()
+                    )
+                )
+            }
+        }
+        userDataUpdateRepository.updateCurrentUserData()
 
         currentState.tabs.addAll(
             listOf(
@@ -48,31 +61,15 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
     }
 
-    private val fu: FileUtils by inject()
     private var instantPhotoUri: Uri? = null
 
     private suspend fun checkImageDeletionStatus() {
-        when(safeApiCall { checkUserImage(sp.getUserAddress()!!) }) {
+        when (safeApiCall { checkUserImage(sp.getUserAddress()!!) }) {
             is HttpResult.Error -> updateState(currentState.copy(imagePresented = false))
             is HttpResult.Success -> updateState(currentState.copy(imagePresented = true))
         }
     }
 
-    private suspend fun updateCall() {
-        when (val call = safeApiCall { getProfilePublicData(sp.getUserAddress()!!) }) {
-            is HttpResult.Error -> {
-                //ignore
-            }
-
-            is HttpResult.Success -> {
-                updateState(
-                    currentState.copy(
-                        saved = call.data?.copy(), current = call.data?.copy()
-                    )
-                )
-            }
-        }
-    }
 
     fun setUserImage(uri: Uri?) {
         updateState(currentState.copy(selectedNewImage = uri))
@@ -135,7 +132,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
             val successful = results.awaitAll().any { !it }.not()
 
             if (successful) {
-                updateCall()
+                userDataUpdateRepository.updateCurrentUserData()
                 setUserImage(null)
             }
             checkImageDeletionStatus()

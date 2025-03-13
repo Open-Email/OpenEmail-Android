@@ -9,6 +9,7 @@ import com.mercata.openemail.db.contacts.DBContact
 import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.models.toDBContact
 import com.mercata.openemail.repository.AddContactRepository
+import com.mercata.openemail.repository.UserDataUpdateRepository
 import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.getProfilePublicData
 import com.mercata.openemail.utils.safeApiCall
@@ -20,44 +21,58 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
     AbstractViewModel<ContactDetailsState>(
         ContactDetailsState(
             address = savedStateHandle.get<String>("address")!!,
-            type = ContactType.getTypeById(savedStateHandle.get<String>("type")!!)!! ,
+            type = ContactType.getTypeById(savedStateHandle.get<String>("type")!!)!!,
         )
     ) {
 
     private val addContactRepository: AddContactRepository by inject()
 
     init {
-        viewModelScope.launch(Dispatchers.IO) {
-            val db: AppDatabase by inject()
-            db.userDao().findByAddressFlow(currentState.address).collect { contact ->
-                updateState(
-                    currentState.copy(dbContact = contact)
-                )
-            }
-        }
-        viewModelScope.launch {
-            addContactRepository.addingState.collect { isAdded ->
-                if (isAdded) {
-                    updateState(currentState.copy(snackBarResId = R.string.added_to_contacts))
-                } else {
-                    updateState(currentState.copy(snackBarResId = null))
-                }
-            }
-        }
-        viewModelScope.launch {
-            updateState(currentState.copy(loading = true))
-            when (val call = safeApiCall { getProfilePublicData(currentState.address) }) {
-                is HttpResult.Error -> {
-                    //ignore
-                }
-
-                is HttpResult.Success -> {
+        if (currentState.type == ContactType.CurrentUser) {
+            val userDataUpdateRepository: UserDataUpdateRepository by inject()
+            viewModelScope.launch {
+                userDataUpdateRepository.userData.collect { data ->
                     updateState(
-                        currentState.copy(contact = call.data)
+                        currentState.copy(contact = data)
                     )
                 }
             }
-            updateState(currentState.copy(loading = false))
+            userDataUpdateRepository.updateCurrentUserData()
+        } else {
+            viewModelScope.launch(Dispatchers.IO) {
+                val db: AppDatabase by inject()
+                db.userDao().findByAddressFlow(currentState.address).collect { contact ->
+                    updateState(
+                        currentState.copy(dbContact = contact)
+                    )
+                }
+            }
+
+            viewModelScope.launch {
+                addContactRepository.addingState.collect { isAdded ->
+                    if (isAdded) {
+                        updateState(currentState.copy(snackBarResId = R.string.added_to_contacts))
+                    } else {
+                        updateState(currentState.copy(snackBarResId = null))
+                    }
+                }
+            }
+
+            viewModelScope.launch {
+                updateState(currentState.copy(loading = true))
+                when (val call = safeApiCall { getProfilePublicData(currentState.address) }) {
+                    is HttpResult.Error -> {
+                        //ignore
+                    }
+
+                    is HttpResult.Success -> {
+                        updateState(
+                            currentState.copy(contact = call.data)
+                        )
+                    }
+                }
+                updateState(currentState.copy(loading = false))
+            }
         }
     }
 

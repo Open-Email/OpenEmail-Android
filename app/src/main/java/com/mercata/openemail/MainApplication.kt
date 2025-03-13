@@ -15,6 +15,7 @@ import coil.util.DebugLogger
 import com.mercata.openemail.db.AppDatabase
 import com.mercata.openemail.repository.AddContactRepository
 import com.mercata.openemail.repository.SendMessageRepository
+import com.mercata.openemail.repository.UserDataUpdateRepository
 import com.mercata.openemail.utils.BioManager
 import com.mercata.openemail.utils.CopyAttachmentService
 import com.mercata.openemail.utils.DownloadRepository
@@ -35,6 +36,7 @@ class MainApplication : Application(), ImageLoaderFactory {
     private val appModule = module {
         single { SharedPreferences(get(), get()) }
         single { DownloadRepository(get(), get()) }
+        single { UserDataUpdateRepository(get()) }
         factory { BioManager(get()) }
         factory { FileUtils(get()) }
         factory { SoundPlayer(get()) }
