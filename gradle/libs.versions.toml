@@ -1,10 +1,14 @@
 [versions]
-activityCompose = "1.9.3"
-agp = "8.7.3"
+activityCompose = "1.10.0"
+agp = "8.8.2"
+barcodeScanning = "17.3.0"
 biometric = "1.1.0"
+browser = "1.8.0"
+cameraCore = "1.4.1"
 coilCompose = "2.7.0"
-datastorePreferences = "1.1.1"
-foundationAndroid = "1.7.5"
+composeQrCode = "1.0.1"
+datastorePreferences = "1.1.2"
+foundationAndroid = "1.7.8"
 koinAndroid = "4.0.0-RC1"
 kotlin = "2.0.21"
 ksp = "2.0.20-1.0.24"
@@ -17,17 +21,23 @@ kotlinxSerializationJson = "1.7.3"
 lifecycleViewmodelCompose = "2.8.7"
 loggingInterceptor = "4.9.1"
 material = "1.12.0"
-activity = "1.9.3"
+activity = "1.10.0"
 constraintlayout = "2.2.0"
-navigationCompose = "2.8.4"
+navigationCompose = "2.8.7"
 retrofit = "2.9.0"
 room = "2.6.1"
 securityCrypto = "1.0.0"
+toolsCore = "1.0.0-alpha11"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-animation = { module = "androidx.compose.animation:animation", version.ref = "foundationAndroid" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
+androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
+androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCore" }
+androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "cameraCore" }
+androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "cameraCore" }
+androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraCore" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-foundation-android = { module = "androidx.compose.foundation:foundation-android", version.ref = "foundationAndroid" }
@@ -42,7 +52,9 @@ androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 androidx-ui-text-google-fonts = { module = "androidx.compose.ui:ui-text-google-fonts", version.ref = "foundationAndroid" }
 androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "barcodeScanning" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
+compose-qr-code = { module = "com.lightspark:compose-qr-code", version.ref = "composeQrCode" }
 jetbrains-kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -59,6 +71,7 @@ retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
 converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "retrofit" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+androidx-tools-core = { group = "androidx.privacysandbox.tools", name = "tools-core", version.ref = "toolsCore" }
 
 
 [plugins]

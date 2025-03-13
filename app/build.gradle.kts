@@ -6,12 +6,12 @@ plugins {
 }
 
 android {
-    namespace = "com.mercata.pingworks"
+    namespace = "com.mercata.openemail"
     compileSdk = 35
     android.buildFeatures.buildConfig = true
 
     defaultConfig {
-        applicationId = "com.mercata.pingworks"
+        applicationId = "com.mercata.openemail"
         minSdk = 28
         targetSdk = 35
         versionCode = 1
@@ -88,10 +88,19 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.tools.core)
     annotationProcessor(libs.room.compiler)
     ksp(libs.room.compiler)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.foundation.android)
+    implementation(libs.compose.qr.code)
+    implementation(libs.androidx.browser)
+    implementation("com.google.guava:guava:32.1.3-android")
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.barcode.scanning)
     //noinspection UseTomlInstead
     implementation("com.goterl:lazysodium-android:5.1.0@aar")
     //noinspection UseTomlInstead
