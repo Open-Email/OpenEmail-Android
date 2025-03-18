@@ -67,32 +67,15 @@ class MainApplication : Application(), ImageLoaderFactory {
     }
 
     override fun newImageLoader(): ImageLoader {
-        //TODO enable caching after cloudflare cache timeout adjustment
         return ImageLoader(this).newBuilder()
-            .okHttpClient {
-
-                val interceptor = Interceptor { chain ->
-                    var request: Request = chain.request()
-                    val builder: Request.Builder =
-                        request.newBuilder().addHeader("Cache-Control", "no-cache")
-                    request = builder.build()
-                    chain.proceed(request)
-                }
-
-                OkHttpClient.Builder()
-                    .addInterceptor(interceptor)
-                    .cache(null)
-                    .build()
-            }
-            .memoryCachePolicy(CachePolicy.DISABLED)
+            .memoryCachePolicy(CachePolicy.ENABLED)
             .memoryCache {
                 MemoryCache.Builder(this)
                     .maxSizePercent(0.1)
                     .strongReferencesEnabled(true)
                     .build()
             }
-
-            .diskCachePolicy(CachePolicy.DISABLED)
+            .diskCachePolicy(CachePolicy.ENABLED)
             .diskCache {
                 DiskCache.Builder()
                     .maxSizePercent(0.03)

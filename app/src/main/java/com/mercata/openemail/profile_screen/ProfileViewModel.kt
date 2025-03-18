@@ -140,21 +140,19 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
         }
     }
 
-    suspend fun deleteUserpic(): String? {
+    suspend fun deleteUserpic(onSuccess: (imageUrl: String) -> Unit) {
         return withContext(Dispatchers.IO) {
             updateState(currentState.copy(loading = true))
-            val rv: String? = when (safeApiCall { deleteUserImage(sp) }) {
+            when (safeApiCall { deleteUserImage(sp) }) {
                 is HttpResult.Error -> {
-                    null
+                    //ignore
                 }
 
                 is HttpResult.Success -> {
-                    sp.getUserAddress()?.getProfilePictureUrl()
+                    onSuccess(sp.getUserAddress()!!.getProfilePictureUrl())
                 }
             }
-
             updateState(currentState.copy(loading = false))
-            rv
         }
     }
 

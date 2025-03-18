@@ -195,9 +195,9 @@ fun SharedTransitionScope.ProfileScreen(
                     if (state.imagePresented) {
                         ElevatedButton(onClick = {
                             coroutineScope.launch {
-                                viewModel.deleteUserpic()?.let { userpicId ->
-                                    context.imageLoader.diskCache?.remove(userpicId)
-                                    context.imageLoader.memoryCache?.remove(MemoryCache.Key(userpicId))
+                                viewModel.deleteUserpic { imageUrl ->
+                                    context.imageLoader.diskCache?.remove(imageUrl)
+                                    context.imageLoader.memoryCache?.remove(MemoryCache.Key(imageUrl))
                                 }
                             }
 
