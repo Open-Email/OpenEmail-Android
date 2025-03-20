@@ -543,7 +543,7 @@ fun AttachmentViewHolder(
                 Text(
                     text = String.format(
                         stringResource(R.string.file_size_placeholder),
-                        attachment.fileSize / 1024
+                        attachment.fileSize.toDouble() / (1024 * 1024)
                     ),
                     style = typography.bodySmall.copy(color = colorScheme.outlineVariant),
                     maxLines = 1,

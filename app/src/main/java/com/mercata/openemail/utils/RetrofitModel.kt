@@ -433,7 +433,7 @@ private suspend fun getAllPrivateEnvelopes(
                 envelopes
             }
         })
-        
+
         //add self to fetch outbox
         tasks.add(async {
             getAllPrivateEnvelopesForContact(
@@ -762,7 +762,7 @@ suspend fun uploadMessage(
 
                 var partCounter = 1
                 val buffer = ByteArray(MAX_MESSAGE_SIZE.toInt())
-                val totalParts = (urlInfo.size + MAX_MESSAGE_SIZE - 1) / urlInfo.size
+                val totalParts = (urlInfo.size + MAX_MESSAGE_SIZE - 1) / MAX_MESSAGE_SIZE
                 var offset: Long = 0
 
                 fileUtils.getInputStreamFromUri(uri)?.use { inputStream ->

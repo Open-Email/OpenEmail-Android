@@ -134,7 +134,7 @@
     <string name="profile">Profile</string>
     <string name="address_not_found_error">Address not found</string>
     <string name="general">General</string>
-    <string name="file_size_placeholder">%d KB</string>
+    <string name="file_size_placeholder">%.1f MB</string>
     <string name="keys">Keys</string>
     <string name="share">Share</string>
     <string name="delete_message_question">Deleting the message from the outbox will also recall it. It will not be accessible to readers anymore.</string>
