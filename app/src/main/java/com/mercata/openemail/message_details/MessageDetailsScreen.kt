@@ -291,7 +291,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         color = colorScheme.outline
                     )
                     OutlinedButton(onClick = {
-                        navController.navigate("ComposingScreen/${message?.authorAddress}/${state.message?.getMessageId()}/null")
+                        navController.navigate("ComposingScreen/${message?.authorAddress}/${state.message?.getMessageId()}/null/null")
                     }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(

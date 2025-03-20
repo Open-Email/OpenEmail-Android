@@ -422,19 +422,18 @@ private suspend fun getAllPrivateEnvelopes(
     return withContext(Dispatchers.IO) {
         val contacts = db.userDao().getAll()
 
-        val tasks: ArrayList<Deferred<List<Envelope>>> =
-            arrayListOf<Deferred<List<Envelope>>>().apply {
-                addAll(getNewNotifications(sp, db).dataNotifications.map { new ->
-                    async {
-                        val envelopes = getAllPrivateEnvelopesForContact(
-                            sp,
-                            contacts.first { contact -> contact.address == new.address })
-                        db.notificationsDao().insert(new)
-                        envelopes
-                    }
-                })
-            }
+        val tasks: ArrayList<Deferred<List<Envelope>>> = arrayListOf()
 
+        tasks.addAll(getNewNotifications(sp, db).dataNotifications.map { new ->
+            async {
+                val envelopes = getAllPrivateEnvelopesForContact(
+                    sp,
+                    contacts.first { contact -> contact.address == new.address })
+                db.notificationsDao().insert(new)
+                envelopes
+            }
+        })
+        
         //add self to fetch outbox
         tasks.add(async {
             getAllPrivateEnvelopesForContact(
@@ -494,7 +493,6 @@ suspend fun getNewNotifications(sp: SharedPreferences, db: AppDatabase): Notific
             ?.filterNotNull()
             ?.filterNot { oldNotifications.any { old -> old.notificationId == it.notificationId } }
             ?: listOf()
-
 
         val splitResults =
             newNotifications.partition { notification ->
@@ -1059,7 +1057,7 @@ suspend fun saveMessagesToDb(
 
         val removedOutbox =
             messagesDao.getAll()
-                .filterNot { dbMessage -> dbMessage.authorAddress != sp.getUserAddress() || results.any { envelope -> envelope.messageId == dbMessage.messageId } }
+                .filter { dbMessage -> dbMessage.authorAddress == sp.getUserAddress() && !results.any { envelope -> envelope.messageId == dbMessage.messageId } }
 
         messagesDao.deleteList(removedOutbox)
 

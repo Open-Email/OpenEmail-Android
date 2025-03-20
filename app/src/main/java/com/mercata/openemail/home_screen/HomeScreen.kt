@@ -158,7 +158,7 @@ fun SharedTransitionScope.HomeScreen(
         navController.navigate(
             "ComposingScreen/${
                 viewModel.selectedItems.mapNotNull { it.getAddressValue() }.joinToString(",")
-            }/null/null"
+            }/null/null/null"
         )
     }
 
@@ -440,7 +440,7 @@ fun SharedTransitionScope.HomeScreen(
                                 }
                             }
                         } else {
-                            navController.navigate("ComposingScreen/null/null/null")
+                            navController.navigate("ComposingScreen/null/null/null/null")
                         }
                     }
                     .sharedBounds(
@@ -573,7 +573,7 @@ fun SharedTransitionScope.HomeScreen(
                                                         }
 
                                                         is DBDraftWithReaders -> navController.navigate(
-                                                            "ComposingScreen/null/${state.screen.outbox}/${message.draft.draftId}",
+                                                            "ComposingScreen/null/${state.screen.outbox}/${message.draft.draftId}/null",
                                                         )
 
                                                         is DBContact -> {
@@ -811,15 +811,16 @@ fun SharedTransitionScope.MessageViewHolder(
                                         ) {
                                             Text(
                                                 text = if (contacts.isEmpty()) {
-                                                    "${currentUser.name.firstOrNull() ?: ""}${
-                                                        currentUser.name.getOrNull(
+                                                    val address = item.getAddressValue() ?: ""
+                                                    "${address.firstOrNull()?.uppercase() ?: ""}${
+                                                        address.getOrNull(
                                                             1
                                                         ) ?: ""
                                                     }"
                                                 } else {
                                                     "${
                                                         contacts
-                                                            .first().fullName.firstOrNull() ?: ""
+                                                            .first().fullName.firstOrNull()?.uppercase() ?: ""
                                                     }${
                                                         contacts
                                                             .first().fullName.getOrNull(1) ?: ""

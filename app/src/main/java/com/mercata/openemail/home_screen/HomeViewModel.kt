@@ -53,6 +53,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     private val fu: FileUtils by inject()
     private val addContactRepository: AddContactRepository by inject()
     private val newIntentRepository: ProcessIncomingIntentsRepository by inject()
+    private val sendMessageRepository: SendMessageRepository by inject()
     private var listUpdateState: HomeListUpdateState? = null
 
     val items: SnapshotStateList<HomeItem> = mutableStateListOf()
@@ -78,8 +79,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     init {
         val sp: SharedPreferences by inject()
         val db: AppDatabase by inject()
-        val dl: DownloadRepository by inject()
-        val sendMessageRepository: SendMessageRepository by inject()
 
         viewModelScope.launch {
             newIntentRepository.cachedUris.collect { uris ->
@@ -197,14 +196,14 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             listOf(
                 launch {
                     syncContacts(sp, db.userDao())
-                    syncAllMessages(db, sp, dl)
                     notificationsFlow.value = getNewNotifications(sp, db)
+                    syncAllMessages(db, sp, dl)
                 },
                 launch {
                     uploadPendingMessages(currentUser, db, fu, sp)
                 },
                 launch {
-                    revokeMarkedOutboxMessages(sp.getUserData()!!, db.messagesDao())
+                    sendMessageRepository.revokeMarkedMessages()
                 },
                 launch {
                     dl.getCachedAttachments()

@@ -2,8 +2,10 @@ package com.mercata.openemail.db.notifications
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 import com.mercata.openemail.db.contacts.ContactItem
+import com.mercata.openemail.db.contacts.DBContact
 import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.utils.Address
 import java.time.Instant
@@ -11,6 +13,16 @@ import java.time.Instant
 const val SEVEN_DAYS_MILLIS = 1000 * 60 * 60 * 24 * 7
 
 @Entity
+(
+    foreignKeys = [
+        ForeignKey(
+            entity = DBContact::class,
+            parentColumns = ["address"],
+            childColumns = ["address"],
+            onDelete = ForeignKey.CASCADE // Cascade delete
+        )
+    ]
+)
 data class DBNotification(
     @PrimaryKey @ColumnInfo("notification_id") val notificationId: String,
     @ColumnInfo("received_on_timestamp") val receivedOnTimestamp: Long,

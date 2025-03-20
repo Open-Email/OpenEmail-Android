@@ -15,6 +15,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SendMessageRepository(
     private val soundPlayer: SoundPlayer,
@@ -49,9 +50,8 @@ class SendMessageRepository(
         }
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
-    fun revokeMarkedMessages() {
-        GlobalScope.launch(Dispatchers.IO) {
+    suspend fun revokeMarkedMessages() {
+        withContext(Dispatchers.IO) {
             revokeMarkedOutboxMessages(sp.getUserData()!!, db.messagesDao())
         }
     }

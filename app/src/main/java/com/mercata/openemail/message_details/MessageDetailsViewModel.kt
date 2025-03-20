@@ -20,7 +20,9 @@ import com.mercata.openemail.utils.Progress
 import com.mercata.openemail.utils.SharedPreferences
 import com.mercata.openemail.utils.getProfilePublicData
 import com.mercata.openemail.utils.safeApiCall
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
@@ -135,14 +137,17 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
         updateState(currentState.copy(shareIntent = null))
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     suspend fun deleteMessage() {
         withContext(Dispatchers.IO) {
             toggleDeletionConfirmation(false)
             currentState.message?.message?.copy(
                 markedToDelete = true
             )?.let { db.messagesDao().update(it) }
+            GlobalScope.launch(Dispatchers.IO) {
+                sendMessageRepository.revokeMarkedMessages()
+            }
         }
-        sendMessageRepository.revokeMarkedMessages()
     }
 
     fun toggleDeletionConfirmation(shown: Boolean) {

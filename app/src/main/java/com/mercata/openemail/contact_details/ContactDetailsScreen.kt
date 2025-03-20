@@ -175,7 +175,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         if (state.type == ContactType.ContactNotification) {
                             viewModel.showRequestApprovingConfirmationDialog()
                         } else {
-                            navController.navigate("ComposingScreen/${state.address}/null/null")
+                            navController.navigate("ComposingScreen/${state.address}/null/null/null")
                         }
 
                     }) {
@@ -422,7 +422,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
                                 viewModel.hideRequestApprovingConfirmationDialog()
                                 viewModel.approveRequest()
                                 withContext(Dispatchers.Main) {
-                                    navController.navigate("ComposingScreen/${state.address}/null/null")
+                                    navController.navigate("ComposingScreen/${state.address}/null/null/null")
                                 }
                             }
                         }

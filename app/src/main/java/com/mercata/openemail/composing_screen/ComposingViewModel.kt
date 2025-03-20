@@ -409,7 +409,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         val intentUris = URLDecoder.decode(
             currentState.intentAttachments ?: "",
             StandardCharsets.UTF_8.toString()
-        ).split(",").map { Uri.parse(it) }
+        ).split(",").filter { it.isNotBlank() }.map { Uri.parse(it) }
         addAttachments(intentUris)
         updateState(
             currentState.copy(intentAttachments = null)
