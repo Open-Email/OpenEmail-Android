@@ -337,24 +337,30 @@ suspend fun deleteContact(
 private suspend fun getAllBroadcastEnvelopes(
     sharedPreferences: SharedPreferences,
     contactsDao: ContactsDao
-): List<Envelope> {
+): List<Envelope>? {
     return withContext(Dispatchers.IO) {
-        contactsDao.getAll().map { contact ->
+        val results = contactsDao.getAll().map { contact ->
             async {
                 getAllBroadcastEnvelopesForContact(sharedPreferences, contact)
             }
-        }.awaitAll().fold(initial = arrayListOf(), operation = { initial, new ->
-            initial.apply { addAll(new) }
-        })
+        }.awaitAll()
+
+        if (results.contains(null)) {
+            null
+        } else {
+            results.fold(initial = arrayListOf(), operation = { initial, new ->
+                initial.apply { addAll(new!!) }
+            })
+        }
     }
 }
 
 private suspend fun getAllBroadcastEnvelopesForContact(
     sharedPreferences: SharedPreferences,
     contact: DBContact
-): List<Envelope> {
+): List<Envelope>? {
     if (contact.receiveBroadcasts.not()) {
-        return listOf()
+        return null
     }
     return with(Dispatchers.IO) {
         val currentUser = sharedPreferences.getUserData()!!
@@ -366,7 +372,7 @@ private suspend fun getAllBroadcastEnvelopesForContact(
             )
         }) {
             is HttpResult.Error -> {
-                listOf()
+                null
             }
 
             is HttpResult.Success -> {
@@ -377,7 +383,7 @@ private suspend fun getAllBroadcastEnvelopesForContact(
                         contact = contact,
                         link = null
                     )
-                } ?: listOf()
+                }
             }
         }
     }
@@ -386,7 +392,7 @@ private suspend fun getAllBroadcastEnvelopesForContact(
 private suspend fun getAllPrivateEnvelopesForContact(
     sharedPreferences: SharedPreferences,
     contact: DBContact
-): List<Envelope> {
+): List<Envelope>? {
     return withContext(Dispatchers.IO) {
         val currentUser = sharedPreferences.getUserData()!!
         when (val idsCall = safeApiCall {
@@ -398,7 +404,7 @@ private suspend fun getAllPrivateEnvelopesForContact(
             )
         }) {
             is HttpResult.Error -> {
-                listOf()
+                null
             }
 
             is HttpResult.Success -> {
@@ -409,7 +415,7 @@ private suspend fun getAllPrivateEnvelopesForContact(
                         contact = contact,
                         link = contact.address.connectionLink()
                     )
-                } ?: listOf()
+                }
             }
         }
     }
@@ -418,11 +424,11 @@ private suspend fun getAllPrivateEnvelopesForContact(
 private suspend fun getAllPrivateEnvelopes(
     sp: SharedPreferences,
     db: AppDatabase
-): List<Envelope> {
+): List<Envelope>? {
     return withContext(Dispatchers.IO) {
         val contacts = db.userDao().getAll()
 
-        val tasks: ArrayList<Deferred<List<Envelope>>> = arrayListOf()
+        val tasks: ArrayList<Deferred<List<Envelope>?>> = arrayListOf()
 
         tasks.addAll(getNewNotifications(sp, db).dataNotifications.map { new ->
             async {
@@ -441,9 +447,15 @@ private suspend fun getAllPrivateEnvelopes(
                 contacts.first { contact -> contact.address == sp.getUserAddress() })
         })
 
-        tasks.awaitAll().fold(
-            initial = arrayListOf(),
-            operation = { initial, new -> initial.apply { addAll(new) } })
+        val results = tasks.awaitAll()
+
+        if (results.contains(null)) {
+            null
+        } else {
+            results.fold(
+                initial = arrayListOf(),
+                operation = { initial, new -> initial.apply { addAll(new!!) } })
+        }
     }
 }
 
@@ -633,52 +645,58 @@ suspend fun syncMessagesForContact(
     dl: DownloadRepository,
 ) {
     withContext(Dispatchers.IO) {
-        val privateEnvelopes: Deferred<List<Envelope>> = async {
+        val privateEnvelopes: Deferred<List<Envelope>?> = async {
             getAllPrivateEnvelopesForContact(
                 sp,
                 contact
             )
         }
-        val broadcastEnvelopes: Deferred<List<Envelope>> = async {
+        val broadcastEnvelopes: Deferred<List<Envelope>?> = async {
             getAllBroadcastEnvelopesForContact(
                 sp,
                 contact
             )
         }
 
-        val results: List<Envelope> =
-            listOf(privateEnvelopes, broadcastEnvelopes).awaitAll().fold(
-                initial = arrayListOf(),
-                operation = { initial, new -> initial.apply { addAll(new) } })
+        val results: List<List<Envelope>?> =
+            listOf(privateEnvelopes, broadcastEnvelopes).awaitAll()
 
-        saveMessagesToDb(dl, results, db.messagesDao(), db.attachmentsDao(), sp)
+        if (results.contains(null).not()) {
+            val folded = results.fold(
+                initial = arrayListOf<Envelope>(),
+                operation = { initial, new -> initial.apply { addAll(new!!) } })
+            saveMessagesToDb(dl, folded, db.messagesDao(), db.attachmentsDao(), sp)
+        }
     }
 }
 
 suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: DownloadRepository) {
 
     withContext(Dispatchers.IO) {
-        val privateEnvelopes: Deferred<List<Envelope>> = async {
+        val privateEnvelopes: Deferred<List<Envelope>?> = async {
             getAllPrivateEnvelopes(
                 sp,
                 db
             )
         }
 
-        val broadcastEnvelopes: Deferred<List<Envelope>> = async {
+        val broadcastEnvelopes: Deferred<List<Envelope>?> = async {
             getAllBroadcastEnvelopes(
                 sp,
                 db.userDao()
             )
         }
 
-        val results: List<Envelope> =
-            listOf(privateEnvelopes, broadcastEnvelopes).awaitAll().fold(
-                initial = arrayListOf(),
-                operation = { initial, new -> initial.apply { addAll(new) } })
+        val results: List<List<Envelope>?> =
+            listOf(privateEnvelopes, broadcastEnvelopes).awaitAll()
 
-        saveMessagesToDb(dl, results, db.messagesDao(), db.attachmentsDao(), sp)
-        sp.setFirstTime(false)
+        if (results.contains(null).not()) {
+            val folded = results.fold(
+                initial = arrayListOf<Envelope>(),
+                operation = { initial, new -> initial.apply { addAll(new!!) } })
+            saveMessagesToDb(dl, folded, db.messagesDao(), db.attachmentsDao(), sp)
+            sp.setFirstTime(false)
+        }
     }
 }
 
