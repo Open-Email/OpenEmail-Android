@@ -55,70 +55,77 @@ class Envelope(
 ) {
 
     private val envelopeHeadersMap = headers?.associate { it.first to it.second } ?: mapOf()
-    private val streamId: String?
-    private var accessLinks: String?
+    private var streamId: String? = null
+    private var accessLinks: String? = null
     var accessKey: ByteArray? = null
         private set
-    private var contentHeadersBytes: ByteArray
-    private val headersOrder: String
-    private val headersChecksum: String
-    private val headersSignature: String
-    private val payloadCipher: String?
-    private val payloadCipherInfo: PayloadSeal?
-    val contentHeaders: ContentHeaders
+    private lateinit var contentHeadersBytes: ByteArray
+    private lateinit var headersOrder: String
+    private lateinit var headersChecksum: String
+    private lateinit var headersSignature: String
+    private var payloadCipher: String? = null
+    private var payloadCipherInfo: PayloadSeal? = null
+    lateinit var contentHeaders: ContentHeaders
+    var successfullyParsed: Boolean = false
 
     init {
-        if (envelopeHeadersMap.entries.any { it.key.length + it.value.length > MAX_HEADERS_SIZE }) {
-            throw TooLargeEnvelope(envelopeHeadersMap.toString())
-        }
-
-        payloadCipher = envelopeHeadersMap[HEADER_MESSAGE_ENCRYPTION]
-        payloadCipherInfo = if (payloadCipher == null) null else cipherInfoFromHeader(payloadCipher)
-
-        accessLinks = envelopeHeadersMap[HEADER_MESSAGE_ACCESS]
-        accessLinks?.run { parseAccessLink() }
-
-        envelopeHeadersMap[HEADER_MESSAGE_ENVELOPE_CHECKSUM]!!.let { headerVal ->
-            val checksumMap = parseHeaderAttributes(headerVal)
-            val algorithm = checksumMap["algorithm"] ?: throw BadChecksum(checksumMap.toString())
-            val sum = checksumMap["value"] ?: throw BadChecksum(checksumMap.toString())
-            val order = checksumMap["order"] ?: throw BadChecksum(checksumMap.toString())
-            if (algorithm.lowercase() != CHECKSUM_ALGORITHM) {
-                throw BadChecksum(checksumMap.toString())
+        try {
+            if (envelopeHeadersMap.entries.any { it.key.length + it.value.length > MAX_HEADERS_SIZE }) {
+                throw TooLargeEnvelope(envelopeHeadersMap.toString())
             }
-            headersOrder = order
-            headersChecksum = sum
-        }
 
-        contentHeaders = envelopeHeadersMap[HEADER_MESSAGE_HEADERS]!!.let { headerVal ->
-            val contentHeaderMap = parseHeaderAttributes(headerVal)
-            contentHeaderMap["algorithm"]?.let { algorithm ->
-                if (algorithm != SYMMETRIC_CIPHER) {
-                    throw AlgorithmMissMatch(algorithm)
+            payloadCipher = envelopeHeadersMap[HEADER_MESSAGE_ENCRYPTION]
+            payloadCipherInfo = payloadCipher?.let { cipherInfoFromHeader(it) }
+
+            accessLinks = envelopeHeadersMap[HEADER_MESSAGE_ACCESS]
+            accessLinks?.run { parseAccessLink() }
+
+            envelopeHeadersMap[HEADER_MESSAGE_ENVELOPE_CHECKSUM]!!.let { headerVal ->
+                val checksumMap = parseHeaderAttributes(headerVal)
+                val algorithm =
+                    checksumMap["algorithm"] ?: throw BadChecksum(checksumMap.toString())
+                val sum = checksumMap["value"] ?: throw BadChecksum(checksumMap.toString())
+                val order = checksumMap["order"] ?: throw BadChecksum(checksumMap.toString())
+                if (algorithm.lowercase() != CHECKSUM_ALGORITHM) {
+                    throw BadChecksum(checksumMap.toString())
+                }
+                headersOrder = order
+                headersChecksum = sum
+            }
+
+            contentHeaders = envelopeHeadersMap[HEADER_MESSAGE_HEADERS]!!.let { headerVal ->
+                val contentHeaderMap = parseHeaderAttributes(headerVal)
+                contentHeaderMap["algorithm"]?.let { algorithm ->
+                    if (algorithm != SYMMETRIC_CIPHER) {
+                        throw AlgorithmMissMatch(algorithm)
+                    }
+                }
+                contentHeadersBytes = contentHeaderMap["value"]!!.decodeFromBase64()
+                openContentHeaders()
+            }
+
+            envelopeHeadersMap[HEADER_MESSAGE_ID]!!.let { headerVal ->
+                if (messageId != headerVal) {
+                    throw BadMessageId(messageId + "\n" + headerVal)
                 }
             }
-            contentHeadersBytes = contentHeaderMap["value"]!!.decodeFromBase64()
-            openContentHeaders()
-        }
 
-        envelopeHeadersMap[HEADER_MESSAGE_ID]!!.let { headerVal ->
-            if (messageId != headerVal) {
-                throw BadMessageId(messageId + "\n" + headerVal)
-            }
-        }
+            streamId = envelopeHeadersMap[HEADER_MESSAGE_STREAM]
 
-        streamId = envelopeHeadersMap[HEADER_MESSAGE_STREAM]
-
-        headersSignature =
-            envelopeHeadersMap[HEADER_MESSAGE_ENVELOPE_SIGNATURE]!!.let { headerVal ->
-                val sigMap = parseHeaderAttributes(headerVal)
-                val algorithm = sigMap["algorithm"]
-                val data = sigMap["value"]
-                if (algorithm?.lowercase() != SIGNING_ALGORITHM) {
-                    throw AlgorithmMissMatch(algorithm.toString())
+            headersSignature =
+                envelopeHeadersMap[HEADER_MESSAGE_ENVELOPE_SIGNATURE]!!.let { headerVal ->
+                    val sigMap = parseHeaderAttributes(headerVal)
+                    val algorithm = sigMap["algorithm"]
+                    val data = sigMap["value"]
+                    if (algorithm?.lowercase() != SIGNING_ALGORITHM) {
+                        throw AlgorithmMissMatch(algorithm.toString())
+                    }
+                    data!!
                 }
-                data!!
-            }
+            successfullyParsed = true
+        } catch (e: Exception) {
+            successfullyParsed = false
+        }
     }
 
     @Throws(FingerprintMismatch::class)

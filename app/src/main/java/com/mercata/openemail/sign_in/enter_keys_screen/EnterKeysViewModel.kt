@@ -85,14 +85,14 @@ class EnterKeysViewModel(savedStateHandle: SavedStateHandle) :
                 encryptionKeys = EncryptionKeys(
                     pair = KeyPair(
                         Key.fromBase64String(publicData.publicEncryptionKey),
-                        Key.fromBase64String(currentState.privateEncryptionKeyInput)
+                        Key.fromBase64String(currentState.privateEncryptionKeyInput.trim())
                     ),
                     id = publicData.encryptionKeyId
                 ),
                 signingKeys = SigningKeys(
                     pair = KeyPair(
                         Key.fromBase64String(publicData.publicSigningKey),
-                        Key.fromBase64String(currentState.privateSigningKeyInput)
+                        Key.fromBase64String(currentState.privateSigningKeyInput.trim())
                     )
                 )
             )

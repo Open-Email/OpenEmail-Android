@@ -32,21 +32,21 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
 
     suspend fun saveUserKeys(user: UserData) {
         sharedPreferences.edit()
-            .putString(SP_ADDRESS, user.address)
-            .putString(SP_FULL_NAME, user.name)
-            .putString(SP_ENCRYPTION_KEY_ID, user.encryptionKeys.id)
+            .putString(SP_ADDRESS, user.address.trim())
+            .putString(SP_FULL_NAME, user.name.trim())
+            .putString(SP_ENCRYPTION_KEY_ID, user.encryptionKeys.id.trim())
             .putString(
                 SP_ENCRYPTION_KEYS,
                 arrayOf(
                     user.encryptionKeys.pair.publicKey,
                     user.encryptionKeys.pair.secretKey
-                ).joinToString(separator = ",") { it.asBytes.encodeToBase64() }
+                ).joinToString(separator = ",") { it.asBytes.encodeToBase64().trim() }
             )
             .putString(
                 SP_SIGNING_KEYS, arrayOf(
                     user.signingKeys.pair.publicKey,
                     user.signingKeys.pair.secretKey
-                ).joinToString(separator = ",") { it.asBytes.encodeToBase64() })
+                ).joinToString(separator = ",") { it.asBytes.encodeToBase64().trim() })
             .apply()
 
         val publicUserData: PublicUserData? =

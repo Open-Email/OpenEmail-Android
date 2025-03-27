@@ -621,6 +621,10 @@ private suspend fun fetchEnvelopesForContact(
                                 envelopeCall.headers!!
                             )
 
+                        if (!envelope.successfullyParsed) {
+                            return@async null
+                        }
+
                         val authentic: Boolean = try {
                             envelope.assertEnvelopeAuthenticity()
                             true
