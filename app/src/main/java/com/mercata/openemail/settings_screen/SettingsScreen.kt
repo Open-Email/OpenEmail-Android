@@ -74,6 +74,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val pagerState = rememberPagerState(pageCount = { 2 })
+    val qrCodeSize = 350.dp
 
     Scaffold(
         topBar = {
@@ -212,7 +213,7 @@ fun SettingsScreen(
                                     modifier = modifier
                                         .background(MaterialTheme.colorScheme.surfaceVariant)
                                         .fillMaxWidth()
-                                        .height(300.dp + MARGIN_DEFAULT * 2),
+                                        .height(qrCodeSize + MARGIN_DEFAULT * 2),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Box(
@@ -225,7 +226,7 @@ fun SettingsScreen(
                                         QrCodeView(
                                             data = "${state.privateEncryptionKey}:${state.privateSigningKey}",
                                             modifier = modifier
-                                                .size(300.dp)
+                                                .size(qrCodeSize)
                                                 .padding(MARGIN_DEFAULT),
                                             colors = QrCodeColors(
                                                 background = MaterialTheme.colorScheme.surface,
@@ -245,8 +246,7 @@ fun SettingsScreen(
                                                                 Color(0xFF005BEC),
                                                                 Color(0xFF1E76F2),
                                                                 Color(0xFF00CFFF),
-
-                                                                )
+                                                            )
                                                         )
                                                     )
                                             ) {
