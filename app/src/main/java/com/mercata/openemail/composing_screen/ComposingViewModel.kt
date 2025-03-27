@@ -7,7 +7,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mercata.openemail.AbstractViewModel
 import com.mercata.openemail.R
-import com.mercata.openemail.db.AppDatabase
 import com.mercata.openemail.db.contacts.toPublicUserData
 import com.mercata.openemail.db.drafts.DBDraft
 import com.mercata.openemail.db.drafts.draft_reader.toPublicUserData
@@ -23,7 +22,6 @@ import com.mercata.openemail.utils.Address
 import com.mercata.openemail.utils.CopyAttachmentService
 import com.mercata.openemail.utils.FileUtils
 import com.mercata.openemail.utils.HttpResult
-import com.mercata.openemail.utils.SharedPreferences
 import com.mercata.openemail.utils.getProfilePublicData
 import com.mercata.openemail.utils.safeApiCall
 import com.mercata.openemail.utils.syncContacts
@@ -46,7 +44,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     init {
         viewModelScope.launch(Dispatchers.IO) {
             initDraftId()
-
+            consumeIntentAttachments()
             launch {
                 db.draftDao().getById(draftId)?.let { draft ->
                     updateState(
@@ -81,8 +79,6 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             launch { listenToDraftChanges() }
             launch { consumeReplyMessage() }
         }
-
-        consumeIntentAttachments()
     }
 
     private lateinit var draftId: String
@@ -90,7 +86,6 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     private val attachmentCopier: CopyAttachmentService by inject()
     private val sendMessageRepository: SendMessageRepository by inject()
     private val addContactRepository: AddContactRepository by inject()
-    private val draftDB = db.draftDao()
     private var instantPhotoUri: Uri? = null
 
     private suspend fun updateAvailableContacts() {
@@ -154,17 +149,12 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
 
     private suspend fun consumeReplyMessage() {
-        val sp: SharedPreferences by inject()
-        val db: AppDatabase by inject()
-        updateState(currentState.copy(loading = true))
 
         val replyMessage: DBMessage? =
             db.messagesDao().getById(savedStateHandle.get<String>("replyMessageId") ?: "")?.message
 
         updateState(
-            currentState.copy(
-                loading = false, replyMessage = replyMessage, currentUser = sp.getUserData()
-            )
+            currentState.copy(replyMessage = replyMessage, currentUser = sp.getUserData())
         )
     }
 
@@ -191,15 +181,15 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
     fun updateSubject(str: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            draftDB.update(draftDB.getById(draftId)!!.draft.copy(subject = str))
+            db.draftDao().update(db.draftDao().getById(draftId)!!.draft.copy(subject = str))
         }
         updateState(currentState.copy(subject = str, subjectErrorResId = null))
     }
 
     fun toggleBroadcast() {
         viewModelScope.launch(Dispatchers.IO) {
-            val draft = draftDB.getById(draftId)!!
-            draftDB.update(draft.draft.copy(isBroadcast = !draft.draft.isBroadcast))
+            val draft = db.draftDao().getById(draftId)!!
+            db.draftDao().update(draft.draft.copy(isBroadcast = !draft.draft.isBroadcast))
         }
         updateState(
             currentState.copy(
@@ -210,7 +200,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
     fun updateBody(str: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            draftDB.update(draftDB.getById(draftId)!!.draft.copy(textBody = str))
+            db.draftDao().update(db.draftDao().getById(draftId)!!.draft.copy(textBody = str))
         }
         updateState(currentState.copy(body = str, bodyErrorResId = null))
     }
@@ -269,14 +259,14 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
     fun removeAttachment(attachment: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
-            val draft = draftDB.getById(draftId)!!
+            val draft = db.draftDao().getById(draftId)!!
             val uris: ArrayList<String> = arrayListOf<String>().apply {
                 addAll(
                     draft.draft.attachmentUriList?.split(",") ?: listOf()
                 )
             }
             uris.remove(attachment.toString())
-            draftDB.update(
+            db.draftDao().update(
                 draft.draft.copy(attachmentUriList = uris.joinToString(",")
                     .takeIf { it.isNotEmpty() })
             )
@@ -316,18 +306,16 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                     attachmentCopier.copyUriToLocalStorage(uri, fileUtils.getURLInfo(uri).name)
                 }
             }.awaitAll().map { it.toString() }
-            val draft = draftDB.getById(draftId)!!
+            val draft = db.draftDao().getById(draftId)!!
             val uris = draft.draft.attachmentUriList?.split(",") ?: listOf()
 
-            draftDB.update(draft.draft.copy(attachmentUriList = hashSetOf<String>().apply {
+            db.draftDao().update(draft.draft.copy(attachmentUriList = hashSetOf<String>().apply {
                 addAll(uris)
                 addAll(attachmentUriStrings)
             }.joinToString(",").takeIf { it.isNotEmpty() }))
 
             updateState(currentState.copy(loading = false))
         }
-
-        updateState(currentState.copy(bodyErrorResId = null))
     }
 
     fun removeRecipient(user: PublicUserData) {
@@ -377,25 +365,22 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     fun addContactSuggestion(person: PublicUserData) {
         if (!currentState.recipients.contains(person)) {
             viewModelScope.launch(Dispatchers.IO) {
-                addFoundContact(person)
-                db.draftReaderDao().insert(person.toDBDraftReader(draftId))
-            }
-        }
-    }
-
-    private fun addFoundContact(person: PublicUserData) {
-        viewModelScope.launch {
-            val allContacts = db.userDao().getAll()
-            if (!allContacts.any { it.address == person.address }) {
-                if (currentState.externalContact?.address == person.address) {
-                    updateState(currentState.copy(externalContact = null))
-                }
                 updateState(currentState.copy(loading = true))
-                addContactRepository.addContact(person)
+                val allContacts = db.userDao().getAll()
+                if (!allContacts.any { it.address == person.address }) {
+                    if (currentState.externalContact?.address == person.address) {
+                        updateState(currentState.copy(externalContact = null))
+                    }
+
+                    addContactRepository.addContact(person)
+
+                }
+                db.draftReaderDao().insert(person.toDBDraftReader(draftId))
                 updateState(currentState.copy(loading = false))
             }
         }
     }
+
 
     fun clearAddressField() {
         updateState(currentState.copy(addressFieldText = ""))
@@ -410,7 +395,9 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             currentState.intentAttachments ?: "",
             StandardCharsets.UTF_8.toString()
         ).split(",").filter { it.isNotBlank() }.map { Uri.parse(it) }
-        addAttachments(intentUris)
+        if (intentUris.isNotEmpty()) {
+            addAttachments(intentUris)
+        }
         updateState(
             currentState.copy(intentAttachments = null)
         )

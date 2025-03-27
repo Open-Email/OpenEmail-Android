@@ -182,7 +182,7 @@ fun SharedTransitionScope.ComposingScreen(
             val reply = String.format(
                 context.getString(R.string.reply_header),
                 time,
-                state.replyMessage?.getAuthorPublicData(),
+                state.replyMessage?.getAuthorPublicData()?.fullName ?: "",
                 state.replyMessage?.textBody,
                 state.replyMessage?.subject
             )
