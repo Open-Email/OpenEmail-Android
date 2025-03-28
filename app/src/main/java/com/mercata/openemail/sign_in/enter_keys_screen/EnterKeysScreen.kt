@@ -58,6 +58,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.mercata.openemail.DISABLED_ALPHA
 import com.mercata.openemail.MARGIN_DEFAULT
 import com.mercata.openemail.QR_SCANNER_RESULT
 import com.mercata.openemail.R
@@ -192,7 +193,7 @@ fun EnterKeysScreen(
                         Icon(
                             painterResource(R.drawable.key),
                             contentDescription = null,
-                            tint = colorScheme.onSurface.copy(alpha = 0.8f)
+                            tint = colorScheme.onSurface.copy(alpha = DISABLED_ALPHA)
                         )
                     },
                     modifier = modifier
@@ -228,7 +229,7 @@ fun EnterKeysScreen(
                         Icon(
                             painterResource(R.drawable.key),
                             contentDescription = null,
-                            tint = colorScheme.onSurface.copy(alpha = 0.8f)
+                            tint = colorScheme.onSurface.copy(alpha = DISABLED_ALPHA)
                         )
                     },
                     modifier = modifier

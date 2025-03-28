@@ -6,13 +6,17 @@ import com.mercata.openemail.AbstractViewModel
 import com.mercata.openemail.R
 import com.mercata.openemail.db.AppDatabase
 import com.mercata.openemail.db.contacts.DBContact
+import com.mercata.openemail.models.Link
 import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.models.toDBContact
 import com.mercata.openemail.repository.AddContactRepository
 import com.mercata.openemail.repository.UserDataUpdateRepository
 import com.mercata.openemail.utils.HttpResult
+import com.mercata.openemail.utils.connectionLink
+import com.mercata.openemail.utils.getAllLinks
 import com.mercata.openemail.utils.getProfilePublicData
 import com.mercata.openemail.utils.safeApiCall
+import com.mercata.openemail.utils.updateBroadcastsForLink
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koin.core.component.inject
@@ -71,7 +75,25 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
                         )
                     }
                 }
+                updateAllowedBroadcasts()
                 updateState(currentState.copy(loading = false))
+            }
+        }
+    }
+
+    suspend fun updateAllowedBroadcasts() {
+        when (val call = safeApiCall { getAllLinks(sp) }) {
+            is HttpResult.Error -> {
+                //ignore
+            }
+
+            is HttpResult.Success -> {
+                val link: Link? = call.data?.firstOrNull { it.address == currentState.address }
+                db.userDao().findByAddress(currentState.address)
+                    ?.copy(receiveBroadcasts = link?.allowedBroadcasts ?: true)
+                    ?.let { currentContact ->
+                        db.userDao().update(currentContact)
+                    }
             }
         }
     }
@@ -92,11 +114,26 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
 
     fun toggleBroadcast() {
         viewModelScope.launch(Dispatchers.IO) {
-            val contact: DBContact? = db.userDao().findByAddress(currentState.address)
-            contact?.let {
-                db.userDao()
-                    .update(contact.copy(receiveBroadcasts = !contact.receiveBroadcasts))
+            updateState(currentState.copy(loading = true))
+            when (safeApiCall {
+                updateBroadcastsForLink(
+                    sp = sp,
+                    link = Link(
+                        address = currentState.address,
+                        link = currentState.address.connectionLink(),
+                        allowedBroadcasts = currentState.dbContact?.receiveBroadcasts ?: true
+                    ),
+                    !(currentState.dbContact?.receiveBroadcasts ?: true)
+                )
+            }) {
+                is HttpResult.Error -> {
+                    //ignore
+                }
+                is HttpResult.Success -> {
+                    updateAllowedBroadcasts()
+                }
             }
+            updateState(currentState.copy(loading = false))
         }
     }
 

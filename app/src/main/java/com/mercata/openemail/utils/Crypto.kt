@@ -77,13 +77,13 @@ fun UserData.sign(): String {
 }
 
 @Throws(SodiumException::class)
-fun encryptAnonymous(address: Address, currentUser: UserData): String {
-    return encryptAnonymous(address, currentUser.encryptionKeys.pair.publicKey)
+fun encryptAnonymous(text: String, currentUser: UserData): String {
+    return encryptAnonymous(text, currentUser.encryptionKeys.pair.publicKey)
 }
 
 @Throws(SodiumException::class)
-fun encryptAnonymous(address: Address, publicEncryptionKey: Key): String {
-    return sodium.cryptoBoxSealEasy(address, publicEncryptionKey)
+fun encryptAnonymous(text: String, publicEncryptionKey: Key): String {
+    return sodium.cryptoBoxSealEasy(text, publicEncryptionKey)
 }
 
 @Throws(SodiumException::class)

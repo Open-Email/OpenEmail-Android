@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import com.mercata.openemail.DISABLED_ALPHA
 import com.mercata.openemail.MARGIN_DEFAULT
 
 @Composable
@@ -21,6 +22,7 @@ fun SwitchViewHolder(
     isChecked: Boolean,
     title: Int,
     hint: Int? = null,
+    isEnabled: Boolean = true,
     onChange: (isChecked: Boolean) -> Unit,
 ) {
     Row(
@@ -40,18 +42,28 @@ fun SwitchViewHolder(
         ) {
             Text(
                 stringResource(id = title),
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface.copy(
+                        alpha = if (isEnabled) 1.0f else DISABLED_ALPHA
+                    )
+                ),
                 softWrap = true
             )
             hint?.let {
                 Text(
                     stringResource(id = it),
-                    style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = MaterialTheme.colorScheme.onSurface.copy(
+                            alpha = if (isEnabled) 1.0f else DISABLED_ALPHA
+                        )
+                    ),
                     softWrap = true
                 )
             }
 
         }
         Switch(
+            enabled = isEnabled,
             checked = isChecked,
             onCheckedChange = { onChange(it) })
     }
