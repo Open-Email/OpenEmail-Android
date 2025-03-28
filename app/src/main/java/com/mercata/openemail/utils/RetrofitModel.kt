@@ -27,6 +27,7 @@ import com.mercata.openemail.exceptions.EnvelopeAuthenticity
 import com.mercata.openemail.exceptions.SignatureMismatch
 import com.mercata.openemail.models.ContentHeaders
 import com.mercata.openemail.models.Envelope
+import com.mercata.openemail.models.Link
 import com.mercata.openemail.models.MessageCategory
 import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.models.toDBContact
@@ -308,13 +309,34 @@ suspend fun notifyAddress(receiver: PublicUserData, sharedPreferences: SharedPre
     }
 }
 
-private suspend fun getAllContacts(sharedPreferences: SharedPreferences): Response<List<String>> {
+suspend fun getAllLinks(sharedPreferences: SharedPreferences): Response<List<Link>> {
     return withContext(Dispatchers.IO) {
         val currentUser = sharedPreferences.getUserData()!!
-        getInstance("https://${currentUser.address.getMailHost()}").getAllContacts(
+        getInstance("https://${currentUser.address.getMailHost()}").getAllContactLinks(
             sotnHeader = currentUser.sign(),
             hostPart = currentUser.address.getHost(),
             localPart = currentUser.address.getLocal()
+        )
+    }
+}
+
+suspend fun updateBroadcastsForLink(
+    sp: SharedPreferences,
+    link: Link,
+    allowedBroadcasts: Boolean
+): Response<Void> {
+    return withContext(Dispatchers.IO) {
+        val currentUser = sp.getUserData()!!
+        val body = listOf(
+            "address=${link.address}",
+            "broadcasts=${if (allowedBroadcasts) "Yes" else "No"}"
+        ).joinToString(";")
+        getInstance("https://${currentUser.address.getMailHost()}").updateContactLink(
+            sotnHeader = currentUser.sign(),
+            hostPart = currentUser.address.getHost(),
+            localPart = currentUser.address.getLocal(),
+            link = link.link,
+            encryptAnonymous(body.trimIndent(), currentUser).toRequestBody()
         )
     }
 }
@@ -1169,7 +1191,7 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
         }
 
         //Downloading new remote contacts
-        when (val remoteAddressesCall = safeApiCall { getAllContacts(sp) }) {
+        when (val remoteAddressesCall = safeApiCall { getAllLinks(sp) }) {
             is HttpResult.Error -> {
                 Log.e(
                     "HTTP ERROR",
@@ -1184,7 +1206,7 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
                     val result: List<PublicUserData> = remotes.map { remoteAddress ->
                         async {
                             when (val publicCall =
-                                safeApiCall { getProfilePublicData(remoteAddress) }) {
+                                safeApiCall { getProfilePublicData(remoteAddress.address) }) {
                                 is HttpResult.Error -> {
                                     Log.e(
                                         "HTTP ERROR",

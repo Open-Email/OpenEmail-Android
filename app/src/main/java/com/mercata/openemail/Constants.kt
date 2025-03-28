@@ -25,6 +25,7 @@ const val MAX_CHUNK_SIZE: Int = 1048576
 const val DEFAULT_CHUNK_SIZE: Int = 8192
 const val MIN_CHUNK_SIZE: Int = 1024
 const val BUFFER_SIZE: Int = 1024 * 1024
+const val DISABLED_ALPHA: Float = 0.5f
 
 val emailRegex = Regex("^[a-z0-9][a-z0-9\\.\\-_\\+]{2,}@[a-z0-9.-]+\\.[a-z]{2,}|xn--[a-z0-9]{2,}$")
 const val TNC_LINK = "https://open.email/terms.txt"

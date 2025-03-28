@@ -1,5 +1,6 @@
 package com.mercata.openemail.response_converters
 
+import com.mercata.openemail.models.Link
 import com.mercata.openemail.utils.SharedPreferences
 import com.mercata.openemail.utils.decryptAnonymous
 import okhttp3.ResponseBody
@@ -27,23 +28,42 @@ class ContactsListConverterFactory : Converter.Factory() {
     }
 }
 
-class ContactsListConverter : Converter<ResponseBody, List<String>> {
-    override fun convert(value: ResponseBody): List<String> {
+class ContactsListConverter : Converter<ResponseBody, List<Link>> {
+    override fun convert(value: ResponseBody): List<Link> {
         val sp: SharedPreferences by inject(SharedPreferences::class.java)
-        val pairs: List<String> =
-            value.string()
-                .splitToSequence("\n")
-                .map { it.trim() }
-                .filterNot { it.isBlank() }
-                .map { part ->
-                    val parts = part
-                        .splitToSequence(",")
-                        .map { it.trim() }
-                        .filterNot { it.isBlank() }
-                    val decrypted = decryptAnonymous(parts.last(), sp.getUserData()!!)
-                    String(decrypted, charset = UTF_8)
-                }.toList()
+        return value.string()
+            .splitToSequence("\n")
+            .map { it.trim() }
+            .filterNot { it.isBlank() }
+            .map { part ->
+                val parts = part
+                    .splitToSequence(",")
+                    .map { it.trim() }
+                    .filterNot { it.isBlank() }
+                val decrypted =
+                    String(decryptAnonymous(parts.last(), sp.getUserData()!!), charset = UTF_8)
 
-        return pairs
+                if (decrypted.contains("=")) {
+                    val attributesMap: Map<String, Any?> = decrypted.split(";").associate { attr ->
+                        val keyValue = attr.split("=")
+                        if (keyValue.size == 2) {
+                            keyValue.first().lowercase() to keyValue.last().lowercase()
+                        } else {
+                            "address" to keyValue.first().lowercase()
+                        }
+                    }
+                    val allowedBroadcasts = attributesMap["broadcasts"] != "no"
+
+                    Link(
+                        link = parts.first(),
+                        address = attributesMap["address"]!!.toString(),
+                        allowedBroadcasts = allowedBroadcasts
+                    )
+                } else {
+                    Link(link = parts.first(), address = decrypted, allowedBroadcasts = true)
+                }
+
+            }.toList()
+
     }
 }

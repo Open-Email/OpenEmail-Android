@@ -1,6 +1,7 @@
 package com.mercata.openemail.utils
 
 import com.mercata.openemail.WELL_KNOWN_URI
+import com.mercata.openemail.models.Link
 import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.response_converters.ContactsList
 import com.mercata.openemail.response_converters.EnvelopeIdsList
@@ -100,14 +101,22 @@ interface RestApi {
 
     @GET("/home/{hostPart}/{localPart}/links")
     @ContactsList
-    suspend fun getAllContacts(
+    suspend fun getAllContactLinks(
         @Header("Authorization") sotnHeader: String,
         @Path("hostPart") hostPart: String,
         @Path("localPart") localPart: String,
-    ): Response<List<String>>
+    ): Response<List<Link>>
+
+    @PUT("/home/{hostPart}/{localPart}/links/{link}")
+    suspend fun updateContactLink(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+        @Path("link") link: String,
+        @Body body: RequestBody
+    ): Response<Void>
 
     @GET("/mail/{hostPart}/{localPart}/image")
-    @ContactsList
     suspend fun checkUserImage(
         @Path("hostPart") hostPart: String,
         @Path("localPart") localPart: String,

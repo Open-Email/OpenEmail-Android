@@ -205,7 +205,7 @@ fun SaveKeysSuggestionScreen(
 
             Spacer(modifier = modifier.weight(1f))
 
-            Button(
+            Button(modifier = Modifier.fillMaxWidth(),
                 onClick = {
                     viewModel.saveSettings()
                 },

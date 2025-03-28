@@ -104,20 +104,21 @@ fun SharedTransitionScope.ContactDetailsScreen(
             SnackbarHost(hostState = snackBarHostState)
         },
         topBar = {
-            TopAppBar(title = {
-                AnimatedVisibility(visible = state.loading) {
-                    CircularProgressIndicator(
-                        modifier = modifier.size(28.dp),
-                        strokeCap = StrokeCap.Round
-                    )
-                }
-                AnimatedVisibility(visible = state.loading.not()) {
-                    Text(
-                        state.dbContact?.name ?: state.contact?.fullName
-                        ?: stringResource(R.string.profile)
-                    )
-                }
-            },
+            TopAppBar(
+                title = {
+                    AnimatedVisibility(visible = state.loading) {
+                        CircularProgressIndicator(
+                            modifier = modifier.size(28.dp),
+                            strokeCap = StrokeCap.Round
+                        )
+                    }
+                    AnimatedVisibility(visible = state.loading.not()) {
+                        Text(
+                            state.dbContact?.name ?: state.contact?.fullName
+                            ?: stringResource(R.string.profile)
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(content = {
                         Icon(
@@ -240,6 +241,7 @@ fun SharedTransitionScope.ContactDetailsScreen(
             }
             if (state.type == ContactType.SavedContact) {
                 SwitchViewHolder(
+                    isEnabled = !state.loading,
                     isChecked = state.dbContact?.receiveBroadcasts ?: false,
                     title = R.string.receive_broadcasts
                 ) { viewModel.toggleBroadcast() }
@@ -313,7 +315,10 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         TitledData(titleRes = R.string.gender, data = it?.gender ?: "")
                     }
                     AnimatedVisibility(visible = !it?.relationshipStatus.isNullOrBlank()) {
-                        TitledData(titleRes = R.string.relationshipStatus, data = it?.relationshipStatus ?: "")
+                        TitledData(
+                            titleRes = R.string.relationshipStatus,
+                            data = it?.relationshipStatus ?: ""
+                        )
                     }
                     AnimatedVisibility(visible = !it?.education.isNullOrBlank()) {
                         TitledData(titleRes = R.string.education, data = it?.education ?: "")
@@ -369,7 +374,10 @@ fun SharedTransitionScope.ContactDetailsScreen(
                         TitledData(titleRes = R.string.location, data = it?.location ?: "")
                     }
                     AnimatedVisibility(visible = !it?.mailingAddress.isNullOrBlank()) {
-                        TitledData(titleRes = R.string.mailingAddress, data = it?.mailingAddress ?: "")
+                        TitledData(
+                            titleRes = R.string.mailingAddress,
+                            data = it?.mailingAddress ?: ""
+                        )
                     }
                     AnimatedVisibility(visible = !it?.phone.isNullOrBlank()) {
                         TitledData(titleRes = R.string.phone, data = it?.phone ?: "")
@@ -437,9 +445,11 @@ fun SharedTransitionScope.ContactDetailsScreen(
 
 @Composable
 fun TitledData(modifier: Modifier = Modifier, titleRes: Int, data: String) {
-    Column(modifier = modifier.padding(
-        bottom = MARGIN_DEFAULT / 2
-    )) {
+    Column(
+        modifier = modifier.padding(
+            bottom = MARGIN_DEFAULT / 2
+        )
+    ) {
         Text(
             stringResource(titleRes),
             style = typography.bodyMedium.copy(color = colorScheme.outlineVariant),
