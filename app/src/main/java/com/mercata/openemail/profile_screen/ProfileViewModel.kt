@@ -73,7 +73,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
 
     fun setUserImage(uri: Uri?) {
-        updateState(currentState.copy(selectedNewImage = uri))
+        updateState(currentState.copy(selectedNewImage = uri, imageMarkedToDelete = false))
     }
 
     fun toggleAttachmentBottomSheet(shown: Boolean) {
@@ -87,13 +87,18 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
     fun addInstantPhotoAsAttachment(success: Boolean) {
         if (success) {
-            updateState(currentState.copy(selectedNewImage = instantPhotoUri))
+            updateState(
+                currentState.copy(
+                    selectedNewImage = instantPhotoUri,
+                    imageMarkedToDelete = false
+                )
+            )
         } else {
             instantPhotoUri = null
         }
     }
 
-    fun saveChanges(onPhotoUpdated: () -> Unit) {
+    fun saveChanges(onPhotoUpdated: (imageUrl: String) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(loading = true))
             val results = arrayListOf<Deferred<Boolean>>()
@@ -113,24 +118,33 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
             }
 
             if (currentState.hasPhotoChanges()) {
-                results.add(async {
-                    when (safeApiCall {
-                        uploadUserImage(
-                            currentState.selectedNewImage!!,
-                            sp,
-                            fu
-                        )
-                    }) {
-                        is HttpResult.Error -> {
-                            return@async false
+                if (currentState.imageMarkedToDelete) {
+                    results.add(async {
+                        deleteUserpic {
+                            updateState(currentState.copy(imageMarkedToDelete = false))
+                            onPhotoUpdated(sp.getUserAddress()!!.getProfilePictureUrl())
                         }
+                    })
+                } else {
+                    results.add(async {
+                        when (safeApiCall {
+                            uploadUserImage(
+                                currentState.selectedNewImage!!,
+                                sp,
+                                fu
+                            )
+                        }) {
+                            is HttpResult.Error -> {
+                                return@async false
+                            }
 
-                        is HttpResult.Success -> {
-                            onPhotoUpdated()
-                            return@async true
+                            is HttpResult.Success -> {
+                                onPhotoUpdated(sp.getUserAddress()!!.getProfilePictureUrl())
+                                return@async true
+                            }
                         }
-                    }
-                })
+                    })
+                }
             }
 
             val successful = results.awaitAll().any { !it }.not()
@@ -144,19 +158,22 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
         }
     }
 
-    suspend fun deleteUserpic(onSuccess: (imageUrl: String) -> Unit) {
+    fun markImageForDeletion() {
+        updateState(currentState.copy(imageMarkedToDelete = true))
+    }
+
+    private suspend fun deleteUserpic(onSuccess: (imageUrl: String) -> Unit): Boolean {
         return withContext(Dispatchers.IO) {
-            updateState(currentState.copy(loading = true))
             when (safeApiCall { deleteUserImage(sp) }) {
                 is HttpResult.Error -> {
-                    //ignore
+                    false
                 }
 
                 is HttpResult.Success -> {
                     onSuccess(sp.getUserAddress()!!.getProfilePictureUrl())
+                    true
                 }
             }
-            updateState(currentState.copy(loading = false))
         }
     }
 
@@ -598,6 +615,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
 
 data class ProfileState(
     val loading: Boolean = false,
+    val imageMarkedToDelete: Boolean = false,
     val imagePresented: Boolean = false,
     val attachmentBottomSheetShown: Boolean = false,
     val saved: PublicUserData? = null,
@@ -606,6 +624,6 @@ data class ProfileState(
     val tabs: ArrayList<ProfileViewModel.TabData> = arrayListOf()
 ) {
     fun hasDataChanges(): Boolean = tabs.any { it.listItems.any { item -> item.hasChanges(this) } }
-    fun hasPhotoChanges(): Boolean = selectedNewImage != null
+    fun hasPhotoChanges(): Boolean = selectedNewImage != null || imageMarkedToDelete
     fun hasChanges(): Boolean = hasDataChanges() || hasPhotoChanges()
 }

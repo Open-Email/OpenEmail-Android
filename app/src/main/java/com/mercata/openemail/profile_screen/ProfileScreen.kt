@@ -135,11 +135,9 @@ fun SharedTransitionScope.ProfileScreen(
                         enabled = !state.loading,
                         onClick = {
                             focusManager.clearFocus()
-                            viewModel.saveChanges {
-                                state.current?.address?.getProfilePictureUrl()?.let { imageUrl ->
-                                    context.imageLoader.diskCache?.remove(imageUrl)
-                                    context.imageLoader.memoryCache?.remove(MemoryCache.Key(imageUrl))
-                                }
+                            viewModel.saveChanges { imageUrl ->
+                                context.imageLoader.diskCache?.remove(imageUrl)
+                                context.imageLoader.memoryCache?.remove(MemoryCache.Key(imageUrl))
                             }
                         }) {
                         Text(stringResource(R.string.save_button))
@@ -169,8 +167,12 @@ fun SharedTransitionScope.ProfileScreen(
                 ProfileImage(
                     modifier
                         .height(PROFILE_IMAGE_HEIGHT),
-                    imageUrl = state.selectedNewImage?.toString()
-                        ?: state.current?.address?.getProfilePictureUrl() ?: "",
+                    imageUrl = if (state.imageMarkedToDelete) {
+                        ""
+                    } else {
+                        state.selectedNewImage?.toString()
+                            ?: state.current?.address?.getProfilePictureUrl() ?: ""
+                    },
                     onError = {
                         Icon(
                             painter = painterResource(R.drawable.contacts),
@@ -198,15 +200,9 @@ fun SharedTransitionScope.ProfileScreen(
                             Text(stringResource(R.string.edit))
                         }
                     }
-                    if (state.imagePresented) {
+                    if (state.imagePresented && !state.imageMarkedToDelete) {
                         ElevatedButton(onClick = {
-                            coroutineScope.launch {
-                                viewModel.deleteUserpic { imageUrl ->
-                                    context.imageLoader.diskCache?.remove(imageUrl)
-                                    context.imageLoader.memoryCache?.remove(MemoryCache.Key(imageUrl))
-                                }
-                            }
-
+                            viewModel.markImageForDeletion()
                         }) {
                             Icon(
                                 painter = painterResource(R.drawable.delete),
@@ -408,16 +404,16 @@ fun SharedTransitionScope.ProfileScreen(
         if (state.attachmentBottomSheetShown) {
             AttachmentTypeBottomSheet(
                 onDismissRequest = {
-                viewModel.toggleAttachmentBottomSheet(false)
-            }, onSelectFromStorageClick = {
-                documentChooserLauncher.launch(
-                    PickVisualMediaRequest(
-                        mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly
+                    viewModel.toggleAttachmentBottomSheet(false)
+                }, onSelectFromStorageClick = {
+                    documentChooserLauncher.launch(
+                        PickVisualMediaRequest(
+                            mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly
+                        )
                     )
-                )
-            }, onPhotoAttachClick = {
-                photoSnapLauncher.launch(viewModel.getNewFileUri())
-            },
+                }, onPhotoAttachClick = {
+                    photoSnapLauncher.launch(viewModel.getNewFileUri())
+                },
                 selectFileIconRes = R.drawable.image,
                 selectFileTitleRes = R.string.select_image
             )
