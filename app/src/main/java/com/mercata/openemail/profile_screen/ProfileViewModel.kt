@@ -14,6 +14,7 @@ import com.mercata.openemail.utils.getProfilePictureUrl
 import com.mercata.openemail.utils.safeApiCall
 import com.mercata.openemail.utils.updateCall
 import com.mercata.openemail.utils.uploadUserImage
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -92,11 +93,13 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
         }
     }
 
-    fun saveChanges() {
+    fun saveChanges(onPhotoUpdated: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(loading = true))
-            val results = arrayListOf(
-                async {
+            val results = arrayListOf<Deferred<Boolean>>()
+
+            if (currentState.hasDataChanges()) {
+                results.add(async {
                     when (safeApiCall { updateCall(sp.getUserData()!!, currentState.current!!) }) {
                         is HttpResult.Error -> {
                             return@async false
@@ -106,10 +109,10 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                             return@async true
                         }
                     }
-                }
-            )
+                })
+            }
 
-            if (currentState.selectedNewImage != null) {
+            if (currentState.hasPhotoChanges()) {
                 results.add(async {
                     when (safeApiCall {
                         uploadUserImage(
@@ -123,6 +126,7 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                         }
 
                         is HttpResult.Success -> {
+                            onPhotoUpdated()
                             return@async true
                         }
                     }
@@ -601,6 +605,7 @@ data class ProfileState(
     val selectedNewImage: Uri? = null,
     val tabs: ArrayList<ProfileViewModel.TabData> = arrayListOf()
 ) {
-    fun hasChanges(): Boolean =
-        selectedNewImage != null || tabs.any { it.listItems.any { item -> item.hasChanges(this) } }
+    fun hasDataChanges(): Boolean = tabs.any { it.listItems.any { item -> item.hasChanges(this) } }
+    fun hasPhotoChanges(): Boolean = selectedNewImage != null
+    fun hasChanges(): Boolean = hasDataChanges() || hasPhotoChanges()
 }

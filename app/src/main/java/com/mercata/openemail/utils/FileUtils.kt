@@ -88,7 +88,7 @@ class FileUtils(val context: Context) {
         }
     }
 
-    fun Bitmap.getByteArrayFromBitmap(quality: Int = 100): ByteArray {
+    fun Bitmap.compressBitmap(quality: Int = 75): ByteArray {
         val byteArrayOutputStream = ByteArrayOutputStream()
         this.compress(Bitmap.CompressFormat.JPEG, quality, byteArrayOutputStream)
         return byteArrayOutputStream.toByteArray()
