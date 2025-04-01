@@ -130,11 +130,17 @@ fun SharedTransitionScope.ProfileScreen(
                 }
             }, actions = {
                 if (state.hasChanges()) {
-                    Button(modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                    Button(
+                        modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
                         enabled = !state.loading,
                         onClick = {
                             focusManager.clearFocus()
-                            viewModel.saveChanges()
+                            viewModel.saveChanges {
+                                state.current?.address?.getProfilePictureUrl()?.let { imageUrl ->
+                                    context.imageLoader.diskCache?.remove(imageUrl)
+                                    context.imageLoader.memoryCache?.remove(MemoryCache.Key(imageUrl))
+                                }
+                            }
                         }) {
                         Text(stringResource(R.string.save_button))
                     }
@@ -212,7 +218,8 @@ fun SharedTransitionScope.ProfileScreen(
                     }
                 }
             }
-            ScrollableTabRow(selectedTabIndex = pagerState.currentPage,
+            ScrollableTabRow(
+                selectedTabIndex = pagerState.currentPage,
                 divider = {
                     HorizontalDivider(thickness = 2.dp, color = colorScheme.outline)
                 }, tabs = {
@@ -226,8 +233,8 @@ fun SharedTransitionScope.ProfileScreen(
                                 stringResource(tabData.titleResId),
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     color =
-                                    if (pagerState.currentPage == index) colorScheme.primary
-                                    else colorScheme.onSurface
+                                        if (pagerState.currentPage == index) colorScheme.primary
+                                        else colorScheme.onSurface
                                 ),
                                 modifier = modifier.padding(MARGIN_DEFAULT)
                             )
@@ -399,7 +406,8 @@ fun SharedTransitionScope.ProfileScreen(
         }
 
         if (state.attachmentBottomSheetShown) {
-            AttachmentTypeBottomSheet(onDismissRequest = {
+            AttachmentTypeBottomSheet(
+                onDismissRequest = {
                 viewModel.toggleAttachmentBottomSheet(false)
             }, onSelectFromStorageClick = {
                 documentChooserLauncher.launch(

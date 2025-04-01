@@ -80,7 +80,7 @@ interface RestApi {
         @Header("Authorization") sotnHeader: String,
         @Path("hostPart") hostPart: String,
         @Path("localPart") localPart: String,
-        @Body body: RequestBody
+        @Body body: RequestBody?
     ): Response<Void>
 
     @DELETE("/home/{hostPart}/{localPart}/image")

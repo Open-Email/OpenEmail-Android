@@ -1027,14 +1027,14 @@ suspend fun uploadUserImage(uri: Uri, sp: SharedPreferences, fileUtils: FileUtil
         val currentUser = sp.getUserData()!!
 
         val data: ByteArray? = with(fileUtils) {
-            uri.getBitmapFromUri()?.resizeImageToMaxSize(400)?.getByteArrayFromBitmap()
+            uri.getBitmapFromUri()?.resizeImageToMaxSize(800)?.compressBitmap()
         }
 
         getInstance("https://${currentUser.address.getMailHost()}").uploadUserImage(
             sotnHeader = currentUser.sign(),
             hostPart = currentUser.address.getHost(),
             localPart = currentUser.address.getLocal(),
-            body = data!!.toRequestBody("application/octet-stream".toMediaTypeOrNull())
+            body = data?.toRequestBody("application/octet-stream".toMediaTypeOrNull())
         )
     }
 }
