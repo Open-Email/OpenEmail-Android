@@ -7,14 +7,14 @@ plugins {
 
 android {
     namespace = "com.mercata.openemail"
-    compileSdk = 35
+    compileSdk = 36
     android.buildFeatures.buildConfig = true
 
     defaultConfig {
         applicationId = "com.mercata.openemail"
         minSdk = 28
-        targetSdk = 35
-        versionCode = 5
+        targetSdk = 36
+        versionCode = 6
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
