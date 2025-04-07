@@ -14,7 +14,7 @@ android {
         applicationId = "com.mercata.openemail"
         minSdk = 28
         targetSdk = 36
-        versionCode = 6
+        versionCode = 7
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
