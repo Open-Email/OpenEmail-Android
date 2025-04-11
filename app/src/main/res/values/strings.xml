@@ -166,4 +166,9 @@
     <string name="public_links_querying">Public links querying</string>
     <string name="public_links_querying_hint">When enabled, others may query for existence of a particular contact in your address book.</string>
     <string name="select_image">Select image</string>
+    <string name="log_out_confirmation_title">Log Out?</string>
+    <string name="log_out_confirmation_message">All local data will be deleted. Log in again to restore data.</string>
+    <string name="delete_account_button">Delete Account</string>
+    <string name="delete_account_confirmation_title">Delete Account?</string>
+    <string name="delete_account_confirmation_message">All remote data on server will be permanently deleted.</string>
 </resources>

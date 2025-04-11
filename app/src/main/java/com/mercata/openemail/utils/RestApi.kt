@@ -43,6 +43,13 @@ interface RestApi {
         @Body body: RequestBody
     ): Response<Void>
 
+    @DELETE("/account/{hostPart}/{localPart}")
+    suspend fun deleteAccount(
+        @Header("Authorization") sotnHeader: String,
+        @Path("hostPart") hostPart: String,
+        @Path("localPart") localPart: String,
+    ): Response<Void>
+
     @PUT("/home/{hostPart}/{localPart}/profile")
     suspend fun updateUser(
         @Header("Authorization") sotnHeader: String,

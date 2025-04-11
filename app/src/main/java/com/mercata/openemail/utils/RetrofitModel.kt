@@ -154,6 +154,17 @@ suspend fun registerCall(user: UserData): Response<Void> {
     }
 }
 
+suspend fun deleteCurrentUser(sp: SharedPreferences): Response<Void> {
+    val user: UserData = sp.getUserData()!!
+    return withContext(Dispatchers.IO) {
+        getInstance("https://${user.address.getMailHost()}").deleteAccount(
+            sotnHeader = user.sign(),
+            hostPart = user.address.getHost(),
+            localPart = user.address.getLocal(),
+        )
+    }
+}
+
 suspend fun updateCall(user: UserData, updateData: PublicUserData): Response<Void> {
     return withContext(Dispatchers.IO) {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX")

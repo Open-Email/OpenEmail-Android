@@ -21,13 +21,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -45,10 +47,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -61,6 +63,7 @@ import com.mercata.openemail.MARGIN_DEFAULT
 import com.mercata.openemail.R
 import com.mercata.openemail.SETTING_LIST_ITEM_SIZE
 import com.mercata.openemail.common.SwitchViewHolder
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Composable
@@ -80,8 +83,8 @@ fun SettingsScreen(
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    containerColor = colorScheme.surface,
+                    titleContentColor = colorScheme.onSurface,
                 ),
                 title = {
                     Text(
@@ -109,9 +112,10 @@ fun SettingsScreen(
                 .padding(top = padding.calculateTopPadding())
         ) {
 
-            TabRow(selectedTabIndex = pagerState.currentPage,
+            TabRow(
+                selectedTabIndex = pagerState.currentPage,
                 divider = {
-                    HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.outline)
+                    HorizontalDivider(thickness = 2.dp, color = colorScheme.outline)
                 }, tabs = {
                     Tab(selected = pagerState.currentPage == 0, onClick = {
                         coroutineScope.launch {
@@ -120,10 +124,10 @@ fun SettingsScreen(
                     }) {
                         Text(
                             stringResource(R.string.general),
-                            style = MaterialTheme.typography.titleSmall.copy(
+                            style = typography.titleSmall.copy(
                                 color =
-                                if (pagerState.currentPage == 0) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurface
+                                    if (pagerState.currentPage == 0) colorScheme.primary
+                                    else colorScheme.onSurface
                             ),
                             modifier = modifier.padding(MARGIN_DEFAULT)
                         )
@@ -135,10 +139,10 @@ fun SettingsScreen(
                     }) {
                         Text(
                             stringResource(R.string.keys),
-                            style = MaterialTheme.typography.titleSmall.copy(
+                            style = typography.titleSmall.copy(
                                 color =
-                                if (pagerState.currentPage == 1) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurface
+                                    if (pagerState.currentPage == 1) colorScheme.primary
+                                    else colorScheme.onSurface
                             ),
                             modifier = modifier.padding(MARGIN_DEFAULT)
                         )
@@ -174,27 +178,13 @@ fun SettingsScreen(
                                     viewModel.toggleBiometry(it)
                                 }
                             }
-                            Spacer(modifier = modifier.weight(1f))
-                            TextButton(modifier = modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = MARGIN_DEFAULT),
-                                onClick = {
-                                    viewModel.logout {
-                                        navController.popBackStack(
-                                            route = "HomeScreen",
-                                            inclusive = true
-                                        )
-                                        navController.navigate(route = "SignInScreen")
-                                    }
+                            SettingViewHolder(title =  stringResource(id = R.string.logout_button), onClick = {
+                                viewModel.toggleLogoutConfirmation()
+                            })
 
-                                }) {
-                                Text(
-                                    text = stringResource(id = R.string.logout_button),
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontWeight = FontWeight.Bold,
-                                    softWrap = true
-                                )
-                            }
+                            SettingViewHolder(title =  stringResource(id = R.string.delete_account_button), onClick = {
+                                viewModel.toggleAccountDeletionConfirmation()
+                            })
                         }
                     }
 
@@ -211,7 +201,7 @@ fun SettingsScreen(
                             if (state.privateSigningKey != null && state.privateEncryptionKey != null) {
                                 Box(
                                     modifier = modifier
-                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .background(colorScheme.surfaceVariant)
                                         .fillMaxWidth()
                                         .height(qrCodeSize + MARGIN_DEFAULT * 2),
                                     contentAlignment = Alignment.Center
@@ -221,7 +211,7 @@ fun SettingsScreen(
                                             .clip(
                                                 RoundedCornerShape(DEFAULT_CORNER_RADIUS)
                                             )
-                                            .background(MaterialTheme.colorScheme.surface)
+                                            .background(colorScheme.surface)
                                     ) {
                                         QrCodeView(
                                             data = "${state.privateEncryptionKey}:${state.privateSigningKey}",
@@ -229,8 +219,8 @@ fun SettingsScreen(
                                                 .size(qrCodeSize)
                                                 .padding(MARGIN_DEFAULT),
                                             colors = QrCodeColors(
-                                                background = MaterialTheme.colorScheme.surface,
-                                                foreground = MaterialTheme.colorScheme.onSurface
+                                                background = colorScheme.surface,
+                                                foreground = colorScheme.onSurface
                                             ),
                                             dotShape = DotShape.Circle
                                         ) {
@@ -268,7 +258,7 @@ fun SettingsScreen(
                                 Text(
                                     stringResource(R.string.encryption),
                                     modifier.padding(horizontal = MARGIN_DEFAULT),
-                                    style = MaterialTheme.typography.labelLarge
+                                    style = typography.labelLarge
                                 )
                                 Spacer(modifier.height(MARGIN_DEFAULT))
                                 Row(
@@ -278,7 +268,7 @@ fun SettingsScreen(
                                     Text(
                                         stringResource(R.string.private_key),
                                         modifier.weight(1f),
-                                        style = MaterialTheme.typography.labelLarge
+                                        style = typography.labelLarge
                                     )
                                     IconButton(onClick = {
                                         val sendIntent: Intent = Intent().apply {
@@ -295,7 +285,7 @@ fun SettingsScreen(
                                         Icon(
                                             Icons.Rounded.Share,
                                             stringResource(R.string.share),
-                                            tint = MaterialTheme.colorScheme.outlineVariant
+                                            tint = colorScheme.outlineVariant
                                         )
                                     }
                                 }
@@ -303,13 +293,13 @@ fun SettingsScreen(
                                 Text(
                                     state.privateEncryptionKey ?: "",
                                     modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = typography.bodyLarge
                                 )
 
                                 HorizontalDivider(
                                     thickness = 1.dp,
                                     modifier = modifier.padding(vertical = MARGIN_DEFAULT),
-                                    color = MaterialTheme.colorScheme.outline
+                                    color = colorScheme.outline
                                 )
                                 Row(
                                     modifier.padding(horizontal = MARGIN_DEFAULT),
@@ -318,7 +308,7 @@ fun SettingsScreen(
                                     Text(
                                         stringResource(R.string.public_key),
                                         modifier.weight(1f),
-                                        style = MaterialTheme.typography.labelLarge
+                                        style = typography.labelLarge
                                     )
                                     IconButton(onClick = {
                                         val sendIntent: Intent = Intent().apply {
@@ -335,7 +325,7 @@ fun SettingsScreen(
                                         Icon(
                                             Icons.Rounded.Share,
                                             stringResource(R.string.share),
-                                            tint = MaterialTheme.colorScheme.outlineVariant
+                                            tint = colorScheme.outlineVariant
                                         )
                                     }
                                 }
@@ -343,17 +333,17 @@ fun SettingsScreen(
                                 Text(
                                     state.publicEncryptionKey ?: "",
                                     modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = typography.bodyLarge
                                 )
                                 HorizontalDivider(
                                     thickness = 1.dp,
                                     modifier = modifier.padding(vertical = MARGIN_DEFAULT),
-                                    color = MaterialTheme.colorScheme.outline
+                                    color = colorScheme.outline
                                 )
                                 Text(
                                     stringResource(R.string.signing),
                                     modifier.padding(horizontal = MARGIN_DEFAULT),
-                                    style = MaterialTheme.typography.labelLarge
+                                    style = typography.labelLarge
                                 )
                                 Spacer(modifier.height(MARGIN_DEFAULT))
 
@@ -364,7 +354,7 @@ fun SettingsScreen(
                                     Text(
                                         stringResource(R.string.private_key),
                                         modifier.weight(1f),
-                                        style = MaterialTheme.typography.labelLarge
+                                        style = typography.labelLarge
                                     )
                                     IconButton(onClick = {
                                         val sendIntent: Intent = Intent().apply {
@@ -381,7 +371,7 @@ fun SettingsScreen(
                                         Icon(
                                             Icons.Rounded.Share,
                                             stringResource(R.string.share),
-                                            tint = MaterialTheme.colorScheme.outlineVariant
+                                            tint = colorScheme.outlineVariant
                                         )
                                     }
                                 }
@@ -389,12 +379,12 @@ fun SettingsScreen(
                                 Text(
                                     state.privateSigningKey ?: "",
                                     modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = typography.bodyLarge
                                 )
                                 Spacer(modifier.height(MARGIN_DEFAULT))
                                 HorizontalDivider(
                                     thickness = 1.dp,
-                                    color = MaterialTheme.colorScheme.outline
+                                    color = colorScheme.outline
                                 )
 
                                 Row(
@@ -404,7 +394,7 @@ fun SettingsScreen(
                                     Text(
                                         stringResource(R.string.public_key),
                                         modifier.weight(1f),
-                                        style = MaterialTheme.typography.labelLarge
+                                        style = typography.labelLarge
                                     )
                                     IconButton(onClick = {
                                         val sendIntent: Intent = Intent().apply {
@@ -421,7 +411,7 @@ fun SettingsScreen(
                                         Icon(
                                             Icons.Rounded.Share,
                                             stringResource(R.string.share),
-                                            tint = MaterialTheme.colorScheme.outlineVariant
+                                            tint = colorScheme.outlineVariant
                                         )
                                     }
                                 }
@@ -429,7 +419,7 @@ fun SettingsScreen(
                                 Text(
                                     state.publicSigningKey ?: "",
                                     modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = typography.bodyLarge
                                 )
                                 Spacer(modifier.height(MARGIN_DEFAULT))
                             }
@@ -438,17 +428,115 @@ fun SettingsScreen(
                 }
             }
         }
+
+        if (state.logoutConfirmationShown) {
+            AlertDialog(
+                tonalElevation = 0.dp,
+                shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
+                title = {
+                    Text(text = stringResource(id = R.string.log_out_confirmation_title))
+                },
+                text = {
+                    Text(text = stringResource(id = R.string.log_out_confirmation_message))
+                },
+                onDismissRequest = {
+                    viewModel.toggleLogoutConfirmation()
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.toggleLogoutConfirmation()
+                        }
+                    ) {
+                        Text(
+                            stringResource(id = R.string.cancel_button)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch(Dispatchers.Main) {
+                                viewModel.logout()
+                                navController.popBackStack(
+                                    route = "HomeScreen",
+                                    inclusive = true
+                                )
+                                navController.navigate(route = "SignInScreen")
+                            }
+                        }
+                    ) {
+                        Text(
+                            stringResource(id = R.string.logout_button),
+                            color = colorScheme.error
+                        )
+                    }
+                },
+            )
+        }
+
+        if (state.deleteAccountConfirmationShown) {
+            AlertDialog(
+                tonalElevation = 0.dp,
+                shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
+                title = {
+                    Text(text = stringResource(id = R.string.delete_account_confirmation_title))
+                },
+                text = {
+                    Text(text = stringResource(id = R.string.delete_account_confirmation_message))
+                },
+                onDismissRequest = {
+                    viewModel.toggleAccountDeletionConfirmation()
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.toggleAccountDeletionConfirmation()
+                        }
+                    ) {
+                        Text(
+                            stringResource(id = R.string.cancel_button)
+                        )
+                    }
+                },
+                confirmButton = {
+                    if (state.loading) {
+                        CircularProgressIndicator(strokeCap = StrokeCap.Round)
+                    } else {
+                        TextButton(
+                            onClick = {
+                                coroutineScope.launch(Dispatchers.Main) {
+                                    viewModel.deleteAccount()
+                                    navController.popBackStack(
+                                        route = "HomeScreen",
+                                        inclusive = true
+                                    )
+                                    navController.navigate(route = "SignInScreen")
+                                }
+                            }
+                        ) {
+                            Text(
+                                stringResource(id = R.string.delete_account_button),
+                                color = colorScheme.error
+                            )
+                        }
+                    }
+                },
+            )
+        }
     }
 }
 
 @Composable
 fun SettingViewHolder(modifier: Modifier = Modifier, title: String, onClick: () -> Unit) {
-    Row(modifier = modifier
-        .height(SETTING_LIST_ITEM_SIZE)
-        .clickable { onClick() }
-        .padding(horizontal = MARGIN_DEFAULT), verticalAlignment = Alignment.CenterVertically) {
-        Text(title)
-        Spacer(modifier.weight(1f))
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+    Row(
+        modifier = modifier
+            .height(SETTING_LIST_ITEM_SIZE)
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = MARGIN_DEFAULT), verticalAlignment = Alignment.CenterVertically) {
+        Text(title, color = colorScheme.error)
+        //Spacer(modifier.weight(1f))
+        //Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
     }
 }
