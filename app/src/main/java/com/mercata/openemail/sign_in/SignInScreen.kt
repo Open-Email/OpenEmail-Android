@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -46,10 +47,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.mercata.openemail.DEFAULT_CORNER_RADIUS
 import com.mercata.openemail.MARGIN_DEFAULT
 import com.mercata.openemail.R
 import com.mercata.openemail.common.Logo
@@ -254,6 +257,8 @@ fun SignInScreen(
 @Composable
 fun RequestErrorDialog(message: String, onDismiss: () -> Unit) {
     AlertDialog(
+        tonalElevation = 0.dp,
+        shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
         title = {
             Text(text = stringResource(id = R.string.something_went_wrong_title))
         },

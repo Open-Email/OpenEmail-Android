@@ -1,14 +1,17 @@
 package com.mercata.openemail.settings_screen
 
-import androidx.lifecycle.viewModelScope
 import com.mercata.openemail.AbstractViewModel
 import com.mercata.openemail.utils.BioManager
 import com.mercata.openemail.utils.DownloadRepository
+import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.SharedPreferences
+import com.mercata.openemail.utils.deleteCurrentUser
 import com.mercata.openemail.utils.encodeToBase64
+import com.mercata.openemail.utils.safeApiCall
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
 
 class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
@@ -43,8 +46,8 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
         updateState(currentState.copy(autologinEnabled = sp.isAutologin()))
     }
 
-    fun logout(onComplete: () -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
+    suspend fun logout() {
+        withContext(Dispatchers.IO) {
             listOf(
                 launch { db.userDao().deleteAll() },
                 launch { db.messagesDao().deleteAll() },
@@ -59,13 +62,34 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
                 launch { db.pendingReadersDao().deleteAll() },
                 launch { dl.clearAllCachedAttachments() },
             ).joinAll()
-        }.invokeOnCompletion {
-            viewModelScope.launch(Dispatchers.Main) {
-                toggleBiometry(false)
-                toggleAutologin(false)
-                onComplete()
-            }
+            sp.clear()
+            toggleBiometry(false)
+            toggleAutologin(false)
         }
+    }
+
+    suspend fun deleteAccount() {
+        withContext(Dispatchers.IO) {
+            updateState(currentState.copy(loading = true))
+            when(safeApiCall { deleteCurrentUser(sp) }) {
+                is HttpResult.Error -> {
+                    //ignore
+                }
+                is HttpResult.Success -> {
+                    logout()
+                }
+            }
+            updateState(currentState.copy(loading = false))
+        }
+
+    }
+
+    fun toggleLogoutConfirmation() {
+        updateState(currentState.copy(logoutConfirmationShown = !currentState.logoutConfirmationShown))
+    }
+
+    fun toggleAccountDeletionConfirmation() {
+        updateState(currentState.copy(deleteAccountConfirmationShown = !currentState.deleteAccountConfirmationShown))
     }
 }
 
@@ -75,6 +99,9 @@ data class SettingsState(
     val publicEncryptionKey: String? = null,
     val publicSigningKey: String? = null,
     val address: String? = null,
+    val loading: Boolean = false,
+    val logoutConfirmationShown: Boolean = false,
+    val deleteAccountConfirmationShown: Boolean = false,
     val biometryAvailable: Boolean = false,
     val biometryEnabled: Boolean = false,
     val autologinEnabled: Boolean = false

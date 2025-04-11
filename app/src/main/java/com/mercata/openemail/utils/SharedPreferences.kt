@@ -19,6 +19,7 @@ import com.mercata.openemail.home_screen.HomeScreen
 import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.models.toDBContact
 import com.mercata.openemail.registration.UserData
+import androidx.core.content.edit
 
 class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
 
@@ -31,23 +32,23 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
     )
 
     suspend fun saveUserKeys(user: UserData) {
-        sharedPreferences.edit()
-            .putString(SP_ADDRESS, user.address.trim())
-            .putString(SP_FULL_NAME, user.name.trim())
-            .putString(SP_ENCRYPTION_KEY_ID, user.encryptionKeys.id.trim())
-            .putString(
-                SP_ENCRYPTION_KEYS,
-                arrayOf(
-                    user.encryptionKeys.pair.publicKey,
-                    user.encryptionKeys.pair.secretKey
-                ).joinToString(separator = ",") { it.asBytes.encodeToBase64().trim() }
-            )
-            .putString(
-                SP_SIGNING_KEYS, arrayOf(
-                    user.signingKeys.pair.publicKey,
-                    user.signingKeys.pair.secretKey
-                ).joinToString(separator = ",") { it.asBytes.encodeToBase64().trim() })
-            .apply()
+        sharedPreferences.edit {
+            putString(SP_ADDRESS, user.address.trim())
+                .putString(SP_FULL_NAME, user.name.trim())
+                .putString(SP_ENCRYPTION_KEY_ID, user.encryptionKeys.id.trim())
+                .putString(
+                    SP_ENCRYPTION_KEYS,
+                    arrayOf(
+                        user.encryptionKeys.pair.publicKey,
+                        user.encryptionKeys.pair.secretKey
+                    ).joinToString(separator = ",") { it.asBytes.encodeToBase64().trim() }
+                )
+                .putString(
+                    SP_SIGNING_KEYS, arrayOf(
+                        user.signingKeys.pair.publicKey,
+                        user.signingKeys.pair.secretKey
+                    ).joinToString(separator = ",") { it.asBytes.encodeToBase64().trim() })
+        }
 
         val publicUserData: PublicUserData? =
             when (val call = safeApiCall { getProfilePublicData(user.address) }) {
@@ -61,23 +62,22 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
     fun getUserAddress(): Address? = sharedPreferences.getString(SP_ADDRESS, null)
 
     fun setAutologin(autologin: Boolean) {
-        sharedPreferences.edit().putBoolean(SP_AUTOLOGIN, autologin).apply()
+        sharedPreferences.edit { putBoolean(SP_AUTOLOGIN, autologin) }
     }
 
     fun isAutologin() = sharedPreferences.getBoolean(SP_AUTOLOGIN, false)
 
     fun setBiometry(biometry: Boolean) {
-        sharedPreferences.edit().putBoolean(SP_BIOMETRY, biometry).apply()
+        sharedPreferences.edit { putBoolean(SP_BIOMETRY, biometry) }
     }
 
     fun clear() {
-        sharedPreferences.edit().clear().apply()
+        sharedPreferences.edit { clear() }
     }
-
 
     fun isFirstTime() = sharedPreferences.getBoolean(SP_FIRST_TIME, true)
     fun setFirstTime(isFirstTime: Boolean) =
-        sharedPreferences.edit().putBoolean(SP_FIRST_TIME, isFirstTime).apply()
+        sharedPreferences.edit { putBoolean(SP_FIRST_TIME, isFirstTime) }
 
     fun isBiometry() = sharedPreferences.getBoolean(SP_BIOMETRY, false)
 
@@ -122,7 +122,7 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
     }
 
     fun saveSelectedNavigationScreen(screen: HomeScreen) {
-        sharedPreferences.edit().putString(SP_SELECTED_NAV_SCREEN, screen.name).apply()
+        sharedPreferences.edit { putString(SP_SELECTED_NAV_SCREEN, screen.name) }
     }
 
     fun getSelectedNavigationScreen(): HomeScreen =
