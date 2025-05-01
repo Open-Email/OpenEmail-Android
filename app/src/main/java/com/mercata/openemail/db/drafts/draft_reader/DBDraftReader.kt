@@ -19,7 +19,7 @@ import java.time.Instant
     ]
 )
 data class DBDraftReader(
-    @ColumnInfo(name = "draft_id") val draftId: String,
+    @ColumnInfo(name = "draft_id", index = true) val draftId: String,
     @ColumnInfo(name = "address") @PrimaryKey val address: String,
     @ColumnInfo(name = "full_name") val fullName: String,
     @ColumnInfo(name = "last_seen_public") val lastSeenPublic: Boolean,

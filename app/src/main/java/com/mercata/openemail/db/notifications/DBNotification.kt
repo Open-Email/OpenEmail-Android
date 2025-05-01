@@ -28,7 +28,7 @@ data class DBNotification(
     @ColumnInfo("received_on_timestamp") val receivedOnTimestamp: Long,
     @ColumnInfo("link") val link: String,
     @ColumnInfo("full_name") override val name: String,
-    @ColumnInfo("address") override val address: Address,
+    @ColumnInfo("address", index = true) override val address: Address,
     @ColumnInfo("dismissed") val dismissed: Boolean,
     @ColumnInfo("last_seen_public") val lastSeenPublic: Boolean,
     @ColumnInfo("last_seen") val lastSeen: Long?,

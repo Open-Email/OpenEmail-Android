@@ -5,15 +5,18 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.mercata.openemail.db.pending.DBPendingMessage
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PendingMessagesDao {
 
+    @Transaction
     @Query("SELECT * FROM dbpendingrootmessage")
     suspend fun getAll(): List<DBPendingMessage>
 
+    @Transaction
     @Query("SELECT * FROM dbpendingrootmessage ORDER BY timestamp DESC")
     fun getAllAsFlowWithAttachments(): Flow<List<DBPendingMessage>>
 

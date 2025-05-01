@@ -37,7 +37,8 @@ import com.mercata.openemail.db.pending.readers.PendingReadersDao
         DBArchivedAttachment::class,
         DBDraftReader::class,
         DBNotification::class],
-    version = 1
+    version = 2,
+    exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): ContactsDao

@@ -135,3 +135,8 @@ dependencies {
     implementation(libs.coil.compose)
 
 }
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}

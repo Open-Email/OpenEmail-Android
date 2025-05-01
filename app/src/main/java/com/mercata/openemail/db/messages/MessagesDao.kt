@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -13,18 +14,22 @@ interface MessagesDao {
     @Query("SELECT * FROM dbmessage ORDER BY timestamp DESC")
     fun getAllAsFlow(): Flow<List<DBMessage>>
 
+    @Transaction
     @Query("SELECT * FROM dbmessage ORDER BY timestamp DESC")
     fun getAllAsFlowWithAttachments(): Flow<List<DBMessageWithDBAttachments>>
 
     @Query("SELECT * FROM dbmessage ORDER BY timestamp DESC")
     suspend fun getAll(): List<DBMessage>
 
+    @Transaction
     @Query("SELECT * FROM dbmessage ORDER BY timestamp DESC")
     suspend fun getAllWithAttachments(): List<DBMessageWithDBAttachments>
 
+    @Transaction
     @Query("SELECT * FROM dbmessage WHERE message_id = :id")
     suspend fun getById(id: String): DBMessageWithDBAttachments?
 
+    @Transaction
     @Query("SELECT * FROM dbmessage WHERE author_address = :address")
     suspend fun getAllForContactAddress(address: String): List<DBMessageWithDBAttachments>
 

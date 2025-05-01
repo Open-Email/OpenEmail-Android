@@ -60,6 +60,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import androidx.core.net.toUri
 
 typealias Address = String
 
@@ -574,7 +575,7 @@ suspend fun verifyNotification(
                 cipherText = encryptedNotifier,
                 currentUser = currentUser
             )
-        } catch (e: SodiumException) {
+        } catch (_: SodiumException) {
             return@withContext null
         }
 
@@ -651,7 +652,7 @@ private suspend fun fetchEnvelopesForContact(
                                 messageId,
                                 currentUser,
                                 contact,
-                                envelopeCall.headers!!
+                                envelopeCall.headers
                             )
 
                         if (!envelope.successfullyParsed) {
@@ -661,9 +662,9 @@ private suspend fun fetchEnvelopesForContact(
                         val authentic: Boolean = try {
                             envelope.assertEnvelopeAuthenticity()
                             true
-                        } catch (e: EnvelopeAuthenticity) {
+                        } catch (_: EnvelopeAuthenticity) {
                             false
-                        } catch (e: SignatureMismatch) {
+                        } catch (_: SignatureMismatch) {
                             false
                         }
 
@@ -787,7 +788,7 @@ suspend fun uploadMessage(
 
         val fileParts = arrayListOf<DBPendingAttachment>()
 
-        draft.attachmentUriList?.split(",")?.map { Uri.parse(it) }?.forEach { uri ->
+        draft.attachmentUriList?.split(",")?.map { it.toUri() }?.forEach { uri ->
             val urlInfo = fileUtils.getURLInfo(uri)
 
             if (urlInfo.size <= MAX_MESSAGE_SIZE) {
@@ -952,7 +953,7 @@ suspend fun uploadPendingMessages(
                     operation = { initial, new -> initial.apply { addAll(new.readers) } })
             )
             pendingMessages.fold(initial = arrayListOf<Uri>(), operation = { initial, new ->
-                initial.apply { addAll(new.fileParts.map { Uri.parse(it.uri) }) }
+                initial.apply { addAll(new.fileParts.map { it.uri.toUri() }) }
             }).forEach { uri ->
                 fileUtils.getFileFromUri(uri)?.delete()
             }
@@ -963,7 +964,7 @@ suspend fun uploadPendingMessages(
                     pendingMessages.forEach { message ->
                         message.fileParts.firstOrNull { it.messageId == successful.messageId }?.uri?.let { uriStr ->
                             fileUtils.getFileFromUri(
-                                Uri.parse(uriStr)
+                                uriStr.toUri()
                             )?.delete()
                         }
                     }
@@ -1250,7 +1251,9 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
 suspend fun revokeMarkedOutboxMessages(currentUser: UserData, dao: MessagesDao) {
     withContext(Dispatchers.IO) {
         val successfullyRevokedMessages: List<DBMessage> =
-            dao.getAll().filter { it.markedToDelete }.map { message ->
+            dao.getAll().filter {
+                it.markedToDelete && it.authorAddress == currentUser.address
+            }.map { message ->
                 async {
                     when (safeApiCall { removeSentMessage(currentUser, message) }) {
                         is HttpResult.Error -> null

@@ -23,9 +23,6 @@ import com.mercata.openemail.utils.DownloadRepository
 import com.mercata.openemail.utils.FileUtils
 import com.mercata.openemail.utils.SharedPreferences
 import com.mercata.openemail.utils.SoundPlayer
-import okhttp3.Interceptor
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.GlobalContext.startKoin
@@ -49,7 +46,9 @@ class MainApplication : Application(), ImageLoaderFactory {
             Room.databaseBuilder(
                 get(),
                 AppDatabase::class.java, "ping-works"
-            ).build()
+            )
+                .fallbackToDestructiveMigration()
+                .build()
         }
     }
 
