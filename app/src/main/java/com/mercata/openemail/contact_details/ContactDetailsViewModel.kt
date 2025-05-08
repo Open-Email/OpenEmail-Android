@@ -90,7 +90,7 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
             is HttpResult.Success -> {
                 val link: Link? = call.data?.firstOrNull { it.address == currentState.address }
                 db.userDao().findByAddress(currentState.address)
-                    ?.copy(receiveBroadcasts = link?.allowedBroadcasts ?: true)
+                    ?.copy(receiveBroadcasts = link?.allowedBroadcasts != false)
                     ?.let { currentContact ->
                         db.userDao().update(currentContact)
                     }
@@ -113,27 +113,29 @@ class ContactDetailsViewModel(savedStateHandle: SavedStateHandle) :
     }
 
     fun toggleBroadcast() {
-        viewModelScope.launch(Dispatchers.IO) {
-            updateState(currentState.copy(loading = true))
-            when (safeApiCall {
-                updateBroadcastsForLink(
-                    sp = sp,
-                    link = Link(
-                        address = currentState.address,
-                        link = currentState.address.connectionLink(),
-                        allowedBroadcasts = currentState.dbContact?.receiveBroadcasts ?: true
-                    ),
-                    !(currentState.dbContact?.receiveBroadcasts ?: true)
-                )
-            }) {
-                is HttpResult.Error -> {
-                    //ignore
+        currentState.address.connectionLink()?.let { connectionLink ->
+            viewModelScope.launch(Dispatchers.IO) {
+                updateState(currentState.copy(loading = true))
+                when (safeApiCall {
+                    updateBroadcastsForLink(
+                        sp = sp,
+                        link = Link(
+                            address = currentState.address,
+                            link = connectionLink,
+                            allowedBroadcasts = currentState.dbContact?.receiveBroadcasts != false
+                        ),
+                        currentState.dbContact?.receiveBroadcasts == false
+                    )
+                }) {
+                    is HttpResult.Error -> {
+                        //ignore
+                    }
+                    is HttpResult.Success -> {
+                        updateAllowedBroadcasts()
+                    }
                 }
-                is HttpResult.Success -> {
-                    updateAllowedBroadcasts()
-                }
+                updateState(currentState.copy(loading = false))
             }
-            updateState(currentState.copy(loading = false))
         }
     }
 

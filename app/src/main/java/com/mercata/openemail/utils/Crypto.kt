@@ -124,10 +124,13 @@ fun verifySignature(publicKey: Key, signature: String, originData: ByteArray): B
     )
 }
 
-fun Address.connectionLink(): String {
+fun Address.connectionLink(): String? {
     val sp: SharedPreferences by inject(SharedPreferences::class.java)
-    val addresses = listOf(sp.getUserAddress()!!, this).sorted().joinToString(separator = "")
-    return addresses.hashedWithSha256().first
+    sp.getUserAddress()?.let { address ->
+        val addresses = listOf(sp.getUserAddress()!!, this).sorted().joinToString(separator = "")
+        return addresses.hashedWithSha256().first
+    }
+    return null
 }
 
 

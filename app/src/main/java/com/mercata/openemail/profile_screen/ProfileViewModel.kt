@@ -65,9 +65,11 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
     private var instantPhotoUri: Uri? = null
 
     private suspend fun checkImageDeletionStatus() {
-        when (safeApiCall { checkUserImage(sp.getUserAddress()!!) }) {
-            is HttpResult.Error -> updateState(currentState.copy(imagePresented = false))
-            is HttpResult.Success -> updateState(currentState.copy(imagePresented = true))
+        sp.getUserAddress()?.let { address ->
+            when (safeApiCall { checkUserImage(address) }) {
+                is HttpResult.Error -> updateState(currentState.copy(imagePresented = false))
+                is HttpResult.Success -> updateState(currentState.copy(imagePresented = true))
+            }
         }
     }
 
@@ -122,7 +124,9 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                     results.add(async {
                         deleteUserpic {
                             updateState(currentState.copy(imageMarkedToDelete = false))
-                            onPhotoUpdated(sp.getUserAddress()!!.getProfilePictureUrl())
+                            sp.getUserAddress()?.let { address ->
+                                onPhotoUpdated(address.getProfilePictureUrl())
+                            }
                         }
                     })
                 } else {
@@ -139,7 +143,9 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                             }
 
                             is HttpResult.Success -> {
-                                onPhotoUpdated(sp.getUserAddress()!!.getProfilePictureUrl())
+                                sp.getUserAddress()?.let { address ->
+                                    onPhotoUpdated(address.getProfilePictureUrl())
+                                }
                                 return@async true
                             }
                         }
@@ -170,7 +176,10 @@ class ProfileViewModel : AbstractViewModel<ProfileState>(ProfileState()) {
                 }
 
                 is HttpResult.Success -> {
-                    onSuccess(sp.getUserAddress()!!.getProfilePictureUrl())
+                    sp.getUserAddress()?.let { address ->
+
+                    onSuccess(address.getProfilePictureUrl())
+                    }
                     true
                 }
             }

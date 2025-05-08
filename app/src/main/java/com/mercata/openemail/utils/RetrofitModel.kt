@@ -283,41 +283,44 @@ suspend fun loginCall(user: UserData): Response<Void> {
 suspend fun uploadContact(
     address: Address,
     sharedPreferences: SharedPreferences
-): Response<Void> {
-    return withContext(Dispatchers.IO) {
-        val link = address.connectionLink()
+): Response<Void>? {
+    address.connectionLink()?.let { link ->
+        return withContext(Dispatchers.IO) {
 
-        val currentUser = sharedPreferences.getUserData()!!
+            val currentUser = sharedPreferences.getUserData()!!
 
-        val encryptedRemoteAddress = encryptAnonymous(address, currentUser)
+            val encryptedRemoteAddress = encryptAnonymous(address, currentUser)
 
-        getInstance("https://${currentUser.address.getMailHost()}").uploadContact(
-            sotnHeader = currentUser.sign(),
-            hostPart = currentUser.address.getHost(),
-            localPart = currentUser.address.getLocal(),
-            link = link,
-            body = encryptedRemoteAddress.toRequestBody()
-        )
+            getInstance("https://${currentUser.address.getMailHost()}").uploadContact(
+                sotnHeader = currentUser.sign(),
+                hostPart = currentUser.address.getHost(),
+                localPart = currentUser.address.getLocal(),
+                link = link,
+                body = encryptedRemoteAddress.toRequestBody()
+            )
+        }
     }
+    return null
 }
 
 suspend fun notifyAddress(receiver: PublicUserData, sharedPreferences: SharedPreferences) {
-    return withContext(Dispatchers.IO) {
-        val currentUser: UserData = sharedPreferences.getUserData()!!
-        val link = receiver.address.connectionLink()
+    receiver.address.connectionLink()?.let { link ->
+        withContext(Dispatchers.IO) {
+            val currentUser: UserData = sharedPreferences.getUserData()!!
 
-        val encryptedRemoteAddress = encryptAnonymous(
-            currentUser.address,
-            Key.fromBase64String(receiver.publicEncryptionKey)
-        )
+            val encryptedRemoteAddress = encryptAnonymous(
+                currentUser.address,
+                Key.fromBase64String(receiver.publicEncryptionKey)
+            )
 
-        getInstance("https://${currentUser.address.getMailHost()}").notifyAddress(
-            sotnHeader = currentUser.sign(),
-            hostPart = receiver.address.getHost(),
-            localPart = receiver.address.getLocal(),
-            link = link,
-            body = encryptedRemoteAddress.toRequestBody()
-        )
+            getInstance("https://${currentUser.address.getMailHost()}").notifyAddress(
+                sotnHeader = currentUser.sign(),
+                hostPart = receiver.address.getHost(),
+                localPart = receiver.address.getLocal(),
+                link = link,
+                body = encryptedRemoteAddress.toRequestBody()
+            )
+        }
     }
 }
 
@@ -356,16 +359,19 @@ suspend fun updateBroadcastsForLink(
 suspend fun deleteContact(
     address: Address,
     sharedPreferences: SharedPreferences
-): Response<Void> {
-    return withContext(Dispatchers.IO) {
-        val currentUser = sharedPreferences.getUserData()!!
-        getInstance("https://${currentUser.address.getMailHost()}").deleteContact(
-            sotnHeader = currentUser.sign(),
-            hostPart = currentUser.address.getHost(),
-            localPart = currentUser.address.getLocal(),
-            linkAddr = address.connectionLink()
-        )
+): Response<Void>? {
+    address.connectionLink()?.let { link ->
+        return withContext(Dispatchers.IO) {
+            val currentUser = sharedPreferences.getUserData()!!
+            getInstance("https://${currentUser.address.getMailHost()}").deleteContact(
+                sotnHeader = currentUser.sign(),
+                hostPart = currentUser.address.getHost(),
+                localPart = currentUser.address.getLocal(),
+                linkAddr = link
+            )
+        }
     }
+    return null
 }
 
 private suspend fun getAllBroadcastEnvelopes(
@@ -427,32 +433,35 @@ private suspend fun getAllPrivateEnvelopesForContact(
     sharedPreferences: SharedPreferences,
     contact: DBContact
 ): List<Envelope>? {
-    return withContext(Dispatchers.IO) {
-        val currentUser = sharedPreferences.getUserData()!!
-        when (val idsCall = safeApiCall {
-            getInstance("https://${currentUser.address.getMailHost()}").getAllPrivateMessagesIdsForContact(
-                sotnHeader = currentUser.sign(),
-                hostPart = contact.address.getHost(),
-                localPart = contact.address.getLocal(),
-                connectionLink = contact.address.connectionLink()
-            )
-        }) {
-            is HttpResult.Error -> {
-                null
-            }
+    contact.address.connectionLink()?.let { link ->
+        return withContext(Dispatchers.IO) {
+            val currentUser = sharedPreferences.getUserData()!!
+            when (val idsCall = safeApiCall {
+                getInstance("https://${currentUser.address.getMailHost()}").getAllPrivateMessagesIdsForContact(
+                    sotnHeader = currentUser.sign(),
+                    hostPart = contact.address.getHost(),
+                    localPart = contact.address.getLocal(),
+                    connectionLink = link
+                )
+            }) {
+                is HttpResult.Error -> {
+                    null
+                }
 
-            is HttpResult.Success -> {
-                idsCall.data?.let { ids ->
-                    fetchEnvelopesForContact(
-                        messageIds = ids,
-                        currentUser = currentUser,
-                        contact = contact,
-                        link = contact.address.connectionLink()
-                    )
+                is HttpResult.Success -> {
+                    idsCall.data?.let { ids ->
+                        fetchEnvelopesForContact(
+                            messageIds = ids,
+                            currentUser = currentUser,
+                            contact = contact,
+                            link = link
+                        )
+                    }
                 }
             }
         }
     }
+    return null
 }
 
 private suspend fun getAllPrivateEnvelopes(
@@ -1278,11 +1287,11 @@ suspend fun removeSentMessage(currentUser: UserData, message: DBMessage): Respon
     }
 }
 
-suspend fun <T : Any> safeApiCall(call: suspend () -> Response<T>): HttpResult<T> =
+suspend fun <T : Any> safeApiCall(call: suspend () -> Response<T>?): HttpResult<T> =
     withContext(Dispatchers.IO) {
         try {
             val response = call.invoke()
-            if (response.isSuccessful) {
+            if (response?.isSuccessful == true) {
                 HttpResult.Success(
                     response.body(),
                     response.message(),
@@ -1290,7 +1299,7 @@ suspend fun <T : Any> safeApiCall(call: suspend () -> Response<T>): HttpResult<T
                     response.headers()
                 )
             } else {
-                HttpResult.Error(response.message(), response.code(), response.headers())
+                HttpResult.Error(response?.message(), response?.code(), response?.headers())
             }
         } catch (e: Exception) {
             coroutineContext.ensureActive()

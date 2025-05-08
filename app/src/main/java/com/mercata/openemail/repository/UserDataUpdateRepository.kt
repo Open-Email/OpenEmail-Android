@@ -20,13 +20,15 @@ class UserDataUpdateRepository(
     val userData: StateFlow<PublicUserData?> = _userData
 
     fun updateCurrentUserData() {
-        coroutineScope.launch {
-            when(val call = safeApiCall { getProfilePublicData(sp.getUserAddress()!!) }) {
-                is HttpResult.Error -> {
-                    //ignore
-                }
-                is HttpResult.Success -> {
-                    _userData.update { call.data }
+        sp.getUserAddress()?.let { address ->
+            coroutineScope.launch {
+                when(val call = safeApiCall { getProfilePublicData(address) }) {
+                    is HttpResult.Error -> {
+                        //ignore
+                    }
+                    is HttpResult.Success -> {
+                        _userData.update { call.data }
+                    }
                 }
             }
         }
