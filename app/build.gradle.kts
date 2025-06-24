@@ -102,9 +102,9 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.barcode.scanning)
     //noinspection UseTomlInstead
-    implementation("com.goterl:lazysodium-android:5.1.0@aar")
+    implementation("com.goterl:lazysodium-android:5.2.0@aar")
     //noinspection UseTomlInstead
-    implementation("net.java.dev.jna:jna:5.14.0@aar")
+    implementation("net.java.dev.jna:jna:5.17.0@aar")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
