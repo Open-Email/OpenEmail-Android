@@ -19,9 +19,9 @@ data class DBDraftWithReaders(
 
     override suspend fun getTitle(): String = getContacts().firstOrNull()?.fullName ?: ""
 
-    override fun getAddressValue(): String? = draft.readerAddresses?.split(",")?.firstOrNull()
+    override fun getAuthorAddressValue(): String? = draft.readerAddresses?.split(",")?.firstOrNull()
 
-    override fun getSubtitle(): String = draft.subject
+    override fun getSubject(): String = draft.subject
 
     override fun getTextBody(): String = draft.textBody
 

@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.mercata.openemail.db.HomeItem
+import com.mercata.openemail.db.drafts.draft_reader.DBDraftReader
 import com.mercata.openemail.models.PublicUserData
 import java.time.Instant
 
@@ -54,11 +55,11 @@ data class DBContact(
 
     override suspend fun getContacts(): List<PublicUserData> = listOf()
 
-    override fun getAddressValue(): String = address
+    override fun getAuthorAddressValue(): String = address
 
     override suspend fun getTitle(): String = name ?: ""
 
-    override fun getSubtitle(): String? = null
+    override fun getSubject(): String? = null
 
     override fun getTextBody(): String = address
 
@@ -78,6 +79,49 @@ fun DBContact.toPublicUserData(): PublicUserData =
         lastSeenPublic = this.lastSeenPublic,
         lastSeen = this.lastSeen?.let { Instant.parse(it) },
         updated = this.lastSeen?.let { Instant.parse(it) },
+        encryptionKeyId = this.publicEncryptionKeyId,
+        encryptionKeyAlgorithm = this.encryptionKeyAlgorithm,
+        signingKeyAlgorithm = this.signingKeyAlgorithm,
+        publicEncryptionKey = this.publicEncryptionKey,
+        publicSigningKey = this.publicSigningKey,
+        lastSigningKey = this.lastSigningKey,
+        lastSigningKeyAlgorithm = this.lastSigningKeyAlgorithm,
+        publicAccess = this.publicAccess,
+        publicLinks = this.publicLinks,
+        away = this.away,
+        awayWarning = this.awayWarning,
+        status = this.status,
+        about = this.about,
+        gender = this.gender,
+        language = this.language,
+        relationshipStatus = this.relationshipStatus,
+        education = this.education,
+        placesLived = this.placesLived,
+        notes = this.notes,
+        work = this.work,
+        department = this.department,
+        organization = this.organization,
+        jobTitle = this.jobTitle,
+        interests = this.interests,
+        books = this.books,
+        music = this.music,
+        movies = this.movies,
+        sports = this.sports,
+        website = this.website,
+        mailingAddress = this.mailingAddress,
+        location = this.location,
+        phone = this.phone,
+        streams = this.streams
+    )
+
+fun DBContact.toDraftReader(draftId: String): DBDraftReader =
+    DBDraftReader(
+        draftId = draftId,
+        fullName = this.name ?: "",
+        address = this.address,
+        lastSeenPublic = this.lastSeenPublic,
+        lastSeenTimestamp = this.lastSeen?.let { Instant.parse(it).toEpochMilli() },
+        updatedTimestamp = this.lastSeen?.let { Instant.parse(it).toEpochMilli() },
         encryptionKeyId = this.publicEncryptionKeyId,
         encryptionKeyAlgorithm = this.encryptionKeyAlgorithm,
         signingKeyAlgorithm = this.signingKeyAlgorithm,

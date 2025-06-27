@@ -4,9 +4,9 @@ import com.mercata.openemail.models.PublicUserData
 
 interface HomeItem {
     suspend fun getContacts(): List<PublicUserData>
-    fun getAddressValue(): String?
+    fun getAuthorAddressValue(): String?
     suspend fun getTitle(): String
-    fun getSubtitle(): String?
+    fun getSubject(): String?
     fun getTextBody(): String
     fun getMessageId(): String
     fun getAttachmentsAmount(): Int?

@@ -115,6 +115,7 @@ import com.mercata.openemail.common.NavigationDrawerBody
 import com.mercata.openemail.common.ProfileImage
 import com.mercata.openemail.contact_details.ContactType
 import com.mercata.openemail.db.HomeItem
+import com.mercata.openemail.db.archive.DBArchiveWitAttachments
 import com.mercata.openemail.db.contacts.ContactItem
 import com.mercata.openemail.db.contacts.DBContact
 import com.mercata.openemail.db.drafts.DBDraftWithReaders
@@ -122,7 +123,6 @@ import com.mercata.openemail.db.messages.DBMessageWithDBAttachments
 import com.mercata.openemail.db.notifications.DBNotification
 import com.mercata.openemail.models.CachedAttachment
 import com.mercata.openemail.models.PublicUserData
-import com.mercata.openemail.registration.UserData
 import com.mercata.openemail.utils.getProfilePictureUrl
 import com.mercata.openemail.utils.measureTextWidth
 import kotlinx.coroutines.Dispatchers
@@ -157,7 +157,7 @@ fun SharedTransitionScope.HomeScreen(
     fun openComposingScreen() {
         navController.navigate(
             "ComposingScreen/${
-                viewModel.selectedItems.mapNotNull { it.getAddressValue() }.joinToString(",")
+                viewModel.selectedItems.mapNotNull { it.getAuthorAddressValue() }.joinToString(",")
             }/null/null/null"
         )
     }
@@ -502,13 +502,12 @@ fun SharedTransitionScope.HomeScreen(
                             SwipeContainer(modifier = modifier.animateItem(),
                                 item = item,
                                 onDelete = when (item) {
-                                    is DBMessageWithDBAttachments -> {
-                                        {
-                                            viewModel.deleteItem(item)
-                                        }
-                                    }
 
-                                    is CachedAttachment, is DBDraftWithReaders, is ContactItem -> {
+                                    is DBMessageWithDBAttachments,
+                                    is CachedAttachment,
+                                    is DBDraftWithReaders,
+                                    is DBArchiveWitAttachments,
+                                    is ContactItem -> {
                                         {
                                             viewModel.deleteItem(item)
                                         }
@@ -527,7 +526,6 @@ fun SharedTransitionScope.HomeScreen(
                                 }) {
                                 Column {
                                     MessageViewHolder(item = item,
-                                        currentUser = state.currentUser!!,
                                         animatedVisibilityScope = animatedVisibilityScope,
                                         onMessageSelected = when (item) {
                                             is DBMessageWithDBAttachments -> {
@@ -538,7 +536,6 @@ fun SharedTransitionScope.HomeScreen(
 
                                                     else -> null
                                                 }
-
                                             }
 
                                             is CachedAttachment, is ContactItem -> { attachment ->
@@ -562,7 +559,7 @@ fun SharedTransitionScope.HomeScreen(
                                                                 item as CachedAttachment
 
                                                             val intent: Intent = Intent().apply {
-                                                                setAction(Intent.ACTION_VIEW)
+                                                                action = Intent.ACTION_VIEW
                                                                 setDataAndType(
                                                                     attachment.uri,
                                                                     attachment.type
@@ -578,29 +575,22 @@ fun SharedTransitionScope.HomeScreen(
 
                                                         is DBContact -> {
                                                             navController.navigate(
-                                                                "ContactDetailsScreen/${item.getAddressValue()}/${ContactType.SavedContact.id}"
+                                                                "ContactDetailsScreen/${item.getAuthorAddressValue()}/${ContactType.SavedContact.id}"
                                                             )
                                                         }
 
                                                         is DBNotification -> {
                                                             navController.navigate(
-                                                                "ContactDetailsScreen/${item.getAddressValue()}/${ContactType.ContactNotification.id}"
+                                                                "ContactDetailsScreen/${item.getAuthorAddressValue()}/${ContactType.ContactNotification.id}"
                                                             )
                                                         }
 
                                                         else -> navController.navigate(
-                                                            "MessageDetailsScreen/${message.getMessageId()}/${state.screen.outbox}/${
-                                                                message.getAddressValue().equals(
-                                                                    state.currentUser!!.address,
-                                                                    false
-                                                                )
-                                                            }",
+                                                            "MessageDetailsScreen/${message.getMessageId()}/${state.screen.id}",
                                                         )
                                                     }
                                                 }
                                             }
-
-
                                         })
                                     HorizontalDivider(color = colorScheme.outline)
                                 }
@@ -701,7 +691,6 @@ fun SharedTransitionScope.HomeScreen(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SharedTransitionScope.MessageViewHolder(
-    currentUser: UserData,
     item: HomeItem,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
@@ -796,7 +785,7 @@ fun SharedTransitionScope.MessageViewHolder(
                                         )*/
                                         .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                                         .clip(CircleShape),
-                                    item.getAddressValue()?.getProfilePictureUrl() ?: "",
+                                    item.getAuthorAddressValue()?.getProfilePictureUrl() ?: "",
                                     onError = {
                                         Box(
                                             modifier
@@ -811,7 +800,7 @@ fun SharedTransitionScope.MessageViewHolder(
                                         ) {
                                             Text(
                                                 text = if (contacts.isEmpty()) {
-                                                    val address = item.getAddressValue() ?: ""
+                                                    val address = item.getAuthorAddressValue() ?: ""
                                                     "${address.firstOrNull()?.uppercase() ?: ""}${
                                                         address.getOrNull(
                                                             1
@@ -881,7 +870,7 @@ fun SharedTransitionScope.MessageViewHolder(
                 }
 
                 Spacer(modifier.height(MARGIN_DEFAULT / 2))
-                item.getSubtitle()?.let { subject ->
+                item.getSubject()?.let { subject ->
                     Text(
                         modifier = modifier.sharedBounds(
                             sharedContentState = rememberSharedContentState(

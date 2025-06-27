@@ -61,6 +61,7 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import androidx.core.net.toUri
+import com.mercata.openemail.db.archive.toArchive
 
 typealias Address = String
 
@@ -712,7 +713,7 @@ suspend fun syncMessagesForContact(
             val folded = results.fold(
                 initial = arrayListOf<Envelope>(),
                 operation = { initial, new -> initial.apply { addAll(new!!) } })
-            saveMessagesToDb(dl, folded, db.messagesDao(), db.attachmentsDao(), sp)
+            saveMessagesToDb(dl, folded, db, sp)
         }
     }
 }
@@ -741,7 +742,7 @@ suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: Download
             val folded = results.fold(
                 initial = arrayListOf<Envelope>(),
                 operation = { initial, new -> initial.apply { addAll(new!!) } })
-            saveMessagesToDb(dl, folded, db.messagesDao(), db.attachmentsDao(), sp)
+            saveMessagesToDb(dl, folded, db, sp)
             sp.setFirstTime(false)
         }
     }
@@ -1114,17 +1115,17 @@ private suspend fun uploadFileMessage(
 suspend fun saveMessagesToDb(
     dl: DownloadRepository,
     results: List<Envelope>,
-    messagesDao: MessagesDao,
-    attachmentsDao: AttachmentsDao,
+    db: AppDatabase,
     sp: SharedPreferences,
 ) {
     withContext(Dispatchers.IO) {
 
         val removedOutbox =
-            messagesDao.getAll()
-                .filter { dbMessage -> dbMessage.authorAddress == sp.getUserAddress() && !results.any { envelope -> envelope.messageId == dbMessage.messageId } }
+            db.messagesDao().getAllWithAttachments()
+                .filter { dbMessage -> dbMessage.message.authorAddress == sp.getUserAddress() && !results.any { envelope -> envelope.messageId == dbMessage.getMessageId() } }
 
-        messagesDao.deleteList(removedOutbox)
+        db.archiveDao().insertAll(removedOutbox.map { it.toArchive() })
+        db.messagesDao().deleteList(removedOutbox.map { it.message })
 
         val envelopesPair = results.partition { envelope -> envelope.isRootMessage() }
 
@@ -1159,7 +1160,7 @@ suspend fun saveMessagesToDb(
                 initial.apply { addAll(new) }
             })
 
-        messagesDao.insertAll(
+        db.messagesDao().insertAll(
             rootMessages.map {
                 DBMessage(
                     messageId = it.first.messageId,
@@ -1173,7 +1174,7 @@ suspend fun saveMessagesToDb(
                     markedToDelete = false
                 )
             })
-        attachmentsDao.insertAll(attachments)
+        db.attachmentsDao().insertAll(attachments)
     }
 }
 
@@ -1257,23 +1258,13 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
     }
 }
 
-suspend fun revokeMarkedOutboxMessages(currentUser: UserData, dao: MessagesDao) {
+suspend fun rewokeOutboxMessage(currentUser: UserData, message: DBMessage) {
     withContext(Dispatchers.IO) {
-        val successfullyRevokedMessages: List<DBMessage> =
-            dao.getAll().filter {
-                it.markedToDelete && it.authorAddress == currentUser.address
-            }.map { message ->
-                async {
-                    when (safeApiCall { removeSentMessage(currentUser, message) }) {
-                        is HttpResult.Error -> null
-                        is HttpResult.Success -> message
-                    }
-                }
-            }.awaitAll().filterNotNull()
-
-        dao.deleteList(successfullyRevokedMessages)
+        when (safeApiCall { removeSentMessage(currentUser, message) }) {
+            is HttpResult.Error -> null
+            is HttpResult.Success -> message
+        }
     }
-
 }
 
 suspend fun removeSentMessage(currentUser: UserData, message: DBMessage): Response<Void> {

@@ -17,7 +17,7 @@ import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.models.toDBDraftReader
 import com.mercata.openemail.registration.UserData
 import com.mercata.openemail.repository.AddContactRepository
-import com.mercata.openemail.repository.SendMessageRepository
+import com.mercata.openemail.repository.SyncRepository
 import com.mercata.openemail.utils.Address
 import com.mercata.openemail.utils.CopyAttachmentService
 import com.mercata.openemail.utils.FileUtils
@@ -35,6 +35,7 @@ import org.koin.core.component.inject
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.util.UUID
+import androidx.core.net.toUri
 
 class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     AbstractViewModel<ComposingState>(
@@ -49,7 +50,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                 db.draftDao().getById(draftId)?.let { draft ->
                     updateState(
                         currentState.copy(
-                            subject = draft.getSubtitle(),
+                            subject = draft.getSubject(),
                             body = draft.getTextBody(),
                             broadcast = draft.draft.isBroadcast
                         )
@@ -58,7 +59,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
                     currentState.recipients.addAll(draft.readers.map { it.toPublicUserData() })
                     currentState.attachments.clear()
                     currentState.attachments.addAll(draft.draft.attachmentUriList?.split(",")
-                        ?.map { Uri.parse(it) } ?: listOf())
+                        ?.map { it.toUri() } ?: listOf())
                 }
                 updateAvailableContacts()
             }
@@ -84,7 +85,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     private lateinit var draftId: String
     private val fileUtils: FileUtils by inject()
     private val attachmentCopier: CopyAttachmentService by inject()
-    private val sendMessageRepository: SendMessageRepository by inject()
+    private val syncRepository: SyncRepository by inject()
     private val addContactRepository: AddContactRepository by inject()
     private var instantPhotoUri: Uri? = null
 
@@ -143,7 +144,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         db.draftDao().getByIdFlow(draftId = draftId).collect { draft ->
             currentState.attachments.clear()
             currentState.attachments.addAll(draft?.draft?.attachmentUriList?.split(",")
-                ?.map { Uri.parse(it) } ?: listOf())
+                ?.map { it.toUri() } ?: listOf())
         }
     }
 
@@ -231,14 +232,14 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         viewModelScope.launch(Dispatchers.IO) {
             updateState(currentState.copy(loading = true))
             if (getNonSyncedContacts().isEmpty()) {
-                sendMessageRepository.send(
+                syncRepository.send(
                     draftId, currentState.broadcast, savedStateHandle.get<String>("replyMessageId")
                 )
                 updateState(currentState.copy(sent = true))
             } else {
                 syncContacts(sp, db.userDao())
                 if (getNonSyncedContacts().isEmpty()) {
-                    sendMessageRepository.send(
+                    syncRepository.send(
                         draftId,
                         currentState.broadcast,
                         savedStateHandle.get<String>("replyMessageId")
@@ -394,7 +395,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         val intentUris = URLDecoder.decode(
             currentState.intentAttachments ?: "",
             StandardCharsets.UTF_8.toString()
-        ).split(",").filter { it.isNotBlank() }.map { Uri.parse(it) }
+        ).split(",").filter { it.isNotBlank() }.map { it.toUri() }
         if (intentUris.isNotEmpty()) {
             addAttachments(intentUris)
         }

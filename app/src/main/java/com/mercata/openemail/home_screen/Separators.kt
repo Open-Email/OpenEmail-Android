@@ -13,11 +13,11 @@ abstract class Separator: HomeItem {
 
     override suspend fun getContacts(): List<PublicUserData> = listOf()
 
-    override fun getAddressValue(): String? = null
+    override fun getAuthorAddressValue(): String? = null
 
     override suspend fun getTitle(): String = ""
 
-    override fun getSubtitle(): String? = null
+    override fun getSubject(): String? = null
 
     override fun getTextBody(): String = ""
 

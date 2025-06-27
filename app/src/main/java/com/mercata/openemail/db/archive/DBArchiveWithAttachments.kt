@@ -34,12 +34,12 @@ data class DBArchiveWitAttachments(
 
     override suspend fun getTitle(): String = getContacts().firstOrNull()?.fullName ?: ""
 
-    override fun getAddressValue(): String {
+    override fun getAuthorAddressValue(): String {
         return archive.readerAddresses?.split(",")?.firstOrNull()
             .takeIf { it?.isNotBlank() == true } ?: archive.authorAddress
     }
 
-    override fun getSubtitle(): String = archive.subject
+    override fun getSubject(): String = archive.subject
 
     override fun getTextBody(): String = archive.textBody
 
@@ -51,7 +51,7 @@ data class DBArchiveWitAttachments(
 
     override fun getTimestamp(): Long = archive.timestamp
 
-    private fun getFusedAttachments(): List<FusedAttachment> =
+    fun getFusedAttachments(): List<FusedAttachment> =
         attachments.groupBy { dbAttachment -> dbAttachment.name }.map { multipart ->
             FusedAttachment(
                 multipart.key,

@@ -15,7 +15,7 @@ import coil.util.DebugLogger
 import com.mercata.openemail.db.AppDatabase
 import com.mercata.openemail.repository.AddContactRepository
 import com.mercata.openemail.repository.ProcessIncomingIntentsRepository
-import com.mercata.openemail.repository.SendMessageRepository
+import com.mercata.openemail.repository.SyncRepository
 import com.mercata.openemail.repository.UserDataUpdateRepository
 import com.mercata.openemail.utils.BioManager
 import com.mercata.openemail.utils.CopyAttachmentService
@@ -40,7 +40,7 @@ class MainApplication : Application(), ImageLoaderFactory {
         factory { SoundPlayer(get()) }
         factory { CopyAttachmentService(get()) }
         single { ProcessIncomingIntentsRepository(get(), get()) }
-        single { SendMessageRepository(get(), get(), get(), get(), get()) }
+        single { SyncRepository(get(), get(), get(), get(), get()) }
         single { AddContactRepository(get(), get(), get()) }
         single {
             Room.databaseBuilder(

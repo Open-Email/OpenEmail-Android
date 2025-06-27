@@ -31,8 +31,8 @@ data class DBMessageWithDBAttachments(
     }
 
     override suspend fun getTitle(): String = getContacts().firstOrNull()?.fullName ?: ""
-    override fun getAddressValue(): String = message.authorAddress
-    override fun getSubtitle() = message.subject
+    override fun getAuthorAddressValue(): String = message.authorAddress
+    override fun getSubject() = message.subject
     override fun getTextBody() = message.textBody
     override fun getMessageId() = message.messageId
     override fun getAttachmentsAmount(): Int = getFusedAttachments().size

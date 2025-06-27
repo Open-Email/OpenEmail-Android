@@ -1,19 +1,25 @@
 package com.mercata.openemail.message_details
 
 import android.content.Intent
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mercata.openemail.AbstractViewModel
 import com.mercata.openemail.db.AppDatabase
+import com.mercata.openemail.db.HomeItem
+import com.mercata.openemail.db.archive.DBArchiveWitAttachments
+import com.mercata.openemail.db.drafts.DBDraftWithReaders
 import com.mercata.openemail.db.messages.DBMessageWithDBAttachments
 import com.mercata.openemail.db.messages.FusedAttachment
+import com.mercata.openemail.home_screen.HomeScreen
 import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.registration.UserData
-import com.mercata.openemail.repository.SendMessageRepository
+import com.mercata.openemail.repository.SyncRepository
 import com.mercata.openemail.utils.AttachmentResult
 import com.mercata.openemail.utils.DownloadRepository
+import com.mercata.openemail.utils.DownloadStatus
 import com.mercata.openemail.utils.FileUtils
 import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.Progress
@@ -28,12 +34,13 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
+import java.io.File
 
 class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
     AbstractViewModel<MessageDetailsState>(
         MessageDetailsState(
             messageId = savedStateHandle.get<String>("messageId")!!,
-            deletable = savedStateHandle.get<Boolean>("deletable")!!,
+            scope = HomeScreen.getById(savedStateHandle.get<String>("scope")!!)
         )
     ) {
 
@@ -41,20 +48,30 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
         val db: AppDatabase by inject()
         val dl: DownloadRepository by inject()
         val sp: SharedPreferences by inject()
+        val fu: FileUtils by inject()
+
         viewModelScope.launch(Dispatchers.IO) {
-            val message = db.messagesDao().getById(currentState.messageId)
+            val message: HomeItem = when (currentState.scope) {
+                HomeScreen.Outbox,
+                HomeScreen.Inbox,
+                HomeScreen.Broadcast -> db.messagesDao().getById(currentState.messageId)
+
+                HomeScreen.Drafts -> db.draftDao().getById(currentState.messageId)
+                HomeScreen.Trash -> db.archiveDao().getById(currentState.messageId)
+                else -> null
+            }!!
 
             launch {
-                message?.message?.copy(isUnread = false)?.let {
-                    db.messagesDao().update(it)
-                }
-            }
+                when (currentState.scope) {
+                    HomeScreen.Inbox,
+                    HomeScreen.Broadcast -> {
+                        val message = message as DBMessageWithDBAttachments
+                        db.messagesDao().update(message.message.copy(isUnread = false))
+                    }
 
-            launch {
-                when (val call =
-                    safeApiCall { getProfilePublicData(message?.message?.authorAddress ?: "") }) {
-                    is HttpResult.Error -> updateState(currentState.copy(noReply = true))
-                    is HttpResult.Success -> updateState(currentState.copy(noReply = call.data?.publicEncryptionKey.isNullOrBlank()))
+                    else -> {
+                        //ignore
+                    }
                 }
             }
 
@@ -65,25 +82,91 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
                         currentUser = sp.getUserData(),
                     )
                 )
-                currentState.attachmentsWithStatus.clear()
-                currentState.attachmentsWithStatus.putAll(
-                    dl.getDownloadedAttachmentsForMessage(
-                        message!!
-                    )
-                )
+
+                currentState.attachments.clear()
+
+                when (currentState.scope) {
+                    HomeScreen.Outbox,
+                    HomeScreen.Inbox,
+                    HomeScreen.Trash,
+                    HomeScreen.Broadcast -> {
+                        val fusedAttachments = when (message) {
+                            is DBMessageWithDBAttachments -> {
+                                message.getFusedAttachments()
+                            }
+
+                            is DBArchiveWitAttachments -> {
+                                message.getFusedAttachments()
+                            }
+
+                            else -> {
+                                listOf()
+                            }
+                        }
+                        val downloadedAttachments =
+                            dl.getDownloadedAttachmentsForMessage(fusedAttachments)
+                        fusedAttachments.forEach {
+                            val downloaded: AttachmentResult? = downloadedAttachments[it]
+                            currentState.attachments.add(
+                                AttachmentDetails(
+                                    file = downloaded?.file,
+                                    name = it.name,
+                                    fileSize = it.fileSize,
+                                    fileType = it.fileType,
+                                    attachmentDownloadStatus = if (downloaded == null) {
+                                        AttachmentDownloadStatus.NotDownloaded
+                                    } else {
+                                        if (downloaded.file == null) {
+                                            AttachmentDownloadStatus.Downloading
+                                        } else {
+                                            AttachmentDownloadStatus.Downloaded
+                                        }
+                                    },
+                                    downloadStatus = downloaded?.status ?: Progress(0),
+                                    fusedAttachment = it
+                                )
+                            )
+                        }
+                    }
+
+                    HomeScreen.Drafts -> {
+                        val message = message as DBDraftWithReaders
+                        message.draft.attachmentUriList?.split(",")?.forEach { uriStr ->
+                            val uri = uriStr.toUri()
+                            val uriInfo = fu.getURLInfo(uri)
+                            val file = fu.getFileFromUri(uri)
+                            currentState.attachments.add(
+                                AttachmentDetails(
+                                    file = file,
+                                    name = uriInfo.name,
+                                    fileSize = uriInfo.size,
+                                    fileType = uriInfo.mimeType,
+                                    attachmentDownloadStatus = AttachmentDownloadStatus.Downloaded,
+                                    downloadStatus = Progress(100),
+                                    fusedAttachment = null
+                                )
+                            )
+                        }
+                    }
+
+                    else -> {
+                        //ignore
+                    }
+                }
             }
 
             launch {
-                if (savedStateHandle.get<Boolean>("outbox")!!) {
+                if (currentState.scope == HomeScreen.Outbox) {
                     val readersPublicData: List<PublicUserData?>? =
-                        message?.message?.readerAddresses?.split(",")?.map {
-                            async {
-                                when (val call = safeApiCall { getProfilePublicData(it) }) {
-                                    is HttpResult.Error -> null
-                                    is HttpResult.Success -> call.data
+                        (message as DBMessageWithDBAttachments).message.readerAddresses?.split(",")
+                            ?.map {
+                                async {
+                                    when (val call = safeApiCall { getProfilePublicData(it) }) {
+                                        is HttpResult.Error -> null
+                                        is HttpResult.Success -> call.data
+                                    }
                                 }
-                            }
-                        }?.awaitAll()
+                            }?.awaitAll()
 
                     updateState(
                         currentState.copy(
@@ -97,20 +180,25 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
 
     private val downloadRepository: DownloadRepository by inject()
     private val fileUtils: FileUtils by inject()
-    private val sendMessageRepository: SendMessageRepository by inject()
+    private val syncRepository: SyncRepository by inject()
 
-    fun downloadFile(attachment: FusedAttachment) {
-        currentState.attachmentsWithStatus[attachment] = AttachmentResult(null, Progress(0))
-        viewModelScope.launch(Dispatchers.IO) {
-            downloadRepository.downloadAttachment(sp.getUserData()!!, attachment)
-                .collect { result ->
-                    currentState.attachmentsWithStatus[attachment] = result
-                }
+    fun downloadFile(attachment: AttachmentDetails) {
+        val index = currentState.attachments.indexOf(attachment)
+        currentState.attachments[index].downloadStatus = Progress(0)
+        currentState.attachments[index].file = null
+        attachment.fusedAttachment?.let {
+            viewModelScope.launch(Dispatchers.IO) {
+                downloadRepository.downloadAttachment(sp.getUserData()!!, it)
+                    .collect { result ->
+                        currentState.attachments[index].downloadStatus = result.status
+                        currentState.attachments[index].file = result.file
+                    }
+            }
         }
     }
 
-    fun share(attachment: FusedAttachment) {
-        val uri = fileUtils.getUriForFile(currentState.attachmentsWithStatus[attachment]?.file!!)
+    fun share(attachment: AttachmentDetails) {
+        val uri = fileUtils.getUriForFile(attachment.file!!)
         val sendIntent: Intent = Intent().apply {
             action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_STREAM, uri)
@@ -121,10 +209,10 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
         updateState(currentState.copy(shareIntent = sendIntent))
     }
 
-    fun getOpenIntent(attachment: FusedAttachment): Intent {
-        val uri = fileUtils.getUriForFile(currentState.attachmentsWithStatus[attachment]?.file!!)
+    fun getOpenIntent(attachment: AttachmentDetails): Intent {
+        val uri = fileUtils.getUriForFile(attachment.file!!)
         return Intent().apply {
-            setAction(Intent.ACTION_VIEW)
+            action = Intent.ACTION_VIEW
             setDataAndType(
                 uri,
                 attachment.fileType
@@ -141,12 +229,33 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
     suspend fun deleteMessage() {
         withContext(Dispatchers.IO) {
             toggleDeletionConfirmation(false)
-            currentState.message?.message?.copy(
-                markedToDelete = true
-            )?.let { db.messagesDao().update(it) }
-            GlobalScope.launch(Dispatchers.IO) {
-                sendMessageRepository.revokeMarkedMessages()
+            when (currentState.scope) {
+                HomeScreen.Broadcast,
+                HomeScreen.Inbox,
+                HomeScreen.Outbox -> {
+                    GlobalScope.launch(Dispatchers.IO) {
+                        (currentState.message as DBMessageWithDBAttachments).message.copy(
+                            markedToDelete = true
+                        ).let { db.messagesDao().update(it) }
+                        syncRepository.syncDeletedMessages()
+                    }
+                }
+
+                HomeScreen.Drafts -> {
+                    db.draftDao().delete(currentState.message!!.getMessageId())
+                }
+
+                HomeScreen.Trash -> {
+                    db.archiveDao().delete(currentState.message!!.getMessageId())
+                }
+
+                HomeScreen.DownloadedAttachments,
+                HomeScreen.Pending,
+                HomeScreen.Contacts -> {
+                    //ignore
+                }
             }
+
         }
     }
 
@@ -156,13 +265,22 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
 }
 
 data class MessageDetailsState(
+    val scope: HomeScreen,
     val messageId: String,
-    val deletable: Boolean,
     val outboxAddresses: List<PublicUserData>? = null,
     val deleteConfirmationShown: Boolean = false,
-    val noReply: Boolean = true,
     val shareIntent: Intent? = null,
-    val message: DBMessageWithDBAttachments? = null,
+    val message: HomeItem? = null,
     val currentUser: UserData? = null,
-    val attachmentsWithStatus: SnapshotStateMap<FusedAttachment, AttachmentResult> = mutableStateMapOf()
+    val attachments: SnapshotStateList<AttachmentDetails> = mutableStateListOf()
+)
+
+data class AttachmentDetails(
+    var file: File?,
+    val name: String,
+    val fileSize: Long,
+    val attachmentDownloadStatus: AttachmentDownloadStatus,
+    var downloadStatus: DownloadStatus,
+    val fileType: String,
+    val fusedAttachment: FusedAttachment?
 )
