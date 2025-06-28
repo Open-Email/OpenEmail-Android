@@ -2,6 +2,7 @@ package com.mercata.openemail.utils
 
 import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import com.goterl.lazysodium.exceptions.SodiumException
 import com.goterl.lazysodium.utils.Key
 import com.mercata.openemail.ANONYMOUS_ENCRYPTION_CIPHER
@@ -11,13 +12,12 @@ import com.mercata.openemail.HEADER_PREFIX
 import com.mercata.openemail.MAX_MESSAGE_SIZE
 import com.mercata.openemail.SIGNING_ALGORITHM
 import com.mercata.openemail.db.AppDatabase
-import com.mercata.openemail.db.attachments.AttachmentsDao
+import com.mercata.openemail.db.archive.toArchive
 import com.mercata.openemail.db.attachments.DBAttachment
 import com.mercata.openemail.db.contacts.ContactsDao
 import com.mercata.openemail.db.contacts.DBContact
 import com.mercata.openemail.db.drafts.DBDraft
 import com.mercata.openemail.db.messages.DBMessage
-import com.mercata.openemail.db.messages.MessagesDao
 import com.mercata.openemail.db.notifications.DBNotification
 import com.mercata.openemail.db.pending.attachments.DBPendingAttachment
 import com.mercata.openemail.db.pending.messages.DBPendingRootMessage
@@ -60,8 +60,6 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import androidx.core.net.toUri
-import com.mercata.openemail.db.archive.toArchive
 
 typealias Address = String
 

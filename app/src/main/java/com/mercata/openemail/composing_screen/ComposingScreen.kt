@@ -66,8 +66,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -87,6 +89,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.openemail.ATTACHMENT_LIST_ITEM_HEIGHT
@@ -95,7 +98,6 @@ import com.mercata.openemail.CHIP_ICON_SIZE
 import com.mercata.openemail.CLEAR_ICON_SIZE
 import com.mercata.openemail.CONTACT_LIST_ITEM_IMAGE_SIZE
 import com.mercata.openemail.DEFAULT_CORNER_RADIUS
-import com.mercata.openemail.DEFAULT_DATE_TIME_FORMAT
 import com.mercata.openemail.MARGIN_DEFAULT
 import com.mercata.openemail.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.openemail.R
@@ -103,16 +105,16 @@ import com.mercata.openemail.common.AttachmentTypeBottomSheet
 import com.mercata.openemail.common.ProfileImage
 import com.mercata.openemail.contact_details.ContactType
 import com.mercata.openemail.models.PublicUserData
+import com.mercata.openemail.utils.Address
+import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.getMimeType
 import com.mercata.openemail.utils.getNameFromURI
 import com.mercata.openemail.utils.getProfilePictureUrl
-import kotlinx.coroutines.Dispatchers
+import com.mercata.openemail.utils.getProfilePublicData
+import com.mercata.openemail.utils.safeApiCall
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -125,7 +127,7 @@ fun SharedTransitionScope.ComposingScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
-    //val toFocusRequester = remember { FocusRequester() }
+    val toFocusRequester = remember { FocusRequester() }
     val subjectFocusRequester = remember { FocusRequester() }
     val bodyFocusRequester = remember { FocusRequester() }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -167,29 +169,6 @@ fun SharedTransitionScope.ComposingScreen(
     LaunchedEffect(state.sent) {
         if (state.sent) {
             navController.popBackStack()
-        }
-    }
-
-    LaunchedEffect(state.replyMessage) {
-        if (state.replyMessage != null) {
-
-            val time: String? = state.replyMessage?.timestamp?.let {
-                ZonedDateTime.ofInstant(
-                    Instant.ofEpochMilli(it), ZoneId.systemDefault()
-                ).format(DEFAULT_DATE_TIME_FORMAT)
-            }
-
-            val reply = String.format(
-                context.getString(R.string.reply_header),
-                time,
-                state.replyMessage?.getAuthorPublicData()?.fullName ?: "",
-                state.replyMessage?.textBody,
-                state.replyMessage?.subject
-            )
-
-            viewModel.updateSubject(state.replyMessage?.subject ?: "")
-            viewModel.updateBody(reply)
-            viewModel.consumeReplyData()
         }
     }
 
@@ -255,7 +234,8 @@ fun SharedTransitionScope.ComposingScreen(
                 },
                 actions = {
                     AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
-                        Button(modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
+                        Button(
+                            modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
                             enabled = !state.loading,
                             onClick = {
                                 focusManager.clearFocus()
@@ -307,35 +287,33 @@ fun SharedTransitionScope.ComposingScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = modifier
-                            .fillMaxWidth()
-                            .clickable { viewModel.toggleBroadcast() }
-                            .padding(horizontal = MARGIN_DEFAULT, vertical = MARGIN_DEFAULT / 2)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.toggleBroadcast() }
+                        .padding(horizontal = MARGIN_DEFAULT, vertical = MARGIN_DEFAULT / 2)
 
-                    ) {
-                        Switch(
-                            checked = state.broadcast,
-                            onCheckedChange = { viewModel.toggleBroadcast() })
-                        Spacer(modifier = modifier.width(MARGIN_DEFAULT))
-                        Text(
-                            stringResource(id = R.string.broadcast_title),
-                            style = typography.labelLarge,
-                            softWrap = true
-                        )
-                    }
+                ) {
+                    Switch(
+                        checked = state.draft?.draft?.isBroadcast ?: false,
+                        onCheckedChange = { viewModel.toggleBroadcast() })
+                    Spacer(modifier = modifier.width(MARGIN_DEFAULT))
+                    Text(
+                        stringResource(id = R.string.broadcast_title),
+                        style = typography.labelLarge,
+                        softWrap = true
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = !(state.draft?.draft?.isBroadcast ?: false)) {
+                Column {
                     HorizontalDivider(
                         modifier = modifier.padding(horizontal = MARGIN_DEFAULT),
                         thickness = 1.dp,
                         color = colorScheme.outline
                     )
-                }
-            }
-
-            AnimatedVisibility(visible = !state.broadcast) {
-                Column {
                     FlowRow(
                         modifier = modifier
                             .clickable {
@@ -362,17 +340,17 @@ fun SharedTransitionScope.ComposingScreen(
                                 style = typography.titleSmall.copy(color = colorScheme.outlineVariant)
                             )
                         }
-                        state.recipients.map { user ->
+                        state.draft?.readers?.map { draftReader ->
                             AddressChip(
                                 modifier = modifier,
-                                user = user,
-                                onClick = { clickedUser ->
+                                address = draftReader.address,
+                                onClick = { address ->
                                     navController.navigate(
-                                        "ContactDetailsScreen/${clickedUser.address}/${ContactType.DetailsOnly.id}"
+                                        "ContactDetailsScreen/${address}/${ContactType.DetailsOnly.id}"
                                     )
                                 },
-                                onDismiss = { clickedUser ->
-                                    viewModel.removeRecipient(clickedUser)
+                                onDismiss = { address ->
+                                    viewModel.removeRecipient(address)
                                 })
                         }
                     }
@@ -430,14 +408,8 @@ fun SharedTransitionScope.ComposingScreen(
                             },
                             modifier = modifier
                                 .padding(horizontal = MARGIN_DEFAULT)
-                                //.focusRequester(toFocusRequester)
+                                .focusRequester(toFocusRequester)
                                 .fillMaxWidth()
-                            /*.onFocusChanged { focusState ->
-                                if (!focusState.isFocused) {
-                                    viewModel.attemptToAddAddress()
-                                }
-                                viewModel.toggleMode(focusState.isFocused)
-                            }*/
                         )
                     }
 
@@ -446,7 +418,7 @@ fun SharedTransitionScope.ComposingScreen(
             AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
                 OutlinedTextField(
                     shape = RoundedCornerShape(DEFAULT_CORNER_RADIUS),
-                    value = state.subject,
+                    value = state.draft?.draft?.subject ?: "",
                     onValueChange = { str -> viewModel.updateSubject(str) },
                     keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.Next,
@@ -499,17 +471,17 @@ fun SharedTransitionScope.ComposingScreen(
                         .defaultMinSize(minHeight = 200.dp)
                         .fillMaxWidth()
                         .focusRequester(bodyFocusRequester),
-                    value = state.body,
+                    value = state.draft?.draft?.textBody ?: "",
                     onValueChange = { str ->
                         viewModel.updateBody(str)
                     })
             }
             AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
                 Column {
-                    state.attachments.map { attachmentUri ->
+                    state.draft?.draft?.attachmentUriList?.split(",")?.map { attachmentUriStr ->
                         AttachmentViewHolder(
                             modifier = modifier,
-                            attachment = attachmentUri,
+                            attachment = attachmentUriStr.toUri(),
                             viewModel = viewModel
                         )
                     }
@@ -518,17 +490,23 @@ fun SharedTransitionScope.ComposingScreen(
 
             AnimatedVisibility(visible = state.mode == ComposingScreenMode.ContactSuggestion) {
                 Column {
-                    (state.contacts + state.externalContact).filter {
-                        it != null && (it.fullName.contains(
-                            state.addressFieldText,
-                            true
-                        ) || it.address.contains(state.addressFieldText, true))
-                    }.forEach { contact ->
+                    (state.contacts + state.externalContact)
+                        .asSequence()
+                        .filterNotNull()
+                        .filterNot { suggestedReader ->
+                            state.draft?.readers?.any { draftReader -> suggestedReader.address == draftReader.address } ?: false
+                        }
+                        .filter {
+                            it.fullName.contains(
+                                state.addressFieldText,
+                                true
+                            ) || it.address.contains(state.addressFieldText, true)
+                        }.forEach { contact ->
                         NewContactViewHolder(
                             modifier = modifier,
-                            item = contact!!,
-                            onMessageClicked = { person ->
-                                viewModel.addContactSuggestion(person)
+                            item = contact,
+                            onClick = { user ->
+                                viewModel.addContactSuggestion(user)
                                 viewModel.clearAddressField()
                                 focusManager.clearFocus()
                             },
@@ -558,19 +536,15 @@ fun SharedTransitionScope.ComposingScreen(
                         )
                         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                         Button(modifier = modifier.fillMaxWidth(), onClick = {
+                            viewModel.saveDraft()
                             viewModel.closeExitConfirmation()
                             navController.popBackStack()
                         }) {
                             Text(stringResource(id = R.string.save_as_draft))
                         }
                         OutlinedButton(modifier = modifier.fillMaxWidth(), onClick = {
-                            coroutineScope.launch {
-                                viewModel.deleteDraft()
-                                withContext(Dispatchers.Main) {
-                                    viewModel.closeExitConfirmation()
-                                    navController.popBackStack()
-                                }
-                            }
+                            viewModel.closeExitConfirmation()
+                            navController.popBackStack()
                         }) {
                             Text(stringResource(id = R.string.close_without_saving))
                         }
@@ -606,16 +580,28 @@ fun SharedTransitionScope.ComposingScreen(
 @Composable
 fun AddressChip(
     modifier: Modifier = Modifier,
-    user: PublicUserData,
-    onClick: (address: PublicUserData) -> Unit,
-    onDismiss: ((address: PublicUserData) -> Unit)? = null
+    address: Address,
+    onClick: (address: Address) -> Unit,
+    onDismiss: ((address: Address) -> Unit)? = null
 ) {
+    val coroutineScope = rememberCoroutineScope()
+    var userData by remember { mutableStateOf<PublicUserData?>(null) }
+
+    LaunchedEffect(Unit) {
+        coroutineScope.launch {
+            userData = when (val call = safeApiCall { getProfilePublicData(address) }) {
+                is HttpResult.Error -> null
+                is HttpResult.Success -> call.data
+            }
+        }
+    }
+
     Box {
         Box(
             modifier = modifier
                 .height(CHIP_HEIGHT)
                 .clip(shape = CircleShape)
-                .clickable { onClick(user) }
+                .clickable { onClick(address) }
                 .border(1.dp, color = colorScheme.outline, shape = CircleShape),
             contentAlignment = Alignment.Center
         ) {
@@ -631,7 +617,7 @@ fun AddressChip(
                 ) {
                     ProfileImage(
                         modifier,
-                        user.address.getProfilePictureUrl(),
+                        address.getProfilePictureUrl(),
                         onError = {
                             Icon(
                                 Icons.Default.AccountCircle,
@@ -642,7 +628,7 @@ fun AddressChip(
                 }
                 Spacer(modifier = modifier.width(MARGIN_DEFAULT / 4))
                 Text(
-                    text = user.fullName,
+                    text = userData?.fullName ?: "",
                     style = typography.bodySmall.copy(color = colorScheme.onSurface)
                 )
                 Spacer(modifier = modifier.width(MARGIN_DEFAULT / 4))
@@ -651,7 +637,7 @@ fun AddressChip(
                         modifier = modifier
                             .size(18.dp)
                             .clickable {
-                                onDismiss(user)
+                                onDismiss(address)
                             },
                         imageVector = Icons.Default.Clear,
                         tint = colorScheme.onSurface,
@@ -665,7 +651,7 @@ fun AddressChip(
             modifier = modifier
                 .size(8.dp)
                 .clip(CircleShape)
-                .background(if (user.away == true) colorScheme.error else colorScheme.secondary)
+                .background(if (userData?.away == true) colorScheme.error else colorScheme.secondary)
 
         )
     }
@@ -675,18 +661,18 @@ fun AddressChip(
 fun NewContactViewHolder(
     item: PublicUserData,
     modifier: Modifier = Modifier,
-    onMessageClicked: (message: PublicUserData) -> Unit,
+    onClick: (user: PublicUserData) -> Unit,
 ) {
-
     Box {
-        Row(verticalAlignment = Alignment.Top, modifier = modifier
-            .background(color = colorScheme.surface)
-            //.height(MESSAGE_LIST_ITEM_HEIGHT)
-            .fillMaxWidth()
-            .clickable {
-                onMessageClicked(item)
-            }
-            .padding(MARGIN_DEFAULT)
+        Row(
+            verticalAlignment = Alignment.Top, modifier = modifier
+                .background(color = colorScheme.surface)
+                //.height(MESSAGE_LIST_ITEM_HEIGHT)
+                .fillMaxWidth()
+                .clickable {
+                    onClick(item)
+                }
+                .padding(MARGIN_DEFAULT)
 
         ) {
             Box(contentAlignment = Alignment.TopStart) {
