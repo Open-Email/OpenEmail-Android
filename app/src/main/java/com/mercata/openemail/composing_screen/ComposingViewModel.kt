@@ -109,8 +109,6 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         }
     }
 
-    fun isEditingOldDraft() = savedStateHandle.get<String>("draftId") != null
-
     private suspend fun consumeReplyMessage() {
 
         db.messagesDao().getById(
@@ -286,7 +284,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
             }.awaitAll().map { it.toString() }
             val uris = currentState.draft!!.draft.attachmentUriList?.split(",") ?: listOf()
 
-            updateEditedDraft(currentState.draft!!.draft.copy(readerAddresses = hashSetOf<String>().apply {
+            updateEditedDraft(currentState.draft!!.draft.copy(attachmentUriList = hashSetOf<String>().apply {
                 addAll(uris)
                 addAll(attachmentUriStrings)
             }.joinToString(",").takeIf { it.isNotEmpty() }))

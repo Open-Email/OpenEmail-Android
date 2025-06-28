@@ -554,6 +554,7 @@ fun SharedTransitionScope.ComposingScreen(
                 onDismissRequest = {
                     viewModel.closeExitConfirmation()
                 },
+
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -565,6 +566,7 @@ fun SharedTransitionScope.ComposingScreen(
                 },
             )
         }
+
         if (state.attachmentBottomSheetShown) {
             AttachmentTypeBottomSheet(onDismissRequest = {
                 viewModel.toggleAttachmentBottomSheet(false)
