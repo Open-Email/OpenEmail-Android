@@ -78,7 +78,7 @@ import com.mercata.openemail.MARGIN_DEFAULT
 import com.mercata.openemail.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.openemail.R
 import com.mercata.openemail.common.ProfileImage
-import com.mercata.openemail.db.messages.FusedAttachment
+import com.mercata.openemail.home_screen.HomeScreen
 import com.mercata.openemail.message_details.AttachmentDownloadStatus.Downloaded
 import com.mercata.openemail.message_details.AttachmentDownloadStatus.Downloading
 import com.mercata.openemail.message_details.AttachmentDownloadStatus.NotDownloaded
@@ -110,14 +110,13 @@ fun SharedTransitionScope.MessageDetailsScreen(
         viewModel.shared()
     }
 
-    val message = state.message?.message
     var contacts by remember { mutableStateOf(listOf<PublicUserData>()) }
 
     LaunchedEffect(Unit) {
         contacts = state.message?.getContacts() ?: listOf()
     }
 
-    val subject = message?.subject ?: ""
+    val subject = state.message?.getSubject() ?: ""
 
     LaunchedEffect(state.shareIntent) {
         if (state.shareIntent != null) {
@@ -139,7 +138,8 @@ fun SharedTransitionScope.MessageDetailsScreen(
 
                 modifier = modifier.shadow(elevation = 1.dp),
                 title = {
-                    AnimatedVisibility(visible = scrollState.value != 0,
+                    AnimatedVisibility(
+                        visible = scrollState.value != 0,
                         enter = fadeIn() + slideInVertically { 100.dp.value.roundToInt() },
                         exit = fadeOut() + slideOutVertically { 100.dp.value.roundToInt() }
                     ) {
@@ -152,7 +152,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                     }
                 },
                 actions = {
-                    if (state.deletable) {
+                    if (state.scope.deletable) {
                         OutlinedButton(
                             modifier = modifier.padding(end = MARGIN_DEFAULT),
                             onClick = {
@@ -215,7 +215,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                         modifier = modifier
                             .clip(CircleShape)
                             .size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
-                        imageUrl =  message?.authorAddress?.getProfilePictureUrl()
+                        imageUrl = state.message?.getAuthorAddressValue()?.getProfilePictureUrl()
                             ?: "",
                         onError = {
                             Box(
@@ -256,7 +256,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
                                         )
                                     }
 
-                                    message?.timestamp?.let { timestamp ->
+                                    state.message?.getTimestamp()?.let { timestamp ->
                                         Spacer(modifier.weight(1f))
                                         SelectionContainer {
                                             Text(
@@ -284,33 +284,36 @@ fun SharedTransitionScope.MessageDetailsScreen(
                     }
                 }
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    HorizontalDivider(
-                        modifier = modifier.weight(1f),
-                        thickness = 1.dp,
-                        color = colorScheme.outline
-                    )
-                    OutlinedButton(onClick = {
-                        navController.navigate("ComposingScreen/${message?.authorAddress}/${state.message?.getMessageId()}/null/null")
-                    }) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                painterResource(R.drawable.reply),
-                                contentDescription = stringResource(R.string.reply_button),
-                                tint = colorScheme.onSurface
-                            )
-                            Spacer(modifier.width(MARGIN_DEFAULT / 2))
-                            Text(
-                                stringResource(R.string.reply_button),
-                                style = typography.labelLarge.copy(color = colorScheme.onSurface)
-                            )
+
+                if (state.scope != HomeScreen.Trash) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        HorizontalDivider(
+                            modifier = modifier.weight(1f),
+                            thickness = 1.dp,
+                            color = colorScheme.outline
+                        )
+                        OutlinedButton(onClick = {
+                            navController.navigate("ComposingScreen/${state.message?.getAuthorAddressValue()}/${state.message?.getMessageId()}/null/null")
+                        }) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painterResource(R.drawable.reply),
+                                    contentDescription = stringResource(R.string.reply_button),
+                                    tint = colorScheme.onSurface
+                                )
+                                Spacer(modifier.width(MARGIN_DEFAULT / 2))
+                                Text(
+                                    stringResource(R.string.reply_button),
+                                    style = typography.labelLarge.copy(color = colorScheme.onSurface)
+                                )
+                            }
                         }
+                        HorizontalDivider(
+                            modifier = modifier.width(MARGIN_DEFAULT),
+                            thickness = 1.dp,
+                            color = colorScheme.outline
+                        )
                     }
-                    HorizontalDivider(
-                        modifier = modifier.width(MARGIN_DEFAULT),
-                        thickness = 1.dp,
-                        color = colorScheme.outline
-                    )
                 }
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                 SelectionContainer {
@@ -324,11 +327,11 @@ fun SharedTransitionScope.MessageDetailsScreen(
                                 animatedVisibilityScope = animatedVisibilityScope,
                             ),
                         style = typography.bodyMedium,
-                        text = message?.textBody ?: ""
+                        text = state.message?.getTextBody() ?: ""
                     )
                 }
 
-                state.message?.getFusedAttachments()?.takeIf { it.isNotEmpty() }
+                state.attachments.takeIf { it.isNotEmpty() }
                     ?.let { attachments ->
                         Spacer(modifier = modifier.height(MARGIN_DEFAULT))
                         HorizontalDivider(
@@ -352,7 +355,6 @@ fun SharedTransitionScope.MessageDetailsScreen(
                                     modifier = modifier,
                                     attachment = attachment,
                                     viewModel = viewModel,
-                                    state = state,
                                     context = context
                                 )
                             }
@@ -417,8 +419,7 @@ fun SharedTransitionScope.MessageDetailsScreen(
 @Composable
 fun AttachmentViewHolder(
     modifier: Modifier = Modifier,
-    attachment: FusedAttachment,
-    state: MessageDetailsState,
+    attachment: AttachmentDetails,
     context: Context,
     viewModel: MessageDetailsViewModel
 ) {
@@ -432,18 +433,9 @@ fun AttachmentViewHolder(
             R.drawable.file
         }
 
-    val status = if (state.attachmentsWithStatus[attachment] == null) {
-        NotDownloaded
-    } else {
-        if (state.attachmentsWithStatus[attachment]!!.file == null) {
-            Downloading
-        } else {
-            Downloaded
-        }
-    }
-
     Box(modifier.padding(horizontal = MARGIN_DEFAULT, vertical = MARGIN_DEFAULT / 4)) {
-        Row(verticalAlignment = Alignment.CenterVertically,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = modifier
                 .fillMaxSize()
                 .height(ATTACHMENT_LIST_ITEM_HEIGHT)
@@ -455,7 +447,7 @@ fun AttachmentViewHolder(
                 )
                 .clip(RoundedCornerShape(DEFAULT_CORNER_RADIUS))
                 .clickable {
-                    when (status) {
+                    when (attachment.attachmentDownloadStatus) {
                         NotDownloaded -> viewModel.downloadFile(attachment)
                         Downloaded -> {
                             context.startActivity(viewModel.getOpenIntent(attachment))
@@ -469,7 +461,7 @@ fun AttachmentViewHolder(
                 }
                 .padding(horizontal = MARGIN_DEFAULT / 2)
         ) {
-            when (status) {
+            when (attachment.attachmentDownloadStatus) {
                 NotDownloaded -> {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -514,7 +506,7 @@ fun AttachmentViewHolder(
                             .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                             .background(colorScheme.surfaceVariant)
                     ) {
-                        if (state.attachmentsWithStatus[attachment]!!.status is Indefinite) {
+                        if (attachment.downloadStatus is Indefinite) {
                             CircularProgressIndicator(
                                 modifier = modifier.size(MESSAGE_LIST_ITEM_IMAGE_SIZE / 2),
                                 strokeCap = StrokeCap.Round
@@ -523,7 +515,7 @@ fun AttachmentViewHolder(
                             CircularProgressIndicator(
                                 modifier = modifier.size(MESSAGE_LIST_ITEM_IMAGE_SIZE / 2),
                                 strokeCap = StrokeCap.Round,
-                                progress = { state.attachmentsWithStatus[attachment]!!.status.percent!! / 100f }
+                                progress = { attachment.downloadStatus.percent!! / 100f }
                             )
 
                         }

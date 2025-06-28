@@ -7,11 +7,11 @@ data class CachedAttachment(val uri: Uri, val name: String, val type: String?) :
 
     override suspend fun getContacts(): List<PublicUserData> = listOf()
 
-    override fun getAddressValue(): String? = null
+    override fun getAuthorAddressValue(): String? = null
 
     override suspend fun getTitle(): String = name
 
-    override fun getSubtitle(): String? = null
+    override fun getSubject(): String? = null
 
     override fun getTextBody(): String = type ?: ""
 

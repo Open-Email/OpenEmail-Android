@@ -77,9 +77,9 @@ data class DBNotification(
 
     override suspend fun getTitle(): String = name
 
-    override fun getAddressValue(): String = address
+    override fun getAuthorAddressValue(): String = address
 
-    override fun getSubtitle(): String? = null
+    override fun getSubject(): String? = null
 
     override fun getTextBody(): String = address
 

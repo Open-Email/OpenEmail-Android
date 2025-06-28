@@ -27,8 +27,8 @@ data class DBPendingMessage(
 ) : HomeItem {
     override suspend fun getContacts() = readers.map { it.toPublicUserData() }
     override suspend fun getTitle(): String = readers.first().fullName
-    override fun getAddressValue(): String = message.authorAddress
-    override fun getSubtitle() = message.subject
+    override fun getAuthorAddressValue(): String = message.authorAddress
+    override fun getSubject() = message.subject
     override fun getTextBody(): String = message.textBody
     override fun getMessageId() = message.messageId
     override fun getAttachmentsAmount(): Int = fileParts.size

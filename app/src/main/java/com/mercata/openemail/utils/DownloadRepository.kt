@@ -73,11 +73,11 @@ class DownloadRepository(val context: Context, private val fileUtils: FileUtils)
             .getMimeTypeFromExtension(extension.lowercase(Locale.getDefault()))
     }
 
-    fun getDownloadedAttachmentsForMessage(messageWithDBAttachments: DBMessageWithDBAttachments): Map<FusedAttachment, AttachmentResult> {
+    fun getDownloadedAttachmentsForMessage(fusedAttachments: List<FusedAttachment>): Map<FusedAttachment, AttachmentResult> {
         val folder = File(context.filesDir, FOLDER_NAME)
         val downloaded: Array<File> = folder.listFiles() ?: arrayOf()
         val rv = hashMapOf<FusedAttachment, AttachmentResult>()
-        messageWithDBAttachments.getFusedAttachments().forEach { attachment ->
+        fusedAttachments.forEach { attachment ->
             downloaded.firstOrNull { file -> file.name == attachment.name && file.length() == attachment.fileSize }
                 ?.let { file ->
                     rv[attachment] = AttachmentResult(file, Progress(100))

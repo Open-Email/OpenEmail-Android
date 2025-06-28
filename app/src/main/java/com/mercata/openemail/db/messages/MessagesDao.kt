@@ -26,6 +26,10 @@ interface MessagesDao {
     suspend fun getAllWithAttachments(): List<DBMessageWithDBAttachments>
 
     @Transaction
+    @Query("SELECT * FROM dbmessage WHERE marked_to_delete = 1 ORDER BY timestamp DESC")
+    suspend fun getAllMarkedToDelete(): List<DBMessageWithDBAttachments>
+
+    @Transaction
     @Query("SELECT * FROM dbmessage WHERE message_id = :id")
     suspend fun getById(id: String): DBMessageWithDBAttachments?
 

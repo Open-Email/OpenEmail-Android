@@ -11,7 +11,6 @@ import com.mercata.openemail.R
 import com.mercata.openemail.db.AppDatabase
 import com.mercata.openemail.db.HomeItem
 import com.mercata.openemail.db.archive.DBArchiveWitAttachments
-import com.mercata.openemail.db.archive.toArchive
 import com.mercata.openemail.db.contacts.DBContact
 import com.mercata.openemail.db.drafts.DBDraftWithReaders
 import com.mercata.openemail.db.messages.DBMessageWithDBAttachments
@@ -25,7 +24,7 @@ import com.mercata.openemail.models.toDBContact
 import com.mercata.openemail.registration.UserData
 import com.mercata.openemail.repository.AddContactRepository
 import com.mercata.openemail.repository.ProcessIncomingIntentsRepository
-import com.mercata.openemail.repository.SendMessageRepository
+import com.mercata.openemail.repository.SyncRepository
 import com.mercata.openemail.utils.Address
 import com.mercata.openemail.utils.DownloadRepository
 import com.mercata.openemail.utils.FileUtils
@@ -34,7 +33,6 @@ import com.mercata.openemail.utils.NotificationsResult
 import com.mercata.openemail.utils.SharedPreferences
 import com.mercata.openemail.utils.getNewNotifications
 import com.mercata.openemail.utils.getProfilePublicData
-import com.mercata.openemail.utils.revokeMarkedOutboxMessages
 import com.mercata.openemail.utils.safeApiCall
 import com.mercata.openemail.utils.syncAllMessages
 import com.mercata.openemail.utils.syncContacts
@@ -53,7 +51,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     private val fu: FileUtils by inject()
     private val addContactRepository: AddContactRepository by inject()
     private val newIntentRepository: ProcessIncomingIntentsRepository by inject()
-    private val sendMessageRepository: SendMessageRepository by inject()
+    private val syncRepository: SyncRepository by inject()
     private var listUpdateState: HomeListUpdateState? = null
 
     val items: SnapshotStateList<HomeItem> = mutableStateListOf()
@@ -90,7 +88,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
 
         viewModelScope.launch {
-            sendMessageRepository.sendingState.collect { isSending ->
+            syncRepository.sendingState.collect { isSending ->
                 if (isSending) {
                     updateState(currentState.copy(snackBar = SnackBarData(titleResId = R.string.message_sending)))
                 } else {
@@ -203,7 +201,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                     uploadPendingMessages(currentUser, db, fu, sp)
                 },
                 launch {
-                    sendMessageRepository.revokeMarkedMessages()
+                    syncRepository.syncDeletedMessages()
                 },
                 launch {
                     dl.getCachedAttachments()
@@ -280,7 +278,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
     private suspend fun HomeItem.searchMatched(): Boolean =
         this.getMessageId() != currentState.itemToDelete?.getMessageId()
-                && (this.getSubtitle()?.lowercase()
+                && (this.getSubject()?.lowercase()
             ?.contains(currentState.query.lowercase()) ?: false
                 || this.getTextBody().lowercase().contains(currentState.query.lowercase())
                 || this.getTitle().lowercase().contains(currentState.query.lowercase()))
@@ -359,9 +357,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
                 is DBMessageWithDBAttachments -> {
                     val message = (currentState.itemToDelete as DBMessageWithDBAttachments)
-                    db.archiveDao().insert(message.toArchive())
-                    db.archiveAttachmentsDao()
-                        .insertAll(message.attachmentParts.map { it.toArchive() })
                     db.messagesDao().update(
                         message.message.copy(
                             markedToDelete = true
@@ -504,17 +499,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
-    fun deleteSelected() {
-        selectedItems.forEach {
-            when (it) {
-                is CachedAttachment -> {
-                    dl.deleteFile(it.uri)
-                }
-            }
-        }
-        selectedItems.clear()
-    }
-
     fun clearSelection() {
         selectedItems.clear()
     }
@@ -546,62 +530,88 @@ data class HomeState(
 data class SnackBarData(val titleResId: Int)
 
 enum class HomeScreen(
+    val id: String,
     val titleResId: Int,
     val outbox: Boolean,
     val placeholderDescriptionResId: Int,
     val iconResId: Int,
     val fabIcon: Int = R.drawable.edit,
     val fabTitleRes: Int = R.string.create_message,
+    val deletable: Boolean
 ) {
     Broadcast(
+        id = "broadcast",
         R.string.broadcast_title,
         iconResId = R.drawable.cast,
         outbox = false,
-        placeholderDescriptionResId = R.string.broadcast_placeholder
+        placeholderDescriptionResId = R.string.broadcast_placeholder,
+        deletable = true
     ),
     Inbox(
+        id = "inbox",
         R.string.inbox_title,
         iconResId = R.drawable.inbox,
         outbox = false,
-        placeholderDescriptionResId = R.string.inbox_placeholder
+        placeholderDescriptionResId = R.string.inbox_placeholder,
+        deletable = true
     ),
     Outbox(
+        id = "outbox",
         R.string.outbox_title,
         iconResId = R.drawable.outbox,
         outbox = true,
-        placeholderDescriptionResId = R.string.outbox_placeholder
+        placeholderDescriptionResId = R.string.outbox_placeholder,
+        deletable = true
     ),
     Pending(
+        id = "pending",
         R.string.pending,
         iconResId = R.drawable.pending,
         outbox = true,
-        placeholderDescriptionResId = R.string.pending_placeholder
+        placeholderDescriptionResId = R.string.pending_placeholder,
+        deletable = false
     ),
     Drafts(
+        id = "drafts",
         R.string.drafts,
         iconResId = R.drawable.draft,
         outbox = true,
-        placeholderDescriptionResId = R.string.drafts_placeholder
+        placeholderDescriptionResId = R.string.drafts_placeholder,
+        deletable = true
     ),
     DownloadedAttachments(
+        id = "downloads",
         R.string.downloaded_attachments,
         iconResId = R.drawable.download,
         outbox = false,
-        placeholderDescriptionResId = R.string.downloaded_attachments_placeholder
+        placeholderDescriptionResId = R.string.downloaded_attachments_placeholder,
+        deletable = true
     ),
     Trash(
+        id = "trash",
         R.string.trash,
         iconResId = R.drawable.delete,
         outbox = false,
-        placeholderDescriptionResId = R.string.trash_folder_placeholder
+        placeholderDescriptionResId = R.string.trash_folder_placeholder,
+        deletable = true
     ),
     Contacts(
+        id = "contacts",
         R.string.contacts,
         iconResId = R.drawable.contacts,
         outbox = false,
         placeholderDescriptionResId = R.string.contacts_placeholder,
         fabIcon = R.drawable.add_contact,
         fabTitleRes = R.string.add_contact,
-    ),
+        deletable = true
+    );
+
+    companion object {
+        fun getById(id: String): HomeScreen {
+            return HomeScreen.entries.first { scope -> scope.id == id }
+        }
+    }
 }
+
+
 

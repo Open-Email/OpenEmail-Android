@@ -12,6 +12,9 @@ interface DraftReaderDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(reader: DBDraftReader)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(readers: List<DBDraftReader>)
+
     @Query("DELETE FROM dbdraftreader WHERE address = :address")
     suspend fun delete(address: String)
 

@@ -15,12 +15,13 @@ import coil.util.DebugLogger
 import com.mercata.openemail.db.AppDatabase
 import com.mercata.openemail.repository.AddContactRepository
 import com.mercata.openemail.repository.ProcessIncomingIntentsRepository
-import com.mercata.openemail.repository.SendMessageRepository
+import com.mercata.openemail.repository.SyncRepository
 import com.mercata.openemail.repository.UserDataUpdateRepository
 import com.mercata.openemail.utils.BioManager
 import com.mercata.openemail.utils.CopyAttachmentService
 import com.mercata.openemail.utils.DownloadRepository
 import com.mercata.openemail.utils.FileUtils
+import com.mercata.openemail.utils.ReplyBodyConstructor
 import com.mercata.openemail.utils.SharedPreferences
 import com.mercata.openemail.utils.SoundPlayer
 import org.koin.android.ext.koin.androidContext
@@ -36,11 +37,12 @@ class MainApplication : Application(), ImageLoaderFactory {
         single { DownloadRepository(get(), get()) }
         single { UserDataUpdateRepository(get()) }
         factory { BioManager(get()) }
+        factory { ReplyBodyConstructor(get()) }
         factory { FileUtils(get()) }
         factory { SoundPlayer(get()) }
         factory { CopyAttachmentService(get()) }
         single { ProcessIncomingIntentsRepository(get(), get()) }
-        single { SendMessageRepository(get(), get(), get(), get(), get()) }
+        single { SyncRepository(get(), get(), get(), get(), get()) }
         single { AddContactRepository(get(), get(), get()) }
         single {
             Room.databaseBuilder(

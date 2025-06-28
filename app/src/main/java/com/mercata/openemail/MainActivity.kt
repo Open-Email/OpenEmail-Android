@@ -145,18 +145,14 @@ class MainActivity : AppCompatActivity(), KoinComponent {
                             )
                         }
                         composable(
-                            route = "MessageDetailsScreen/{messageId}/{outbox}/{deletable}",
+                            route = "MessageDetailsScreen/{messageId}/{scope}",
                             arguments = listOf(
                                 navArgument("messageId") {
                                     type = NavType.StringType
                                     nullable = false
                                 },
-                                navArgument("outbox") {
-                                    type = NavType.BoolType
-                                    nullable = false
-                                },
-                                navArgument("deletable") {
-                                    type = NavType.BoolType
+                                navArgument("scope") {
+                                    type = NavType.StringType
                                     nullable = false
                                 }
                             ),
