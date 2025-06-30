@@ -126,6 +126,10 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         }
     }
 
+    private fun dismissReadersError() {
+        updateState(currentState.copy(addressErrorResId = null))
+    }
+
     fun updateTo(str: String) {
         updateState(currentState.copy(addressFieldText = str, addressErrorResId = null))
         if (str.lowercase().matches(emailRegex) && !currentState.currentUser?.address?.lowercase()
@@ -153,10 +157,11 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
 
     private fun updateEditedDraft(newDraftState: DBDraft) {
         val updatedDraftWithReaders = currentState.draft!!.copy(draft = newDraftState)
-        updateState(currentState.copy(draft = updatedDraftWithReaders, subjectErrorResId = null))
+        updateState(currentState.copy(draft = updatedDraftWithReaders))
     }
 
     fun toggleBroadcast() {
+        dismissReadersError()
         updateEditedDraft(currentState.draft!!.draft.copy(isBroadcast = !currentState.draft!!.draft.isBroadcast))
     }
 
@@ -336,6 +341,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     }
 
     fun toggleMode(addressFieldFocused: Boolean) {
+        dismissReadersError()
         updateState(
             currentState.copy(
                 mode = if (addressFieldFocused)
@@ -352,6 +358,7 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     }
 
     fun addContactSuggestion(person: PublicUserData) {
+        dismissReadersError()
         val readers: ArrayList<DBDraftReader> = ArrayList(currentState.draft!!.readers)
         if (!readers.any { it.address == person.address }) {
             viewModelScope.launch(Dispatchers.IO) {

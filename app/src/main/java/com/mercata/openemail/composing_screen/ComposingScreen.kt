@@ -332,12 +332,12 @@ fun SharedTransitionScope.ComposingScreen(
                                 painterResource(R.drawable.contacts),
                                 modifier = Modifier.size(24.dp),
                                 contentDescription = null,
-                                tint = colorScheme.outlineVariant
+                                tint = if (state.addressErrorResId == null) colorScheme.outlineVariant else colorScheme.error
                             )
                             Spacer(modifier = modifier.width(MARGIN_DEFAULT / 4))
                             Text(
                                 stringResource(R.string.readers),
-                                style = typography.titleSmall.copy(color = colorScheme.outlineVariant)
+                                style = typography.titleSmall.copy(color = if (state.addressErrorResId == null) colorScheme.outlineVariant else colorScheme.error)
                             )
                         }
                         state.draft?.readers?.map { draftReader ->
@@ -353,6 +353,13 @@ fun SharedTransitionScope.ComposingScreen(
                                     viewModel.removeRecipient(address)
                                 })
                         }
+                    }
+                    state.addressErrorResId?.let {
+                        Text(
+                            text = stringResource(id = it),
+                            modifier = Modifier.padding(horizontal = MARGIN_DEFAULT * 2),
+                            style = typography.bodySmall.copy(color = colorScheme.error)
+                        )
                     }
                     AnimatedVisibility(state.mode == ComposingScreenMode.ContactSuggestion) {
                         OutlinedTextField(
@@ -389,7 +396,6 @@ fun SharedTransitionScope.ComposingScreen(
                                 imeAction = ImeAction.Done,
                                 showKeyboardOnFocus = true,
                             ),
-                            isError = state.addressErrorResId != null,
                             keyboardActions = KeyboardActions(
                                 onDone = {
                                     focusManager.clearFocus()
@@ -398,21 +404,12 @@ fun SharedTransitionScope.ComposingScreen(
                             label = {
                                 Text(stringResource(id = R.string.search_contacts))
                             },
-                            supportingText = {
-                                state.addressErrorResId?.let {
-                                    Text(
-                                        text = stringResource(id = it),
-                                        color = colorScheme.error
-                                    )
-                                }
-                            },
                             modifier = modifier
                                 .padding(horizontal = MARGIN_DEFAULT)
                                 .focusRequester(toFocusRequester)
                                 .fillMaxWidth()
                         )
                     }
-
                 }
             }
             AnimatedVisibility(visible = state.mode == ComposingScreenMode.Default) {
@@ -494,7 +491,8 @@ fun SharedTransitionScope.ComposingScreen(
                         .asSequence()
                         .filterNotNull()
                         .filterNot { suggestedReader ->
-                            state.draft?.readers?.any { draftReader -> suggestedReader.address == draftReader.address } ?: false
+                            state.draft?.readers?.any { draftReader -> suggestedReader.address == draftReader.address }
+                                ?: false
                         }
                         .filter {
                             it.fullName.contains(
@@ -502,16 +500,16 @@ fun SharedTransitionScope.ComposingScreen(
                                 true
                             ) || it.address.contains(state.addressFieldText, true)
                         }.forEach { contact ->
-                        NewContactViewHolder(
-                            modifier = modifier,
-                            item = contact,
-                            onClick = { user ->
-                                viewModel.addContactSuggestion(user)
-                                viewModel.clearAddressField()
-                                focusManager.clearFocus()
-                            },
-                        )
-                    }
+                            NewContactViewHolder(
+                                modifier = modifier,
+                                item = contact,
+                                onClick = { user ->
+                                    viewModel.addContactSuggestion(user)
+                                    viewModel.clearAddressField()
+                                    focusManager.clearFocus()
+                                },
+                            )
+                        }
                 }
             }
 
