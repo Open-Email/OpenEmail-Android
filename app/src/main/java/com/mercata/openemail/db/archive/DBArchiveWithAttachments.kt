@@ -10,6 +10,7 @@ import com.mercata.openemail.db.contacts.toPublicUserData
 import com.mercata.openemail.db.messages.DBMessageWithDBAttachments
 import com.mercata.openemail.db.messages.FusedAttachment
 import com.mercata.openemail.models.PublicUserData
+import com.mercata.openemail.registration.UserData
 
 data class DBArchiveWitAttachments(
     @Embedded val archive: DBArchivedMessage,
@@ -50,6 +51,22 @@ data class DBArchiveWitAttachments(
     override fun isUnread(): Boolean = false
 
     override fun getTimestamp(): Long = archive.timestamp
+
+    override fun matchedSearchQuery(query: String, currentUserData: UserData): Boolean {
+        val authored = author?.address == currentUserData.address
+
+        val predicate = if (authored) {
+            archive.readerAddresses?.split(",")
+                ?.any { readerAddress -> readerAddress.contains(query, true) } ?: false
+        } else {
+            author?.name?.contains(query, true) ?: false ||
+                    author?.address?.contains(query, true) ?: false
+        }
+
+        return archive.subject.contains(query, true) ||
+                archive.textBody.contains(query, true) ||
+                predicate
+    }
 
     fun getFusedAttachments(): List<FusedAttachment> =
         attachments.groupBy { dbAttachment -> dbAttachment.name }.map { multipart ->

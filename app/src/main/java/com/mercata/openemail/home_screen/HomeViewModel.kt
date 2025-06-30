@@ -162,6 +162,10 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
+    suspend fun getContactForAddress(address: Address): DBContact? {
+        return db.userDao().findByAddress(address)
+    }
+
     fun contactPresented(contactAddress: Address): Boolean {
         return listUpdateState?.dbContacts?.any { it.address == contactAddress } ?: false
     }
@@ -276,12 +280,12 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
-    private suspend fun HomeItem.searchMatched(): Boolean =
-        this.getMessageId() != currentState.itemToDelete?.getMessageId()
-                && (this.getSubject()?.lowercase()
-            ?.contains(currentState.query.lowercase()) ?: false
-                || this.getTextBody().lowercase().contains(currentState.query.lowercase())
-                || this.getTitle().lowercase().contains(currentState.query.lowercase()))
+    private fun HomeItem.searchMatched(): Boolean {
+        return sp.getUserData()?.let {
+            this.getMessageId() != currentState.itemToDelete?.getMessageId()
+                    && this.matchedSearchQuery(currentState.query, it)
+        } ?: false
+    }
 
     fun deleteItem(item: HomeItem) {
         viewModelScope.launch(Dispatchers.IO) {

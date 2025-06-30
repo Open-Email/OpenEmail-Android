@@ -7,13 +7,14 @@ import androidx.room.PrimaryKey
 import com.mercata.openemail.db.contacts.ContactItem
 import com.mercata.openemail.db.contacts.DBContact
 import com.mercata.openemail.models.PublicUserData
+import com.mercata.openemail.registration.UserData
 import com.mercata.openemail.utils.Address
 import java.time.Instant
 
 const val SEVEN_DAYS_MILLIS = 1000 * 60 * 60 * 24 * 7
 
 @Entity
-(
+    (
     foreignKeys = [
         ForeignKey(
             entity = DBContact::class,
@@ -90,6 +91,10 @@ data class DBNotification(
     override fun isUnread(): Boolean = false
 
     override fun getTimestamp(): Long? = null
+
+    override fun matchedSearchQuery(query: String, currentUserData: UserData): Boolean {
+        return address.contains(query, true) || name.contains(query, true)
+    }
 }
 
 fun DBNotification.toPublicUserData(): PublicUserData {
