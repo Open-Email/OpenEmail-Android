@@ -4,6 +4,8 @@ package com.mercata.openemail.message_details
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.widget.TextView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -72,6 +74,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.mercata.openemail.ATTACHMENT_LIST_ITEM_HEIGHT
@@ -93,6 +96,9 @@ import com.mercata.openemail.utils.Indefinite
 import com.mercata.openemail.utils.getProfilePictureUrl
 import com.mercata.openemail.utils.getProfilePublicData
 import com.mercata.openemail.utils.safeApiCall
+import io.noties.markwon.AbstractMarkwonPlugin
+import io.noties.markwon.Markwon
+import io.noties.markwon.core.MarkwonTheme
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
@@ -100,6 +106,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.math.roundToInt
+import androidx.core.graphics.toColorInt
 
 @ExperimentalLayoutApi
 @Composable
@@ -121,6 +128,18 @@ fun SharedTransitionScope.MessageDetailsScreen(
     }
 
     var contacts by remember { mutableStateOf(listOf<PublicUserData>()) }
+
+
+    val markwon = remember(context) {
+        Markwon.builder(context)
+            .usePlugin(object : AbstractMarkwonPlugin() {
+                override fun configureTheme(builder: MarkwonTheme.Builder) {
+                    // this removes the heading‑break line under ALL heading levels
+                    builder.headingBreakHeight(0)
+                }
+            })
+            .build()
+    }
 
     LaunchedEffect(state.message) {
         contacts = if (state.scope == HomeScreen.Outbox) {
@@ -349,19 +368,22 @@ fun SharedTransitionScope.MessageDetailsScreen(
                     }
                 }
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT))
-                SelectionContainer {
-                    Text(
-                        modifier = modifier
-                            .padding(horizontal = MARGIN_DEFAULT)
-                            .sharedBounds(
-                                sharedContentState = rememberSharedContentState(
-                                    key = "message_body/${state.messageId}"
-                                ),
-                                animatedVisibilityScope = animatedVisibilityScope,
+                AndroidView(
+                    modifier = modifier.padding(horizontal = MARGIN_DEFAULT)
+                        .sharedBounds(
+                            sharedContentState = rememberSharedContentState(
+                                key = "message_body/${state.messageId}"
                             ),
-                        style = typography.bodyMedium,
-                        text = state.message?.getTextBody() ?: ""
-                    )
+                            animatedVisibilityScope = animatedVisibilityScope,
+                        ),
+                    factory = { ctx ->
+                        TextView(ctx).apply {
+                            setTextColor("#131B2A".toColorInt()) // onSurface color
+                            setTextIsSelectable(true)
+                        }
+                    }
+                ) { textView ->
+                    markwon.setMarkdown(textView, state.message?.getTextBody() ?: "")
                 }
 
                 state.attachments.takeIf { it.isNotEmpty() }

@@ -101,6 +101,7 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.barcode.scanning)
+    implementation("io.noties.markwon:core:4.6.0")
     //noinspection UseTomlInstead
     implementation("com.goterl:lazysodium-android:5.2.0@aar")
     //noinspection UseTomlInstead
