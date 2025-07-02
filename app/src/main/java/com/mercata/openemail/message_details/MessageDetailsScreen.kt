@@ -10,6 +10,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -17,9 +18,11 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -78,13 +81,20 @@ import com.mercata.openemail.MARGIN_DEFAULT
 import com.mercata.openemail.MESSAGE_LIST_ITEM_IMAGE_SIZE
 import com.mercata.openemail.R
 import com.mercata.openemail.common.ProfileImage
+import com.mercata.openemail.contact_details.ContactType
+import com.mercata.openemail.db.messages.DBMessageWithDBAttachments
 import com.mercata.openemail.home_screen.HomeScreen
 import com.mercata.openemail.message_details.AttachmentDownloadStatus.Downloaded
 import com.mercata.openemail.message_details.AttachmentDownloadStatus.Downloading
 import com.mercata.openemail.message_details.AttachmentDownloadStatus.NotDownloaded
 import com.mercata.openemail.models.PublicUserData
+import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.Indefinite
 import com.mercata.openemail.utils.getProfilePictureUrl
+import com.mercata.openemail.utils.getProfilePublicData
+import com.mercata.openemail.utils.safeApiCall
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -112,8 +122,20 @@ fun SharedTransitionScope.MessageDetailsScreen(
 
     var contacts by remember { mutableStateOf(listOf<PublicUserData>()) }
 
-    LaunchedEffect(Unit) {
-        contacts = state.message?.getContacts() ?: listOf()
+    LaunchedEffect(state.message) {
+        contacts = if (state.scope == HomeScreen.Outbox) {
+            (state.message as? DBMessageWithDBAttachments)?.message?.readerAddresses?.split(",")
+                ?.map { address ->
+                    async {
+                        when (val call = safeApiCall { getProfilePublicData(address) }) {
+                            is HttpResult.Error -> null
+                            is HttpResult.Success -> call.data
+                        }
+                    }
+                }?.awaitAll()?.filterNotNull() ?: listOf()
+        } else {
+            state.message?.getContacts() ?: listOf()
+        }
     }
 
     val subject = state.message?.getSubject() ?: ""
@@ -206,83 +228,94 @@ fun SharedTransitionScope.MessageDetailsScreen(
                 }
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT * 1.5f))
 
-                Row(
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = MARGIN_DEFAULT)
-                ) {
-                    ProfileImage(
+                if (contacts.size <= 1) {
+                    Row(
                         modifier = modifier
-                            .clip(CircleShape)
-                            .size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
-                        imageUrl = state.message?.getAuthorAddressValue()?.getProfilePictureUrl()
-                            ?: "",
-                        onError = {
-                            Box(
-                                modifier
-                                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
-                                    .background(color = colorScheme.surface)
-                                    .border(
-                                        width = 1.dp,
-                                        color = colorScheme.outline,
-                                        shape = CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${state.currentUser?.name?.firstOrNull() ?: ""}${
-                                        state.currentUser?.name?.getOrNull(
-                                            1
-                                        ) ?: ""
-                                    }",
-                                    style = typography.titleMedium,
-                                    color = colorScheme.onSurface
-                                )
-                            }
-                        })
+                            .fillMaxWidth()
+                            .padding(horizontal = MARGIN_DEFAULT)
+                    ) {
+                        ProfileImage(
+                            modifier = modifier
+                                .clip(CircleShape)
+                                .size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
+                            imageUrl = state.message?.getAuthorAddressValue()
+                                ?.getProfilePictureUrl()
+                                ?: "",
+                            onError = {
+                                Box(
+                                    modifier
+                                        .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                                        .background(color = colorScheme.surface)
+                                        .border(
+                                            width = 1.dp,
+                                            color = colorScheme.outline,
+                                            shape = CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "${state.currentUser?.name?.firstOrNull() ?: ""}${
+                                            state.currentUser?.name?.getOrNull(
+                                                1
+                                            ) ?: ""
+                                        }",
+                                        style = typography.titleMedium,
+                                        color = colorScheme.onSurface
+                                    )
+                                }
+                            })
 
-                    Spacer(modifier = modifier.width(MARGIN_DEFAULT * 0.75f))
+                        Spacer(modifier = modifier.width(MARGIN_DEFAULT * 0.75f))
 
-                    contacts.firstOrNull()?.let { author ->
-                        Column {
-                            author.fullName.let { name ->
-                                Row {
-                                    SelectionContainer {
-                                        Text(
-                                            text = name,
-                                            maxLines = 1,
-                                            style = typography.titleMedium,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-
-                                    state.message?.getTimestamp()?.let { timestamp ->
-                                        Spacer(modifier.weight(1f))
+                        contacts.firstOrNull()?.let { author ->
+                            Column {
+                                author.fullName.let { name ->
+                                    Row {
                                         SelectionContainer {
                                             Text(
-                                                text = ZonedDateTime.ofInstant(
-                                                    Instant.ofEpochMilli(timestamp),
-                                                    ZoneId.systemDefault()
-                                                ).format(DEFAULT_DATE_TIME_FORMAT),
+                                                text = name,
                                                 maxLines = 1,
-                                                style = typography.bodySmall.copy(color = colorScheme.outlineVariant),
+                                                style = typography.titleMedium,
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                         }
+
+                                        state.message?.getTimestamp()?.let { timestamp ->
+                                            Spacer(modifier.weight(1f))
+                                            SelectionContainer {
+                                                Text(
+                                                    text = ZonedDateTime.ofInstant(
+                                                        Instant.ofEpochMilli(timestamp),
+                                                        ZoneId.systemDefault()
+                                                    ).format(DEFAULT_DATE_TIME_FORMAT),
+                                                    maxLines = 1,
+                                                    style = typography.bodySmall.copy(color = colorScheme.outlineVariant),
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
                                     }
                                 }
-                            }
-                            SelectionContainer {
-                                Text(
-                                    text = author.address,
-                                    maxLines = 1,
-                                    style = typography.bodyMedium,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                                SelectionContainer {
+                                    Text(
+                                        text = author.address,
+                                        maxLines = 1,
+                                        style = typography.bodyMedium,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
                     }
+                } else {
+                    MultiReadersView(
+                        modifier = modifier
+                            .padding(horizontal = MARGIN_DEFAULT),
+                        readers = contacts,
+                        navController = navController
+                    )
                 }
+
                 Spacer(modifier = modifier.height(MARGIN_DEFAULT))
 
                 if (state.scope != HomeScreen.Trash) {
@@ -412,6 +445,65 @@ fun SharedTransitionScope.MessageDetailsScreen(
                     }
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun MultiReadersView(
+    modifier: Modifier = Modifier,
+    readers: List<PublicUserData>,
+    navController: NavController,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val widthDp = animateDpAsState(
+        targetValue = if (expanded) MARGIN_DEFAULT else -MESSAGE_LIST_ITEM_IMAGE_SIZE / 2,
+    )
+    val firstThreeReaders = if (readers.size > 5 && !expanded) readers.subList(0, 5) else readers
+    FlowRow(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(MARGIN_DEFAULT),
+        horizontalArrangement = Arrangement.spacedBy(widthDp.value)
+    ) {
+        firstThreeReaders.forEach {
+            ProfileImage(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable {
+                        if (!expanded) {
+                            expanded = true
+                        } else {
+                            navController.navigate(
+                                "ContactDetailsScreen/${it.address}/${ContactType.SavedContact.id}"
+                            )
+                        }
+                    }
+                    .size(MESSAGE_LIST_ITEM_IMAGE_SIZE),
+                imageUrl = it.address.getProfilePictureUrl(),
+                onError = {
+                    Box(
+                        Modifier
+                            .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
+                            .background(color = colorScheme.surface)
+                            .border(
+                                width = 1.dp,
+                                color = colorScheme.outline,
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "${it.fullName.firstOrNull() ?: ""}${
+                                it.fullName.getOrNull(
+                                    1
+                                ) ?: ""
+                            }",
+                            style = typography.titleMedium,
+                            color = colorScheme.onSurface
+                        )
+                    }
+                })
         }
     }
 }
