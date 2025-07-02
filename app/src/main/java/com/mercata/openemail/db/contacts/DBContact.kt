@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 import com.mercata.openemail.db.HomeItem
 import com.mercata.openemail.db.drafts.draft_reader.DBDraftReader
 import com.mercata.openemail.models.PublicUserData
+import com.mercata.openemail.registration.UserData
 import java.time.Instant
 
 @Entity
@@ -70,6 +71,14 @@ data class DBContact(
     override fun isUnread(): Boolean = false
 
     override fun getTimestamp(): Long? = null
+
+    override fun matchedSearchQuery(
+        query: String,
+        currentUserData: UserData
+    ): Boolean {
+        return name?.contains(query, true) ?: false ||
+                address.contains(query, true)
+    }
 }
 
 fun DBContact.toPublicUserData(): PublicUserData =

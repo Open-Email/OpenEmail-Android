@@ -405,10 +405,10 @@ fun SharedTransitionScope.HomeScreen(
                     stringResource(state.screen.titleResId),
                     style = typography.labelLarge.copy(
                         color =
-                        if (viewModel.selectedItems.isEmpty())
-                            colorScheme.onSurface
-                        else
-                            colorScheme.onPrimary
+                            if (viewModel.selectedItems.isEmpty())
+                                colorScheme.onSurface
+                            else
+                                colorScheme.onPrimary
                     ),
                     modifier = modifier.padding(
                         vertical = MARGIN_DEFAULT / 2, horizontal = MARGIN_DEFAULT
@@ -485,7 +485,8 @@ fun SharedTransitionScope.HomeScreen(
                         bottom = padding.calculateBottomPadding() + (MARGIN_DEFAULT.value * 1.5).dp + 52.dp
                     ), modifier = Modifier.fillMaxSize()
                 ) {
-                    items(items = viewModel.items,
+                    items(
+                        items = viewModel.items,
                         key = { item -> item.getMessageId() }) { item ->
                         if (item is Separator) {
                             Text(
@@ -499,7 +500,8 @@ fun SharedTransitionScope.HomeScreen(
                                 )
                             )
                         } else {
-                            SwipeContainer(modifier = modifier.animateItem(),
+                            SwipeContainer(
+                                modifier = modifier.animateItem(),
                                 item = item,
                                 onDelete = when (item) {
 
@@ -525,7 +527,10 @@ fun SharedTransitionScope.HomeScreen(
                                     else -> null
                                 }) {
                                 Column {
-                                    MessageViewHolder(item = item,
+                                    MessageViewHolder(
+                                        item = item,
+                                        scope = state.screen,
+                                        viewModel = viewModel,
                                         animatedVisibilityScope = animatedVisibilityScope,
                                         onMessageSelected = when (item) {
                                             is DBMessageWithDBAttachments -> {
@@ -692,6 +697,8 @@ fun SharedTransitionScope.HomeScreen(
 @Composable
 fun SharedTransitionScope.MessageViewHolder(
     item: HomeItem,
+    scope: HomeScreen,
+    viewModel: HomeViewModel,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
     animatedVisibilityScope: AnimatedVisibilityScope,
@@ -701,43 +708,54 @@ fun SharedTransitionScope.MessageViewHolder(
     val primaryColor = colorScheme.primary
     var contacts by remember { mutableStateOf(listOf<PublicUserData>()) }
     var title by remember { mutableStateOf("") }
-
+    val coroutineScope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
         contacts = item.getContacts()
     }
 
     LaunchedEffect(Unit) {
-        title = item.getTitle()
+        if (scope == HomeScreen.Outbox) {
+            (item as? DBMessageWithDBAttachments)?.message?.readerAddresses?.split(",")
+                ?.firstOrNull()?.let { firstReaderAddress ->
+                coroutineScope.launch(Dispatchers.IO) {
+                    title = viewModel.getContactForAddress(firstReaderAddress)?.name ?: firstReaderAddress
+                }
+            }
+        } else {
+            title = item.getTitle()
+        }
     }
 
     Box {
-        Row(verticalAlignment = Alignment.Top, modifier = modifier
-            .sharedBounds(
-                sharedContentState = rememberSharedContentState(
-                    key = "message_bounds/${item.getMessageId()}"
-                ),
-                animatedVisibilityScope = animatedVisibilityScope,
-            )
-            .background(color = colorScheme.surface)
-            //.height(MESSAGE_LIST_ITEM_HEIGHT)
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = {
-                    onMessageClicked(item)
-                },
-                onLongClick = if (onMessageSelected == null) {
-                    null
-                } else {
-                    {
-                        onMessageSelected(item)
-                    }
-                },
-            )
-            .padding(MARGIN_DEFAULT)
+        Row(
+            verticalAlignment = Alignment.Top, modifier = modifier
+                .sharedBounds(
+                    sharedContentState = rememberSharedContentState(
+                        key = "message_bounds/${item.getMessageId()}"
+                    ),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                )
+                .background(color = colorScheme.surface)
+                //.height(MESSAGE_LIST_ITEM_HEIGHT)
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {
+                        onMessageClicked(item)
+                    },
+                    onLongClick = if (onMessageSelected == null) {
+                        null
+                    } else {
+                        {
+                            onMessageSelected(item)
+                        }
+                    },
+                )
+                .padding(MARGIN_DEFAULT)
 
         ) {
             Box(contentAlignment = Alignment.TopStart) {
-                Box(contentAlignment = Alignment.Center,
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = modifier
                         .border(width = 1.dp, color = colorScheme.outline, shape = CircleShape)
                         .clip(CircleShape)
@@ -774,6 +792,13 @@ fun SharedTransitionScope.MessageViewHolder(
                             }
 
                             else -> {
+                                val address: String = if (scope == HomeScreen.Outbox) {
+                                    (item as? DBMessageWithDBAttachments)?.message?.readerAddresses?.split(
+                                        ","
+                                    )?.firstOrNull() ?: ""
+                                } else {
+                                    item.getAuthorAddressValue() ?: ""
+                                }
                                 ProfileImage(
                                     modifier
                                         //Elevation bug under the navigation drawer
@@ -785,7 +810,7 @@ fun SharedTransitionScope.MessageViewHolder(
                                         )*/
                                         .size(MESSAGE_LIST_ITEM_IMAGE_SIZE)
                                         .clip(CircleShape),
-                                    item.getAuthorAddressValue()?.getProfilePictureUrl() ?: "",
+                                    address.getProfilePictureUrl(),
                                     onError = {
                                         Box(
                                             modifier
@@ -800,7 +825,6 @@ fun SharedTransitionScope.MessageViewHolder(
                                         ) {
                                             Text(
                                                 text = if (contacts.isEmpty()) {
-                                                    val address = item.getAuthorAddressValue() ?: ""
                                                     "${address.firstOrNull()?.uppercase() ?: ""}${
                                                         address.getOrNull(
                                                             1
@@ -809,7 +833,8 @@ fun SharedTransitionScope.MessageViewHolder(
                                                 } else {
                                                     "${
                                                         contacts
-                                                            .first().fullName.firstOrNull()?.uppercase() ?: ""
+                                                            .first().fullName.firstOrNull()
+                                                            ?.uppercase() ?: ""
                                                     }${
                                                         contacts
                                                             .first().fullName.getOrNull(1) ?: ""
@@ -972,7 +997,8 @@ fun <T> SwipeContainer(
 ) {
     var actionState by remember { mutableStateOf(SwipeAction.Idle) }
 
-    val state = rememberSwipeToDismissBoxState(positionalThreshold = { _ -> 0f },
+    val state = rememberSwipeToDismissBoxState(
+        positionalThreshold = { _ -> 0f },
         confirmValueChange = { value ->
             when (value) {
                 SwipeToDismissBoxValue.StartToEnd -> {

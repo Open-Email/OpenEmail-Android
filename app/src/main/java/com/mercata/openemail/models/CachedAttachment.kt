@@ -2,6 +2,7 @@ package com.mercata.openemail.models
 
 import android.net.Uri
 import com.mercata.openemail.db.HomeItem
+import com.mercata.openemail.registration.UserData
 
 data class CachedAttachment(val uri: Uri, val name: String, val type: String?) : HomeItem {
 
@@ -22,4 +23,6 @@ data class CachedAttachment(val uri: Uri, val name: String, val type: String?) :
     override fun isUnread(): Boolean = false
 
     override fun getTimestamp(): Long? = null
+
+    override fun matchedSearchQuery(query: String, currentUserData: UserData): Boolean = name.contains(query, true)
 }

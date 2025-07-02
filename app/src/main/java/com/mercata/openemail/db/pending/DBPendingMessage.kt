@@ -10,6 +10,7 @@ import com.mercata.openemail.db.pending.readers.toPublicUserData
 import com.mercata.openemail.models.ContentHeaders
 import com.mercata.openemail.models.MessageCategory
 import com.mercata.openemail.models.MessageFilePartInfo
+import com.mercata.openemail.registration.UserData
 import java.time.Instant
 
 data class DBPendingMessage(
@@ -34,8 +35,19 @@ data class DBPendingMessage(
     override fun getAttachmentsAmount(): Int = fileParts.size
     override fun isUnread(): Boolean = false
     override fun getTimestamp(): Long = message.timestamp
+    override fun matchedSearchQuery(query: String, currentUserData: UserData): Boolean {
+        return message.subject.contains(query, true) ||
+                message.textBody.contains(query, true) ||
+                readers.any { reader ->
+                    reader.address.contains(
+                        query,
+                        true
+                    ) || reader.fullName.contains(query, true)
+                }
+    }
 
-    fun getRootContentHeaders() = ContentHeaders(messageID = message.messageId,
+    fun getRootContentHeaders() = ContentHeaders(
+        messageID = message.messageId,
         date = Instant.ofEpochMilli(message.timestamp),
         subject = message.subject,
         parentId = null,

@@ -193,7 +193,10 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
         if (!valid) return
 
         viewModelScope.launch(Dispatchers.IO) {
+
             updateState(currentState.copy(loading = true))
+            db.draftDao().insert(currentState.draft!!.draft)
+            db.draftReaderDao().insertAll(currentState.draft!!.readers)
             if (getNonSyncedContacts().isEmpty()) {
                 syncRepository.send(
                     currentState.draft!!.draft.draftId,
