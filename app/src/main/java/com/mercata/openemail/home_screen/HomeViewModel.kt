@@ -1,6 +1,7 @@
 package com.mercata.openemail.home_screen
 
 import android.net.Uri
+import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -23,6 +24,7 @@ import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.models.toDBContact
 import com.mercata.openemail.registration.UserData
 import com.mercata.openemail.repository.AddContactRepository
+import com.mercata.openemail.repository.LogoutRepository
 import com.mercata.openemail.repository.ProcessIncomingIntentsRepository
 import com.mercata.openemail.repository.SyncRepository
 import com.mercata.openemail.utils.Address
@@ -52,6 +54,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     private val addContactRepository: AddContactRepository by inject()
     private val newIntentRepository: ProcessIncomingIntentsRepository by inject()
     private val syncRepository: SyncRepository by inject()
+    private val logoutRepository: LogoutRepository by inject()
     private var listUpdateState: HomeListUpdateState? = null
 
     val items: SnapshotStateList<HomeItem> = mutableStateListOf()
@@ -78,10 +81,19 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         val sp: SharedPreferences by inject()
         val db: AppDatabase by inject()
 
+        if (sp.isAutologin()) {
+            if (sp.isBiometry()) {
+                updateState(currentState.copy(biometryShown = true))
+            }
+        }
         viewModelScope.launch {
             newIntentRepository.cachedUris.collect { uris ->
                 if (uris.isNotEmpty()) {
-                    updateState(currentState.copy(intentUris = arrayListOf<Uri>().apply { addAll(uris) }))
+                    updateState(currentState.copy(intentUris = arrayListOf<Uri>().apply {
+                        addAll(
+                            uris
+                        )
+                    }))
                     newIntentRepository.clear()
                 }
             }
@@ -96,6 +108,16 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 }
             }
         }
+
+        viewModelScope.launch {
+            try {
+                logoutRepository.tryCurrentLogin()
+            } catch (e: Exception) {
+                Log.e("Try login error", e.message, e)
+                logoutRepository.logout()
+            }
+        }
+
         updateState(
             currentState.copy(
                 currentUser = sp.getUserData(),
@@ -162,6 +184,19 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
     }
 
+    fun biometryPassed() {
+        // Continue default flow
+        updateState(currentState.copy(biometryShown = false))
+    }
+
+    fun biometryCanceled() {
+        viewModelScope.launch {
+            updateState(currentState.copy(biometryShown = false))
+            logoutRepository.logout()
+            updateState(currentState.copy(loggedOut = true))
+        }
+    }
+
     suspend fun getContactForAddress(address: Address): DBContact? {
         return db.userDao().findByAddress(address)
     }
@@ -198,7 +233,9 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             listOf(
                 launch {
                     syncContacts(sp, db.userDao())
-                    notificationsFlow.value = getNewNotifications(sp, db)
+                    getNewNotifications(sp, db)?.let { notificationsResult ->
+                        notificationsFlow.value = notificationsResult
+                    }
                     syncAllMessages(db, sp, dl)
                 },
                 launch {
@@ -254,7 +291,8 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                         .toList())
 
                     HomeScreen.Contacts -> {
-                        val filteredNotifications: List<DBNotification> = notifications.contactRequests
+                        val filteredNotifications: List<DBNotification> =
+                            notifications.contactRequests
                         val filteredContacts: List<DBContact> =
                             dbContacts.filter { it.searchMatched() }.toList()
 
@@ -428,7 +466,9 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             }
 
             db.userDao().insertAll(approvedRequests)
-            notificationsFlow.value = getNewNotifications(sp, db)
+            getNewNotifications(sp, db)?.let { notificationsResult ->
+                notificationsFlow.value = notificationsResult
+            }
             hideRequestApprovingConfirmationDialog()
             onDeleteWaitComplete()
             addContactRepository.syncWithServer()
@@ -526,6 +566,8 @@ data class HomeState(
     val newContactAddressInput: String = "",
     val query: String = "",
     val refreshing: Boolean = false,
+    val biometryShown: Boolean = false,
+    val loggedOut: Boolean = false,
     val undoDelete: Int? = null,
     val existingContactFound: PublicUserData? = null,
     val screen: HomeScreen = HomeScreen.Inbox,

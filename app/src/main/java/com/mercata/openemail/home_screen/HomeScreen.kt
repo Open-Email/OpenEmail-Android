@@ -123,6 +123,7 @@ import com.mercata.openemail.db.messages.DBMessageWithDBAttachments
 import com.mercata.openemail.db.notifications.DBNotification
 import com.mercata.openemail.models.CachedAttachment
 import com.mercata.openemail.models.PublicUserData
+import com.mercata.openemail.sign_in.BiometryEffect
 import com.mercata.openemail.utils.getProfilePictureUrl
 import com.mercata.openemail.utils.measureTextWidth
 import kotlinx.coroutines.Dispatchers
@@ -172,6 +173,28 @@ fun SharedTransitionScope.HomeScreen(
     val refreshState = rememberPullRefreshState(state.refreshing, onRefresh = {
         viewModel.refresh()
     })
+
+    LaunchedEffect(state.loggedOut) {
+        if (state.loggedOut) {
+            navController.popBackStack(
+                route = "HomeScreen",
+                inclusive = true
+            )
+            navController.navigate("SignInScreen")
+        }
+    }
+
+    BiometryEffect(
+        isShown = state.biometryShown,
+        onPassed = { viewModel.biometryPassed() },
+        onCancelled = {
+            viewModel.biometryCanceled()
+            //(context as? Activity)?.finishAndRemoveTask()
+        },
+        onError = {
+            viewModel.biometryCanceled()
+            //(context as? Activity)?.finishAndRemoveTask()
+        })
 
     BackHandler(enabled = viewModel.selectedItems.isNotEmpty()) {
         viewModel.selectedItems.clear()
@@ -717,10 +740,11 @@ fun SharedTransitionScope.MessageViewHolder(
         if (scope == HomeScreen.Outbox) {
             (item as? DBMessageWithDBAttachments)?.message?.readerAddresses?.split(",")
                 ?.firstOrNull()?.let { firstReaderAddress ->
-                coroutineScope.launch(Dispatchers.IO) {
-                    title = viewModel.getContactForAddress(firstReaderAddress)?.name ?: firstReaderAddress
+                    coroutineScope.launch(Dispatchers.IO) {
+                        title = viewModel.getContactForAddress(firstReaderAddress)?.name
+                            ?: firstReaderAddress
+                    }
                 }
-            }
         } else {
             title = item.getTitle()
         }

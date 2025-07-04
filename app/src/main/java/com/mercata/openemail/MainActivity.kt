@@ -14,6 +14,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -26,6 +27,7 @@ import com.mercata.openemail.home_screen.HomeScreen
 import com.mercata.openemail.message_details.MessageDetailsScreen
 import com.mercata.openemail.profile_screen.ProfileScreen
 import com.mercata.openemail.registration.RegistrationScreen
+import com.mercata.openemail.repository.LogoutRepository
 import com.mercata.openemail.repository.ProcessIncomingIntentsRepository
 import com.mercata.openemail.save_keys_suggestion.SaveKeysSuggestionScreen
 import com.mercata.openemail.settings_screen.SettingsScreen
@@ -33,6 +35,9 @@ import com.mercata.openemail.sign_in.SignInScreen
 import com.mercata.openemail.sign_in.enter_keys_screen.EnterKeysScreen
 import com.mercata.openemail.sign_in.qr_code_scanner_screen.QRCodeScannerScreen
 import com.mercata.openemail.theme.AppTheme
+import com.mercata.openemail.utils.SharedPreferences
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -41,6 +46,7 @@ class MainActivity : AppCompatActivity(), KoinComponent {
     private lateinit var navController: NavHostController
 
     private val newIntentRepository: ProcessIncomingIntentsRepository by inject()
+    private val sharedPreferences: SharedPreferences by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,7 +81,7 @@ class MainActivity : AppCompatActivity(), KoinComponent {
                             )
                         },
                         navController = navController,
-                        startDestination = "SignInScreen"
+                        startDestination = if (sharedPreferences.getUserData() != null && sharedPreferences.isAutologin()) "HomeScreen" else "SignInScreen"
                     ) {
                         composable(
                             route = "ContactDetailsScreen/{address}/{type}",

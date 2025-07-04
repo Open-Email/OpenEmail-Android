@@ -16,14 +16,11 @@ import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.SharedPreferences
 import com.mercata.openemail.utils.getProfilePublicData
 import com.mercata.openemail.utils.safeApiCall
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
@@ -86,7 +83,8 @@ suspend fun DBMessageWithDBAttachments.toDraftWithReaders(
         val draftId = UUID.randomUUID().toString()
         val draft = DBDraft(
             draftId = draftId,
-            attachmentUriList = downloadResults.filterNotNull().joinToString(separator = ",") { it.toString() }.takeIf { it.isNotEmpty() },
+            attachmentUriList = downloadResults.filterNotNull()
+                .joinToString(separator = ",") { it.toString() }.takeIf { it.isNotEmpty() },
             subject = this@toDraftWithReaders.message.subject,
             textBody = this@toDraftWithReaders.message.textBody,
             isBroadcast = this@toDraftWithReaders.message.isBroadcast,

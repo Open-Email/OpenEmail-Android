@@ -1,22 +1,20 @@
 package com.mercata.openemail.settings_screen
 
 import com.mercata.openemail.AbstractViewModel
+import com.mercata.openemail.repository.LogoutRepository
 import com.mercata.openemail.utils.BioManager
-import com.mercata.openemail.utils.DownloadRepository
 import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.SharedPreferences
 import com.mercata.openemail.utils.deleteCurrentUser
 import com.mercata.openemail.utils.encodeToBase64
 import com.mercata.openemail.utils.safeApiCall
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
 
 class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
 
-    private val dl: DownloadRepository by inject()
+    private val logoutRepository: LogoutRepository by inject()
 
     init {
         val sharedPreferences: SharedPreferences by inject()
@@ -47,25 +45,7 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
     }
 
     suspend fun logout() {
-        withContext(Dispatchers.IO) {
-            listOf(
-                launch { db.userDao().deleteAll() },
-                launch { db.messagesDao().deleteAll() },
-                launch { db.attachmentsDao().deleteAll() },
-                launch { db.draftDao().deleteAll() },
-                launch { db.draftReaderDao().deleteAll() },
-                launch { db.archiveDao().deleteAll() },
-                launch { db.archiveAttachmentsDao().deleteAll() },
-                launch { db.notificationsDao().deleteAll() },
-                launch { db.pendingMessagesDao().deleteAll() },
-                launch { db.pendingAttachmentsDao().deleteAll() },
-                launch { db.pendingReadersDao().deleteAll() },
-                launch { dl.clearAllCachedAttachments() },
-            ).joinAll()
-            sp.clear()
-            toggleBiometry(false)
-            toggleAutologin(false)
-        }
+        logoutRepository.logout()
     }
 
     suspend fun deleteAccount() {

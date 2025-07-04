@@ -65,7 +65,7 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
         sharedPreferences.edit { putBoolean(SP_AUTOLOGIN, autologin) }
     }
 
-    fun isAutologin() = sharedPreferences.getBoolean(SP_AUTOLOGIN, false)
+    fun isAutologin() = sharedPreferences.getBoolean(SP_AUTOLOGIN, true)
 
     fun setBiometry(biometry: Boolean) {
         sharedPreferences.edit { putBoolean(SP_BIOMETRY, biometry) }
