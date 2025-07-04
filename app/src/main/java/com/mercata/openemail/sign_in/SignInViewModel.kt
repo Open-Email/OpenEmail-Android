@@ -32,13 +32,7 @@ class SignInViewModel : AbstractViewModel<SignInState>(SignInState()) {
                     signInButtonActive = true
                 )
             )
-            if (sharedPreferences.isAutologin()) {
-                if (sharedPreferences.isBiometry()) {
-                    updateState(currentState.copy(biometryShown = true))
-                } else {
-                    authenticateWithKeys()
-                }
-            }
+
             viewModelScope.launch {
                 updateState(currentState.copy(loading = true))
                 when(val call = safeApiCall { getProfilePublicData(currentUser!!.address) }) {

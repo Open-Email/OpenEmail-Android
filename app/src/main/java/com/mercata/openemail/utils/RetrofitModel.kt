@@ -154,8 +154,8 @@ suspend fun registerCall(user: UserData): Response<Void> {
     }
 }
 
-suspend fun deleteCurrentUser(sp: SharedPreferences): Response<Void> {
-    val user: UserData = sp.getUserData()!!
+suspend fun deleteCurrentUser(sp: SharedPreferences): Response<Void>? {
+    val user = sp.getUserData() ?: return null
     return withContext(Dispatchers.IO) {
         getInstance("https://${user.address.getMailHost()}").deleteAccount(
             sotnHeader = user.sign(),
@@ -286,7 +286,7 @@ suspend fun uploadContact(
     address.connectionLink()?.let { link ->
         return withContext(Dispatchers.IO) {
 
-            val currentUser = sharedPreferences.getUserData()!!
+            val currentUser = sharedPreferences.getUserData() ?: return@withContext null
 
             val encryptedRemoteAddress = encryptAnonymous(address, currentUser)
 
@@ -305,7 +305,7 @@ suspend fun uploadContact(
 suspend fun notifyAddress(receiver: PublicUserData, sharedPreferences: SharedPreferences) {
     receiver.address.connectionLink()?.let { link ->
         withContext(Dispatchers.IO) {
-            val currentUser: UserData = sharedPreferences.getUserData()!!
+            val currentUser: UserData = sharedPreferences.getUserData() ?: return@withContext
 
             val encryptedRemoteAddress = encryptAnonymous(
                 currentUser.address,
@@ -323,9 +323,9 @@ suspend fun notifyAddress(receiver: PublicUserData, sharedPreferences: SharedPre
     }
 }
 
-suspend fun getAllLinks(sharedPreferences: SharedPreferences): Response<List<Link>> {
+suspend fun getAllLinks(sharedPreferences: SharedPreferences): Response<List<Link>>? {
     return withContext(Dispatchers.IO) {
-        val currentUser = sharedPreferences.getUserData()!!
+        val currentUser = sharedPreferences.getUserData() ?: return@withContext null
         getInstance("https://${currentUser.address.getMailHost()}").getAllContactLinks(
             sotnHeader = currentUser.sign(),
             hostPart = currentUser.address.getHost(),
@@ -338,9 +338,9 @@ suspend fun updateBroadcastsForLink(
     sp: SharedPreferences,
     link: Link,
     allowedBroadcasts: Boolean
-): Response<Void> {
+): Response<Void>? {
     return withContext(Dispatchers.IO) {
-        val currentUser = sp.getUserData()!!
+        val currentUser = sp.getUserData() ?: return@withContext null
         val body = listOf(
             "address=${link.address}",
             "broadcasts=${if (allowedBroadcasts) "Yes" else "No"}"
@@ -361,7 +361,7 @@ suspend fun deleteContact(
 ): Response<Void>? {
     address.connectionLink()?.let { link ->
         return withContext(Dispatchers.IO) {
-            val currentUser = sharedPreferences.getUserData()!!
+            val currentUser = sharedPreferences.getUserData() ?: return@withContext null
             getInstance("https://${currentUser.address.getMailHost()}").deleteContact(
                 sotnHeader = currentUser.sign(),
                 hostPart = currentUser.address.getHost(),
@@ -401,8 +401,8 @@ private suspend fun getAllBroadcastEnvelopesForContact(
     if (contact.receiveBroadcasts.not()) {
         return null
     }
-    return with(Dispatchers.IO) {
-        val currentUser = sharedPreferences.getUserData()!!
+    return withContext(Dispatchers.IO) {
+        val currentUser = sharedPreferences.getUserData() ?: return@withContext null
         when (val idsCall = safeApiCall {
             getInstance("https://${currentUser.address.getMailHost()}").getAllBroadcastMessagesIdsForContact(
                 sotnHeader = currentUser.sign(),
@@ -434,7 +434,7 @@ private suspend fun getAllPrivateEnvelopesForContact(
 ): List<Envelope>? {
     contact.address.connectionLink()?.let { link ->
         return withContext(Dispatchers.IO) {
-            val currentUser = sharedPreferences.getUserData()!!
+            val currentUser = sharedPreferences.getUserData() ?: return@withContext null
             when (val idsCall = safeApiCall {
                 getInstance("https://${currentUser.address.getMailHost()}").getAllPrivateMessagesIdsForContact(
                     sotnHeader = currentUser.sign(),
@@ -469,24 +469,26 @@ private suspend fun getAllPrivateEnvelopes(
 ): List<Envelope>? {
     return withContext(Dispatchers.IO) {
         val contacts = db.userDao().getAll()
-
+        val userAddress = sp.getUserAddress() ?: return@withContext null
         val tasks: ArrayList<Deferred<List<Envelope>?>> = arrayListOf()
 
-        tasks.addAll(getNewNotifications(sp, db).dataNotifications.map { new ->
-            async {
-                val envelopes = getAllPrivateEnvelopesForContact(
-                    sp,
-                    contacts.first { contact -> contact.address == new.address })
-                db.notificationsDao().insert(new)
-                envelopes
-            }
-        })
+        getNewNotifications(sp, db)?.let { notifications ->
+            tasks.addAll(notifications.dataNotifications.map { new ->
+                async {
+                    val envelopes = getAllPrivateEnvelopesForContact(
+                        sp,
+                        contacts.first { contact -> contact.address == new.address })
+                    db.notificationsDao().insert(new)
+                    envelopes
+                }
+            })
+        }
 
         //add self to fetch outbox
         tasks.add(async {
             getAllPrivateEnvelopesForContact(
                 sp,
-                contacts.first { contact -> contact.address == sp.getUserAddress() })
+                contacts.first { contact -> contact.address == userAddress })
         })
 
         val results = tasks.awaitAll()
@@ -516,9 +518,9 @@ suspend fun downloadMessage(
     }
 }
 
-suspend fun getNewNotifications(sp: SharedPreferences, db: AppDatabase): NotificationsResult {
+suspend fun getNewNotifications(sp: SharedPreferences, db: AppDatabase): NotificationsResult? {
     return withContext(Dispatchers.IO) {
-        val currentUser = sp.getUserData()!!
+        val currentUser = sp.getUserData() ?: return@withContext null
         db.notificationsDao().getAll().filter { it.isExpired() }.let { expired ->
             db.notificationsDao().deleteList(expired)
         }
@@ -1030,9 +1032,9 @@ private suspend fun uploadRootMessage(
     }
 }
 
-suspend fun deleteUserImage(sp: SharedPreferences): Response<Void> {
+suspend fun deleteUserImage(sp: SharedPreferences): Response<Void>? {
     return withContext(Dispatchers.IO) {
-        val currentUser = sp.getUserData()!!
+        val currentUser = sp.getUserData() ?: return@withContext null
 
         getInstance("https://${currentUser.address.getMailHost()}").deleteUserImage(
             sotnHeader = currentUser.sign(),
@@ -1042,9 +1044,13 @@ suspend fun deleteUserImage(sp: SharedPreferences): Response<Void> {
     }
 }
 
-suspend fun uploadUserImage(uri: Uri, sp: SharedPreferences, fileUtils: FileUtils): Response<Void> {
+suspend fun uploadUserImage(
+    uri: Uri,
+    sp: SharedPreferences,
+    fileUtils: FileUtils
+): Response<Void>? {
     return withContext(Dispatchers.IO) {
-        val currentUser = sp.getUserData()!!
+        val currentUser = sp.getUserData() ?: return@withContext null
 
         val data: ByteArray? = with(fileUtils) {
             uri.getBitmapFromUri()?.resizeImageToMaxSize(800)?.compressBitmap()
@@ -1064,7 +1070,7 @@ private suspend fun uploadFileMessage(
     pendingAttachment: DBPendingAttachment,
     readers: List<DBPendingReaderPublicData>,
     fileUtils: FileUtils,
-): Response<Void> {
+): Response<Void>? {
     return withContext(Dispatchers.IO) {
         val accessKey = generateRandomBytes(32)
 
@@ -1090,14 +1096,14 @@ private suspend fun uploadFileMessage(
                     uri = urlInfo.uri!!,
                     offset = pendingAttachment.offset ?: 0,
                     bytesCount = pendingAttachment.partSize
-                )
+                ) ?: return@withContext null
             else
                 fileUtils.encryptFilePartXChaCha20Poly1305(
                     inputUri = urlInfo.uri!!,
                     secretKey = accessKey,
                     bytesCount = pendingAttachment.partSize,
                     offset = pendingAttachment.offset ?: 0
-                )!!
+                ) ?: return@withContext null
 
         getInstance("https://${currentUser.address.getMailHost()}").uploadMessageFile(
             sotnHeader = currentUser.sign(),
@@ -1105,7 +1111,7 @@ private suspend fun uploadFileMessage(
             headers = envelopeHeadersMap.filter { it.key.startsWith(HEADER_PREFIX) },
             hostPart = currentUser.address.getHost(),
             localPart = currentUser.address.getLocal(),
-            file = encryptedData!!.toRequestBody("application/octet-stream".toMediaTypeOrNull())
+            file = encryptedData.toRequestBody("application/octet-stream".toMediaTypeOrNull())
         )
     }
 }
