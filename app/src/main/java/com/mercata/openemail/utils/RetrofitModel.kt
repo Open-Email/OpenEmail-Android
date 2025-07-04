@@ -9,14 +9,12 @@ import com.mercata.openemail.ANONYMOUS_ENCRYPTION_CIPHER
 import com.mercata.openemail.BuildConfig
 import com.mercata.openemail.DEFAULT_MAIL_SUBDOMAIN
 import com.mercata.openemail.HEADER_PREFIX
-import com.mercata.openemail.MAX_MESSAGE_SIZE
 import com.mercata.openemail.SIGNING_ALGORITHM
 import com.mercata.openemail.db.AppDatabase
 import com.mercata.openemail.db.archive.toArchive
 import com.mercata.openemail.db.attachments.DBAttachment
 import com.mercata.openemail.db.contacts.ContactsDao
 import com.mercata.openemail.db.contacts.DBContact
-import com.mercata.openemail.db.drafts.DBDraft
 import com.mercata.openemail.db.messages.DBMessage
 import com.mercata.openemail.db.notifications.DBNotification
 import com.mercata.openemail.db.pending.attachments.DBPendingAttachment
@@ -28,11 +26,9 @@ import com.mercata.openemail.exceptions.SignatureMismatch
 import com.mercata.openemail.models.ContentHeaders
 import com.mercata.openemail.models.Envelope
 import com.mercata.openemail.models.Link
-import com.mercata.openemail.models.MessageCategory
 import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.models.toDBContact
 import com.mercata.openemail.models.toDBNotification
-import com.mercata.openemail.models.toDBPendingReaderPublicData
 import com.mercata.openemail.registration.UserData
 import com.mercata.openemail.response_converters.ContactsListConverterFactory
 import com.mercata.openemail.response_converters.EnvelopeIdsListConverterFactory
@@ -56,7 +52,6 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
-import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -747,134 +742,6 @@ suspend fun syncAllMessages(db: AppDatabase, sp: SharedPreferences, dl: Download
         }
     }
 }
-
-suspend fun uploadMessage(
-    draft: DBDraft,
-    recipients: List<PublicUserData>,
-    fileUtils: FileUtils,
-    currentUser: UserData,
-    db: AppDatabase,
-    sp: SharedPreferences,
-    isBroadcast: Boolean,
-    replyToSubjectId: String?
-) {
-    withContext(Dispatchers.IO) {
-        val rootMessageId = currentUser.newMessageId()
-        val sendingDate = Instant.now()
-        val accessProfiles: List<PublicUserData>? =
-            if (isBroadcast) {
-                null
-            } else {
-                when (val call = safeApiCall { getProfilePublicData(currentUser.address) }) {
-                    is HttpResult.Error -> null
-                    is HttpResult.Success -> {
-                        call.data?.let {
-                            arrayListOf(it).apply {
-                                addAll(
-                                    recipients
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-        if (!isBroadcast && accessProfiles == null) {
-            return@withContext
-        }
-
-        val pendingRootMessage = DBPendingRootMessage(
-            messageId = rootMessageId,
-            subjectId = replyToSubjectId,
-            timestamp = sendingDate.toEpochMilli(),
-            subject = draft.subject,
-            checksum = draft.textBody.hashedWithSha256().first,
-            category = MessageCategory.personal.name,
-            size = draft.textBody.toByteArray().size.toLong(),
-            authorAddress = currentUser.address,
-            textBody = draft.textBody,
-            isBroadcast = isBroadcast
-        )
-
-        val fileParts = arrayListOf<DBPendingAttachment>()
-
-        draft.attachmentUriList?.split(",")?.map { it.toUri() }?.forEach { uri ->
-            val urlInfo = fileUtils.getURLInfo(uri)
-
-            if (urlInfo.size <= MAX_MESSAGE_SIZE) {
-                val partMessageId = currentUser.newMessageId()
-                fileParts.add(
-                    DBPendingAttachment(
-                        messageId = partMessageId,
-                        subjectId = replyToSubjectId,
-                        parentId = rootMessageId,
-                        uri = urlInfo.uri.toString(),
-                        fileName = urlInfo.name,
-                        mimeType = urlInfo.mimeType,
-                        fullSize = urlInfo.size,
-                        modifiedAtTimestamp = urlInfo.modifiedAt.toEpochMilli(),
-                        partNumber = 1,
-                        partSize = urlInfo.size,
-                        checkSum = fileUtils.sha256fileSum(uri).first,
-                        offset = null,
-                        totalParts = 1,
-                        sendingDateTimestamp = sendingDate.toEpochMilli(),
-                        subject = draft.subject,
-                        isBroadcast = isBroadcast
-                    )
-                )
-            } else {
-                //attachment too large. Split in chunks
-
-                var partCounter = 1
-                val buffer = ByteArray(MAX_MESSAGE_SIZE.toInt())
-                val totalParts = (urlInfo.size + MAX_MESSAGE_SIZE - 1) / MAX_MESSAGE_SIZE
-                var offset: Long = 0
-
-                fileUtils.getInputStreamFromUri(uri)?.use { inputStream ->
-                    var bytesRead: Int
-                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-
-                        val partMessageId = currentUser.newMessageId()
-                        val bytesChecksum = fileUtils.sha256fileSum(uri, offset, bytesRead)
-                        fileParts.add(
-                            DBPendingAttachment(
-                                messageId = partMessageId,
-                                subjectId = replyToSubjectId,
-                                parentId = rootMessageId,
-                                uri = urlInfo.uri.toString(),
-                                fileName = urlInfo.name,
-                                mimeType = urlInfo.mimeType,
-                                fullSize = urlInfo.size,
-                                modifiedAtTimestamp = urlInfo.modifiedAt.toEpochMilli(),
-                                partNumber = partCounter,
-                                partSize = bytesRead.toLong(),
-                                checkSum = bytesChecksum.first,
-                                offset = offset,
-                                totalParts = totalParts.toInt(),
-                                sendingDateTimestamp = sendingDate.toEpochMilli(),
-                                subject = draft.subject,
-                                isBroadcast = isBroadcast
-                            )
-                        )
-                        offset += bytesRead
-                        partCounter++
-                    }
-                }
-            }
-        }
-
-        db.userDao().insertAll(recipients.map { it.toDBContact() })
-        db.pendingMessagesDao().insert(pendingRootMessage)
-        db.pendingAttachmentsDao().insertAll(fileParts)
-        if (!isBroadcast) {
-            db.pendingReadersDao()
-                .insertAll(accessProfiles!!.map { it.toDBPendingReaderPublicData(rootMessageId) })
-        }
-        uploadPendingMessages(currentUser, db, fileUtils, sp)
-    }
-}
-
 
 suspend fun uploadPendingMessages(
     currentUser: UserData,

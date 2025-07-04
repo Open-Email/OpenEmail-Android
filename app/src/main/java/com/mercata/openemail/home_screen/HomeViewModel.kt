@@ -29,20 +29,13 @@ import com.mercata.openemail.repository.ProcessIncomingIntentsRepository
 import com.mercata.openemail.repository.SyncRepository
 import com.mercata.openemail.utils.Address
 import com.mercata.openemail.utils.DownloadRepository
-import com.mercata.openemail.utils.FileUtils
 import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.NotificationsResult
 import com.mercata.openemail.utils.SharedPreferences
-import com.mercata.openemail.utils.getNewNotifications
 import com.mercata.openemail.utils.getProfilePublicData
 import com.mercata.openemail.utils.safeApiCall
-import com.mercata.openemail.utils.syncAllMessages
-import com.mercata.openemail.utils.syncContacts
-import com.mercata.openemail.utils.uploadPendingMessages
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -50,7 +43,6 @@ import org.koin.core.component.inject
 class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
     private val dl: DownloadRepository by inject()
-    private val fu: FileUtils by inject()
     private val addContactRepository: AddContactRepository by inject()
     private val newIntentRepository: ProcessIncomingIntentsRepository by inject()
     private val syncRepository: SyncRepository by inject()
@@ -60,12 +52,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     val items: SnapshotStateList<HomeItem> = mutableStateListOf()
     val selectedItems: SnapshotStateList<HomeItem> = mutableStateListOf()
     val unread: SnapshotStateMap<HomeScreen, Int> = mutableStateMapOf()
-    private val notificationsFlow: MutableStateFlow<NotificationsResult> = MutableStateFlow(
-        NotificationsResult(
-            listOf(),
-            listOf()
-        )
-    )
+    private var previousContactRequestAmount = -1
 
     data class HomeListUpdateState(
         val dbMessages: List<DBMessageWithDBAttachments>,
@@ -130,7 +117,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 db.pendingMessagesDao().getAllAsFlowWithAttachments(),
                 db.draftDao().getAllFlow(),
                 db.userDao().getAllAsFlow(),
-                notificationsFlow
+                syncRepository.notificationsFlow
             ) { dbMessages, dbPendingMessages, dbDrafts, dbContacts, notifications ->
                 HomeListUpdateState(
                     dbMessages.filterNot { it.message.markedToDelete }.toList(),
@@ -158,14 +145,18 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                     }
                 }
 
-                if (listUpdateState.notifications.contactRequests.isNotEmpty()) {
-                    updateState(
-                        currentState.copy(
-                            newContactsAmount = listUpdateState.notifications.contactRequests.size,
-                            snackBar = SnackBarData(R.string.you_have_new_contact_requests)
+                listUpdateState.notifications.contactRequests.size.let { requestsAmount ->
+                    if (previousContactRequestAmount != requestsAmount) {
+                        previousContactRequestAmount = requestsAmount
+                        updateState(
+                            currentState.copy(
+                                newContactsAmount = requestsAmount,
+                                snackBar = SnackBarData(R.string.you_have_new_contact_requests)
+                            )
                         )
-                    )
+                    }
                 }
+
 
                 unread[HomeScreen.Inbox] = unreadMessages
                 unread[HomeScreen.Broadcast] = unreadBroadcasts
@@ -179,9 +170,11 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             }
         }
 
-        viewModelScope.launch {
-            refresh()
-        }
+        refresh()
+    }
+
+    fun refresh() {
+        syncRepository.sync()
     }
 
     fun biometryPassed() {
@@ -221,35 +214,6 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             updateList()
             sp.saveSelectedNavigationScreen(screen)
             selectedItems.clear()
-        }
-    }
-
-    fun refresh() {
-        viewModelScope.launch(Dispatchers.IO) {
-            updateState(currentState.copy(refreshing = true))
-
-            val currentUser = sp.getUserData()!!
-
-            listOf(
-                launch {
-                    syncContacts(sp, db.userDao())
-                    getNewNotifications(sp, db)?.let { notificationsResult ->
-                        notificationsFlow.value = notificationsResult
-                    }
-                    syncAllMessages(db, sp, dl)
-                },
-                launch {
-                    uploadPendingMessages(currentUser, db, fu, sp)
-                },
-                launch {
-                    syncRepository.syncDeletedMessages()
-                },
-                launch {
-                    dl.getCachedAttachments()
-                },
-            ).joinAll()
-
-            updateState(currentState.copy(refreshing = false))
         }
     }
 
@@ -466,9 +430,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             }
 
             db.userDao().insertAll(approvedRequests)
-            getNewNotifications(sp, db)?.let { notificationsResult ->
-                notificationsFlow.value = notificationsResult
-            }
+            syncRepository.sync()
             hideRequestApprovingConfirmationDialog()
             onDeleteWaitComplete()
             addContactRepository.syncWithServer()

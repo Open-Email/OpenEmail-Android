@@ -240,6 +240,7 @@ fun SharedTransitionScope.ComposingScreen(
                             onClick = {
                                 focusManager.clearFocus()
                                 viewModel.send()
+                                navController.popBackStack()
                             }) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
