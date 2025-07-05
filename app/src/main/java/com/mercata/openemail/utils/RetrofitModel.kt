@@ -467,18 +467,36 @@ private suspend fun getAllPrivateEnvelopes(
         val userAddress = sp.getUserAddress() ?: return@withContext null
         val tasks: ArrayList<Deferred<List<Envelope>?>> = arrayListOf()
 
-        getNewNotifications(sp, db)?.let { notifications ->
-            tasks.addAll(notifications.dataNotifications.map { new ->
-                async {
-                    val envelopes = getAllPrivateEnvelopesForContact(
-                        sp,
-                        contacts.first { contact -> contact.address == new.address })
-                    db.notificationsDao().insert(new)
-                    envelopes
+        db.notificationsDao().getAll()
+            .filter { it.isNew && !contacts.any { contact -> contact.address == it.address } }
+            .let { newNotifications ->
+                newNotifications.forEach { new ->
+                    contacts.firstOrNull { contact -> contact.address == new.address }?.let {
+                        tasks.add(
+                            async {
+                                val envelopes = getAllPrivateEnvelopesForContact(
+                                    sp,
+                                    it
+                                )
+                                db.notificationsDao().update(new.copy(isNew = false))
+                                envelopes
+                            }
+                        )
+                    }
                 }
-            })
-        }
+            }
 
+        if (!contacts.any { contact -> contact.address == userAddress }) {
+            //fallback for the case if we incremented DB version destructive and lost current user entry in ContactsDao
+            when (val call = safeApiCall { getProfilePublicData(userAddress) }) {
+                is HttpResult.Error -> return@withContext null
+                is HttpResult.Success -> {
+                    call.data?.let {
+                        db.userDao().insert(it.toDBContact())
+                    } ?: return@withContext null
+                }
+            }
+        }
         //add self to fetch outbox
         tasks.add(async {
             getAllPrivateEnvelopesForContact(
@@ -513,9 +531,9 @@ suspend fun downloadMessage(
     }
 }
 
-suspend fun getNewNotifications(sp: SharedPreferences, db: AppDatabase): NotificationsResult? {
+suspend fun getNewNotifications(sp: SharedPreferences, db: AppDatabase) {
     return withContext(Dispatchers.IO) {
-        val currentUser = sp.getUserData() ?: return@withContext null
+        val currentUser = sp.getUserData() ?: return@withContext
         db.notificationsDao().getAll().filter { it.isExpired() }.let { expired ->
             db.notificationsDao().deleteList(expired)
         }
@@ -535,32 +553,18 @@ suspend fun getNewNotifications(sp: SharedPreferences, db: AppDatabase): Notific
                 ?.toList()
         }
 
-        val contacts = db.userDao().getAll()
-        val oldNotifications = db.notificationsDao().getAll()
+        val oldNotifications = db.notificationsDao().getAll().filter { !it.isNew }
 
         val newNotifications: List<DBNotification> = result?.map {
             async { verifyNotification(it, currentUser) }
         }?.awaitAll()
             ?.filterNotNull()
-            ?.filterNot { oldNotifications.any { old -> old.notificationId == it.notificationId } }
+            ?.filterNot { new -> oldNotifications.any { old -> old.notificationId == new.notificationId } }
             ?: listOf()
 
-        val splitResults =
-            newNotifications.partition { notification ->
-                contacts.any { contact -> contact.address == notification.address }
-            }
-
-        val newContactRequests = splitResults.second
-        val newDataNotification = splitResults.first
-
-        return@withContext NotificationsResult(newContactRequests, newDataNotification)
+        db.notificationsDao().insertAll(newNotifications)
     }
 }
-
-data class NotificationsResult(
-    val contactRequests: List<DBNotification>,
-    val dataNotifications: List<DBNotification>
-)
 
 suspend fun verifyNotification(
     notificationLine: String,
@@ -1049,9 +1053,9 @@ suspend fun saveMessagesToDb(
     }
 }
 
-suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
+suspend fun syncContacts(sp: SharedPreferences, db: AppDatabase) {
     withContext(Dispatchers.IO) {
-        val localContacts = dao.getAll()
+        val localContacts = db.userDao().getAll()
 
         //Uploading local-only contacts
         val uploaded: List<DBContact?> =
@@ -1065,7 +1069,7 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
             }.awaitAll()
 
         uploaded.filterNotNull().forEach { uploadedContact ->
-            dao.update(uploadedContact.copy(uploaded = true))
+            db.userDao().update(uploadedContact.copy(uploaded = true))
         }
 
         //Deleting marked-to-delete local contacts
@@ -1079,8 +1083,11 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
                 }
             }.awaitAll()
 
-        deleted.filterNotNull().forEach { deletedContact ->
-            dao.delete(deletedContact)
+        deleted.filterNotNull().let { deletedList ->
+            db.userDao().deleteList(deletedList)
+            deletedList.forEach { contact ->
+                db.notificationsDao().deleteByAddress(contact.address)
+            }
         }
 
         //Downloading new remote contacts
@@ -1114,13 +1121,19 @@ suspend fun syncContacts(sp: SharedPreferences, dao: ContactsDao) {
                     }.awaitAll().filterNotNull()
 
                     //deleting local contacts, which isn't present on remote
-                    dao.deleteList(dao.getAll().filterNot { local ->
+                    db.userDao().getAll().filterNot { local ->
                         local.address == sp.getUserAddress() ||
                                 result.any { remote -> remote.address == local.address } ||
                                 local.uploaded.not()
-                    })
+                    }.let {
+                        db.userDao().deleteList(it)
+                        it.forEach { contact ->
+                            db.notificationsDao().deleteByAddress(contact.address)
+                        }
+                    }
 
-                    dao.insertAll(result.map { publicData ->
+
+                    db.userDao().insertAll(result.map { publicData ->
                         publicData.toDBContact()
                     })
                 }

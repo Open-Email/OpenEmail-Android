@@ -9,7 +9,6 @@ import androidx.lifecycle.viewModelScope
 import com.mercata.openemail.AbstractViewModel
 import com.mercata.openemail.MAX_MESSAGE_SIZE
 import com.mercata.openemail.R
-import com.mercata.openemail.db.AppDatabase
 import com.mercata.openemail.db.contacts.toPublicUserData
 import com.mercata.openemail.db.drafts.DBDraft
 import com.mercata.openemail.db.drafts.DBDraftWithReaders
@@ -21,7 +20,6 @@ import com.mercata.openemail.db.pending.messages.DBPendingRootMessage
 import com.mercata.openemail.emailRegex
 import com.mercata.openemail.models.MessageCategory
 import com.mercata.openemail.models.PublicUserData
-import com.mercata.openemail.models.toDBContact
 import com.mercata.openemail.models.toDBDraftReader
 import com.mercata.openemail.models.toDBPendingReaderPublicData
 import com.mercata.openemail.registration.UserData
@@ -32,13 +30,10 @@ import com.mercata.openemail.utils.CopyAttachmentService
 import com.mercata.openemail.utils.FileUtils
 import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.ReplyBodyConstructor
-import com.mercata.openemail.utils.SharedPreferences
 import com.mercata.openemail.utils.getProfilePublicData
 import com.mercata.openemail.utils.hashedWithSha256
 import com.mercata.openemail.utils.newMessageId
 import com.mercata.openemail.utils.safeApiCall
-import com.mercata.openemail.utils.syncContacts
-import com.mercata.openemail.utils.uploadPendingMessages
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

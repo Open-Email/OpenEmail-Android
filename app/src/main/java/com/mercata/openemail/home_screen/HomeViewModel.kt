@@ -30,7 +30,6 @@ import com.mercata.openemail.repository.SyncRepository
 import com.mercata.openemail.utils.Address
 import com.mercata.openemail.utils.DownloadRepository
 import com.mercata.openemail.utils.HttpResult
-import com.mercata.openemail.utils.NotificationsResult
 import com.mercata.openemail.utils.SharedPreferences
 import com.mercata.openemail.utils.getProfilePublicData
 import com.mercata.openemail.utils.safeApiCall
@@ -59,7 +58,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         val dbPendingMessages: List<DBPendingMessage>,
         val dbDrafts: List<DBDraftWithReaders>,
         val dbContacts: List<DBContact>,
-        val notifications: NotificationsResult,
+        val notifications: List<DBNotification>,
         val attachments: List<CachedAttachment>,
         val archive: List<DBArchiveWitAttachments>
     )
@@ -97,6 +96,12 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
         }
 
         viewModelScope.launch {
+            syncRepository.refreshing.collect { refreshing ->
+                updateState(currentState.copy(refreshing = refreshing))
+            }
+        }
+
+        viewModelScope.launch {
             try {
                 logoutRepository.tryCurrentLogin()
             } catch (e: Exception) {
@@ -117,7 +122,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 db.pendingMessagesDao().getAllAsFlowWithAttachments(),
                 db.draftDao().getAllFlow(),
                 db.userDao().getAllAsFlow(),
-                syncRepository.notificationsFlow
+                db.notificationsDao().getAllAsFlow()
             ) { dbMessages, dbPendingMessages, dbDrafts, dbContacts, notifications ->
                 HomeListUpdateState(
                     dbMessages.filterNot { it.message.markedToDelete }.toList(),
@@ -145,7 +150,12 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                     }
                 }
 
-                listUpdateState.notifications.contactRequests.size.let { requestsAmount ->
+                val newContactRequests =
+                    listUpdateState.notifications.filterNot { notification ->
+                        listUpdateState.dbContacts.any { contact -> contact.address == notification.address }
+                    }
+
+                newContactRequests.size.let { requestsAmount ->
                     if (previousContactRequestAmount != requestsAmount) {
                         previousContactRequestAmount = requestsAmount
                         updateState(
@@ -157,12 +167,11 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                     }
                 }
 
-
                 unread[HomeScreen.Inbox] = unreadMessages
                 unread[HomeScreen.Broadcast] = unreadBroadcasts
                 unread[HomeScreen.Pending] = listUpdateState.dbPendingMessages.size
                 unread[HomeScreen.Drafts] = listUpdateState.dbDrafts.size
-                unread[HomeScreen.Contacts] = listUpdateState.notifications.contactRequests.size
+                unread[HomeScreen.Contacts] = newContactRequests.size
 
                 this@HomeViewModel.listUpdateState = listUpdateState
 
@@ -174,7 +183,9 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
     }
 
     fun refresh() {
-        syncRepository.sync()
+        viewModelScope.launch {
+            syncRepository.sync()
+        }
     }
 
     fun biometryPassed() {
@@ -256,7 +267,9 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
 
                     HomeScreen.Contacts -> {
                         val filteredNotifications: List<DBNotification> =
-                            notifications.contactRequests
+                            notifications.filterNot { notification ->
+                                dbContacts.any { contact -> contact.address == notification.address }
+                            }
                         val filteredContacts: List<DBContact> =
                             dbContacts.filter { it.searchMatched() }.toList()
 
@@ -430,7 +443,9 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
             }
 
             db.userDao().insertAll(approvedRequests)
-            syncRepository.sync()
+            launch {
+                syncRepository.sync()
+            }
             hideRequestApprovingConfirmationDialog()
             onDeleteWaitComplete()
             addContactRepository.syncWithServer()
