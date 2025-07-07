@@ -153,7 +153,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                 val newContactRequests =
                     listUpdateState.notifications.filterNot { notification ->
                         listUpdateState.dbContacts.any { contact -> contact.address == notification.address }
-                    }
+                    }.distinctBy { it.address }
 
                 newContactRequests.size.let { requestsAmount ->
                     if (previousContactRequestAmount != requestsAmount) {
@@ -269,7 +269,7 @@ class HomeViewModel : AbstractViewModel<HomeState>(HomeState()) {
                         val filteredNotifications: List<DBNotification> =
                             notifications.filterNot { notification ->
                                 dbContacts.any { contact -> contact.address == notification.address }
-                            }
+                            }.distinctBy { it.address }
                         val filteredContacts: List<DBContact> =
                             dbContacts.filter { it.searchMatched() }.toList()
 
