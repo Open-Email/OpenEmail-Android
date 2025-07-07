@@ -14,19 +14,10 @@ import java.time.Instant
 const val SEVEN_DAYS_MILLIS = 1000 * 60 * 60 * 24 * 7
 
 @Entity
-    (
-    foreignKeys = [
-        ForeignKey(
-            entity = DBContact::class,
-            parentColumns = ["address"],
-            childColumns = ["address"],
-            onDelete = ForeignKey.CASCADE // Cascade delete
-        )
-    ]
-)
 data class DBNotification(
     @PrimaryKey @ColumnInfo("notification_id") val notificationId: String,
     @ColumnInfo("received_on_timestamp") val receivedOnTimestamp: Long,
+    @ColumnInfo("is_new") val isNew: Boolean,
     @ColumnInfo("link") val link: String,
     @ColumnInfo("full_name") override val name: String,
     @ColumnInfo("address", index = true) override val address: Address,

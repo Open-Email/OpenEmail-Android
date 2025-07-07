@@ -102,6 +102,7 @@ class RegistrationViewModel : AbstractViewModel<RegistrationState>(RegistrationS
             }) {
                 is HttpResult.Error -> {
                     db.userDao().delete(dbContact)
+                    db.notificationsDao().deleteByAddress(dbContact.address)
                 }
 
                 is HttpResult.Success -> {

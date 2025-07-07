@@ -76,6 +76,7 @@ val CHECKSUM_HEADERS = arrayOf(
 )
 
 const val SP_ADDRESS = "sp_address"
+const val SP_REFRESH_INTERVAL = "sp_refresh_interval"
 const val SP_AVATAR_LINK = "sp_avatar_link"
 const val SP_FULL_NAME = "sp_full_name"
 const val SP_ENCRYPTION_KEY_ID = "sp_encryption_key_id"

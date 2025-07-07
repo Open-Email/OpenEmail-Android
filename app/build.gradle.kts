@@ -103,7 +103,8 @@ dependencies {
     implementation(libs.barcode.scanning)
     implementation(libs.markwonCore)
     implementation(libs.markwonEditor)
-    implementation("com.google.android.material:material:1.12.0")
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.material)
     //noinspection UseTomlInstead
     implementation("com.goterl:lazysodium-android:5.2.0@aar")
     //noinspection UseTomlInstead

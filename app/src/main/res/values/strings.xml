@@ -171,4 +171,7 @@
     <string name="delete_account_button">Delete Account</string>
     <string name="delete_account_confirmation_title">Delete Account?</string>
     <string name="delete_account_confirmation_message">All remote data on server will be permanently deleted.</string>
+    <string name="check_notifications_label">Check notifications every</string>
+    <string name="refresh_manual">Manual</string>
+    <string name="refresh_x_minutes">%s minutes</string>
 </resources>

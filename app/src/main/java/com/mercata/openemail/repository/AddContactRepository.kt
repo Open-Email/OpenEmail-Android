@@ -39,7 +39,7 @@ class AddContactRepository(
 
     suspend fun syncWithServer() {
         withContext(Dispatchers.IO) {
-            syncContacts(sp, db.userDao())
+            syncContacts(sp, db)
             syncAllMessages(db, sp, dl)
         }
     }

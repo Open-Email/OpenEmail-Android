@@ -184,6 +184,7 @@ fun PublicUserData.toDBNotification(id: String, link: String) = DBNotification(
     notificationId = id,
     receivedOnTimestamp = System.currentTimeMillis(),
     link = link,
+    isNew = true,
     name = this.fullName,
     address = this.address,
     dismissed = false,

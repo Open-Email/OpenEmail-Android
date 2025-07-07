@@ -1,6 +1,7 @@
 package com.mercata.openemail.settings_screen
 
 import com.mercata.openemail.AbstractViewModel
+import com.mercata.openemail.SP_REFRESH_INTERVAL
 import com.mercata.openemail.repository.LogoutRepository
 import com.mercata.openemail.utils.BioManager
 import com.mercata.openemail.utils.HttpResult
@@ -29,9 +30,16 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
                 publicSigningKey = userData.signingKeys.pair.publicKey.asBytes.encodeToBase64(),
                 biometryAvailable = bioManager.isBiometricAvailable(),
                 biometryEnabled = sharedPreferences.isBiometry(),
-                autologinEnabled = sharedPreferences.isAutologin()
+                autologinEnabled = sharedPreferences.isAutologin(),
+                selectedRefreshInterval = sharedPreferences.getRefreshInterval()
             )
         )
+        sharedPreferences.sharedPreferences.registerOnSharedPreferenceChangeListener { sp, key ->
+            if (key == SP_REFRESH_INTERVAL) {
+                val sharedPreferences: SharedPreferences by inject()
+                updateState(currentState.copy(selectedRefreshInterval = sharedPreferences.getRefreshInterval()))
+            }
+        }
     }
 
     fun toggleBiometry(isEnabled: Boolean) {
@@ -71,6 +79,21 @@ class SettingsViewModel : AbstractViewModel<SettingsState>(SettingsState()) {
     fun toggleAccountDeletionConfirmation() {
         updateState(currentState.copy(deleteAccountConfirmationShown = !currentState.deleteAccountConfirmationShown))
     }
+
+    fun toggleRefreshDelayDropdown(isExpanded: Boolean) {
+        updateState(currentState.copy(refreshDelayDropdownExpanded = isExpanded))
+    }
+
+    fun selectInterval(interval: RefreshInterval) {
+        sp.setRefreshInterval(interval)
+    }
+}
+
+enum class RefreshInterval(val minutesAmount: Int) {
+    Manual(-1),
+    FifteenMinutes(15),
+    ThirtyMinutes(30),
+    SixtyMinutes(60);
 }
 
 data class SettingsState(
@@ -80,6 +103,8 @@ data class SettingsState(
     val publicSigningKey: String? = null,
     val address: String? = null,
     val loading: Boolean = false,
+    val selectedRefreshInterval: RefreshInterval = RefreshInterval.FifteenMinutes,
+    val refreshDelayDropdownExpanded: Boolean = false,
     val logoutConfirmationShown: Boolean = false,
     val deleteAccountConfirmationShown: Boolean = false,
     val biometryAvailable: Boolean = false,

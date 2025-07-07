@@ -7,15 +7,21 @@ import androidx.core.net.toUri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mercata.openemail.AbstractViewModel
+import com.mercata.openemail.MAX_MESSAGE_SIZE
 import com.mercata.openemail.R
 import com.mercata.openemail.db.contacts.toPublicUserData
 import com.mercata.openemail.db.drafts.DBDraft
 import com.mercata.openemail.db.drafts.DBDraftWithReaders
 import com.mercata.openemail.db.drafts.draft_reader.DBDraftReader
+import com.mercata.openemail.db.drafts.draft_reader.toPublicUserData
 import com.mercata.openemail.db.notifications.toPublicUserData
+import com.mercata.openemail.db.pending.attachments.DBPendingAttachment
+import com.mercata.openemail.db.pending.messages.DBPendingRootMessage
 import com.mercata.openemail.emailRegex
+import com.mercata.openemail.models.MessageCategory
 import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.models.toDBDraftReader
+import com.mercata.openemail.models.toDBPendingReaderPublicData
 import com.mercata.openemail.registration.UserData
 import com.mercata.openemail.repository.AddContactRepository
 import com.mercata.openemail.repository.SyncRepository
@@ -25,8 +31,9 @@ import com.mercata.openemail.utils.FileUtils
 import com.mercata.openemail.utils.HttpResult
 import com.mercata.openemail.utils.ReplyBodyConstructor
 import com.mercata.openemail.utils.getProfilePublicData
+import com.mercata.openemail.utils.hashedWithSha256
+import com.mercata.openemail.utils.newMessageId
 import com.mercata.openemail.utils.safeApiCall
-import com.mercata.openemail.utils.syncContacts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -35,6 +42,7 @@ import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import java.util.UUID
 
 class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
@@ -170,64 +178,152 @@ class ComposingViewModel(private val savedStateHandle: SavedStateHandle) :
     }
 
     fun send() {
-        var valid = true
-        if (currentState.addressErrorResId != null) {
-            valid = false
-        }
-
-        if (currentState.draft!!.readers.isEmpty() && !currentState.draft!!.draft.isBroadcast) {
-            updateState(currentState.copy(addressErrorResId = R.string.empty_email_error))
-            valid = false
-        }
-
-        if (currentState.draft!!.draft.subject.isBlank()) {
-            updateState(currentState.copy(subjectErrorResId = R.string.subject_error))
-            valid = false
-        }
-
-        if (currentState.draft!!.draft.textBody.isBlank()) {
-            updateState(currentState.copy(bodyErrorResId = R.string.empty_email_body_error))
-            valid = false
-        }
-
-        if (!valid) return
-
-        viewModelScope.launch(Dispatchers.IO) {
-
-            updateState(currentState.copy(loading = true))
-            db.draftDao().insert(currentState.draft!!.draft)
-            db.draftReaderDao().insertAll(currentState.draft!!.readers)
-            if (getNonSyncedContacts().isEmpty()) {
-                syncRepository.send(
-                    currentState.draft!!.draft.draftId,
-                    currentState.draft!!.draft.isBroadcast,
-                    savedStateHandle.get<String>("replyMessageId")
-                )
-                updateState(currentState.copy(sent = true))
-            } else {
-                syncContacts(sp, db.userDao())
-                if (getNonSyncedContacts().isEmpty()) {
-                    syncRepository.send(
-                        currentState.draft!!.draft.draftId,
-                        currentState.draft!!.draft.isBroadcast,
-                        savedStateHandle.get<String>("replyMessageId")
-                    )
-                    updateState(currentState.copy(sent = true))
-                } else {
-                    updateState(currentState.copy(snackbarErrorResId = R.string.couldnt_upload_contacts_error))
-                }
+        currentState.draft!!.draft.let { draft ->
+            var valid = true
+            if (currentState.addressErrorResId != null) {
+                valid = false
             }
 
+            if (currentState.draft!!.readers.isEmpty() && !draft.isBroadcast) {
+                updateState(currentState.copy(addressErrorResId = R.string.empty_email_error))
+                valid = false
+            }
+
+            if (draft.subject.isBlank()) {
+                updateState(currentState.copy(subjectErrorResId = R.string.subject_error))
+                valid = false
+            }
+
+            if (draft.textBody.isBlank()) {
+                updateState(currentState.copy(bodyErrorResId = R.string.empty_email_body_error))
+                valid = false
+            }
+
+            if (!valid) return
+        }
+
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentUser = sp.getUserData() ?: return@launch
+            updateState(currentState.copy(loading = true))
+
+            val rootMessageId = currentUser.newMessageId()
+            val sendingDate = Instant.now()
+
+            currentState.draft!!.draft.let { draft ->
+                val accessProfiles: List<PublicUserData>? =
+                    if (draft.isBroadcast) {
+                        null
+                    } else {
+
+                        val publicReaders: ArrayList<PublicUserData> = ArrayList(currentState.draft?.readers?.map { it.toPublicUserData() } ?: listOf())
+
+                        when (val call = safeApiCall { getProfilePublicData(currentUser.address) }) {
+                            is HttpResult.Error -> return@launch
+                            is HttpResult.Success -> {
+                                call.data?.let {
+                                    publicReaders.add(it)
+                                } ?: return@launch
+                            }
+                        }
+                        publicReaders
+                    }
+
+                val replyToSubjectId = savedStateHandle.remove<String>("replyMessageId")
+
+                val pendingRootMessage = DBPendingRootMessage(
+                    messageId = rootMessageId,
+                    subjectId = replyToSubjectId,
+                    timestamp = sendingDate.toEpochMilli(),
+                    subject = draft.subject,
+                    checksum = draft.textBody.hashedWithSha256().first,
+                    category = MessageCategory.personal.name,
+                    size = draft.textBody.toByteArray().size.toLong(),
+                    authorAddress = currentUser.address,
+                    textBody = draft.textBody,
+                    isBroadcast = draft.isBroadcast
+                )
+
+                val fileParts = arrayListOf<DBPendingAttachment>()
+
+                draft.attachmentUriList?.split(",")?.map { it.toUri() }?.forEach { uri ->
+                    val urlInfo = fileUtils.getURLInfo(uri)
+
+                    if (urlInfo.size <= MAX_MESSAGE_SIZE) {
+                        val partMessageId = currentUser.newMessageId()
+                        fileParts.add(
+                            DBPendingAttachment(
+                                messageId = partMessageId,
+                                subjectId = replyToSubjectId,
+                                parentId = rootMessageId,
+                                uri = urlInfo.uri.toString(),
+                                fileName = urlInfo.name,
+                                mimeType = urlInfo.mimeType,
+                                fullSize = urlInfo.size,
+                                modifiedAtTimestamp = urlInfo.modifiedAt.toEpochMilli(),
+                                partNumber = 1,
+                                partSize = urlInfo.size,
+                                checkSum = fileUtils.sha256fileSum(uri).first,
+                                offset = null,
+                                totalParts = 1,
+                                sendingDateTimestamp = sendingDate.toEpochMilli(),
+                                subject = draft.subject,
+                                isBroadcast = draft.isBroadcast
+                            )
+                        )
+                    } else {
+                        //attachment too large. Split in chunks
+
+                        var partCounter = 1
+                        val buffer = ByteArray(MAX_MESSAGE_SIZE.toInt())
+                        val totalParts = (urlInfo.size + MAX_MESSAGE_SIZE - 1) / MAX_MESSAGE_SIZE
+                        var offset: Long = 0
+
+                        fileUtils.getInputStreamFromUri(uri)?.use { inputStream ->
+                            var bytesRead: Int
+                            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+
+                                val partMessageId = currentUser.newMessageId()
+                                val bytesChecksum = fileUtils.sha256fileSum(uri, offset, bytesRead)
+                                fileParts.add(
+                                    DBPendingAttachment(
+                                        messageId = partMessageId,
+                                        subjectId = replyToSubjectId,
+                                        parentId = rootMessageId,
+                                        uri = urlInfo.uri.toString(),
+                                        fileName = urlInfo.name,
+                                        mimeType = urlInfo.mimeType,
+                                        fullSize = urlInfo.size,
+                                        modifiedAtTimestamp = urlInfo.modifiedAt.toEpochMilli(),
+                                        partNumber = partCounter,
+                                        partSize = bytesRead.toLong(),
+                                        checkSum = bytesChecksum.first,
+                                        offset = offset,
+                                        totalParts = totalParts.toInt(),
+                                        sendingDateTimestamp = sendingDate.toEpochMilli(),
+                                        subject = draft.subject,
+                                        isBroadcast = draft.isBroadcast
+                                    )
+                                )
+                                offset += bytesRead
+                                partCounter++
+                            }
+                        }
+                    }
+                }
+
+                db.pendingMessagesDao().insert(pendingRootMessage)
+                db.pendingAttachmentsDao().insertAll(fileParts)
+                if (!draft.isBroadcast) {
+                    db.pendingReadersDao()
+                        .insertAll(accessProfiles!!.map { it.toDBPendingReaderPublicData(rootMessageId) })
+                }
+            }
             updateState(currentState.copy(loading = false))
+            syncRepository.sync(true)
         }
     }
 
-    private suspend fun getNonSyncedContacts(): List<String> {
-        val syncedContacts = db.userDao().getAll().map { it.address }
-        return currentState.draft!!.draft.readerAddresses?.split(",")?.filterNot {
-            syncedContacts.contains(it)
-        } ?: listOf()
-    }
 
     fun removeAttachment(attachment: Uri) {
         viewModelScope.launch(Dispatchers.IO) {

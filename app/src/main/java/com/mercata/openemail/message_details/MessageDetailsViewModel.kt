@@ -237,7 +237,7 @@ class MessageDetailsViewModel(savedStateHandle: SavedStateHandle) :
                         (currentState.message as DBMessageWithDBAttachments).message.copy(
                             markedToDelete = true
                         ).let { db.messagesDao().update(it) }
-                        syncRepository.syncDeletedMessages()
+                        syncRepository.sync()
                     }
                 }
 
