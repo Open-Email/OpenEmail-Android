@@ -77,6 +77,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -113,6 +114,8 @@ import com.mercata.openemail.utils.getProfilePictureUrl
 import com.mercata.openemail.utils.getProfilePublicData
 import com.mercata.openemail.utils.safeApiCall
 import kotlinx.coroutines.launch
+import java.time.Duration
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -648,13 +651,21 @@ fun AddressChip(
                 Spacer(modifier = modifier.width(MARGIN_DEFAULT / 2))
             }
         }
-        Box(
-            modifier = modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(if (userData?.away == true) colorScheme.error else colorScheme.secondary)
+            Box(
+                modifier = modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(if (userData?.away == true) {
+                        colorScheme.error
+                    } else {
+                        userData?.lastSeen?.let { lastSeen ->
+                            val seenRecently = Duration.between(Instant.now(), lastSeen).abs().seconds < 60 * 60
+                            if (seenRecently) colorScheme.secondary else Color.Transparent
+                        } ?: Color.Transparent
+                    })
 
-        )
+            )
+
     }
 }
 
