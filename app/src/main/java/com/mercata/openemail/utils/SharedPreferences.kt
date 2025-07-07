@@ -1,6 +1,7 @@
 package com.mercata.openemail.utils
 
 import android.content.Context
+import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme
 import com.goterl.lazysodium.utils.Key
@@ -12,6 +13,7 @@ import com.mercata.openemail.SP_ENCRYPTION_KEYS
 import com.mercata.openemail.SP_ENCRYPTION_KEY_ID
 import com.mercata.openemail.SP_FIRST_TIME
 import com.mercata.openemail.SP_FULL_NAME
+import com.mercata.openemail.SP_REFRESH_INTERVAL
 import com.mercata.openemail.SP_SELECTED_NAV_SCREEN
 import com.mercata.openemail.SP_SIGNING_KEYS
 import com.mercata.openemail.db.AppDatabase
@@ -19,11 +21,11 @@ import com.mercata.openemail.home_screen.HomeScreen
 import com.mercata.openemail.models.PublicUserData
 import com.mercata.openemail.models.toDBContact
 import com.mercata.openemail.registration.UserData
-import androidx.core.content.edit
+import com.mercata.openemail.settings_screen.RefreshInterval
 
 class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
 
-    private val sharedPreferences = EncryptedSharedPreferences.create(
+    val sharedPreferences = EncryptedSharedPreferences.create(
         "ping_works_sp",
         "ping_works_sp_alias",
         applicationContext,
@@ -57,6 +59,19 @@ class SharedPreferences(applicationContext: Context, val db: AppDatabase) {
             }
 
         publicUserData?.let { db.userDao().insert(it.toDBContact()) }
+    }
+
+    fun setRefreshInterval(interval: RefreshInterval) {
+        sharedPreferences.edit { putInt(SP_REFRESH_INTERVAL, interval.minutesAmount) }
+    }
+
+    fun getRefreshInterval(): RefreshInterval {
+        return RefreshInterval.entries.firstOrNull {
+            it.minutesAmount == sharedPreferences.getInt(
+                SP_REFRESH_INTERVAL,
+                RefreshInterval.FifteenMinutes.minutesAmount
+            )
+        } ?: RefreshInterval.FifteenMinutes
     }
 
     fun getUserAddress(): Address? = sharedPreferences.getString(SP_ADDRESS, null)

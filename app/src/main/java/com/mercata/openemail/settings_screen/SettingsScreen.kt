@@ -3,6 +3,7 @@
 package com.mercata.openemail.settings_screen
 
 import android.content.Intent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +26,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -47,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -178,13 +183,83 @@ fun SettingsScreen(
                                     viewModel.toggleBiometry(it)
                                 }
                             }
-                            SettingViewHolder(title =  stringResource(id = R.string.logout_button), onClick = {
-                                viewModel.toggleLogoutConfirmation()
-                            })
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clickable {
+                                        viewModel.toggleRefreshDelayDropdown(true)
+                                    }
+                                    .padding(
+                                        MARGIN_DEFAULT,
+                                    )
+                            ) {
+                                Text(
+                                    stringResource(R.string.check_notifications_label),
+                                    style = typography.bodyLarge.copy(color = colorScheme.onSurface),
+                                    softWrap = true
+                                )
 
-                            SettingViewHolder(title =  stringResource(id = R.string.delete_account_button), onClick = {
-                                viewModel.toggleAccountDeletionConfirmation()
-                            })
+                                Spacer(Modifier.weight(1f))
+                                Box {
+                                    DropdownMenu(
+                                        expanded = state.refreshDelayDropdownExpanded,
+                                        onDismissRequest = {
+                                            viewModel.toggleRefreshDelayDropdown(false)
+                                        }) {
+                                        RefreshInterval.entries.forEach { interval ->
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        text = if (interval == RefreshInterval.Manual) {
+                                                            stringResource(R.string.refresh_manual)
+                                                        } else {
+                                                            String.format(
+                                                                stringResource(R.string.refresh_x_minutes),
+                                                                interval.minutesAmount
+                                                            )
+                                                        },
+                                                        style = typography.bodyLarge.copy(color = colorScheme.onSurface),
+                                                    )
+                                                },
+                                                onClick = {
+                                                    viewModel.selectInterval(interval)
+                                                    viewModel.toggleRefreshDelayDropdown(false)
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Text(
+                                    if (state.selectedRefreshInterval == RefreshInterval.Manual) {
+                                        stringResource(R.string.refresh_manual)
+                                    } else {
+                                        String.format(
+                                            stringResource(R.string.refresh_x_minutes),
+                                            state.selectedRefreshInterval.minutesAmount
+                                        )
+                                    },
+                                    style = typography.bodyLarge.copy(color = colorScheme.onSurface),
+                                    softWrap = true
+                                )
+                                Spacer(modifier = Modifier.width(MARGIN_DEFAULT))
+                                Image(
+                                    colorFilter = ColorFilter.tint(colorScheme.onSurface),
+                                    painter = painterResource(id = android.R.drawable.arrow_down_float),
+                                    contentDescription = "DropDown Icon"
+                                )
+                            }
+                            SettingViewHolder(
+                                title = stringResource(id = R.string.logout_button),
+                                onClick = {
+                                    viewModel.toggleLogoutConfirmation()
+                                })
+
+                            SettingViewHolder(
+                                title = stringResource(id = R.string.delete_account_button),
+                                onClick = {
+                                    viewModel.toggleAccountDeletionConfirmation()
+                                })
                         }
                     }
 

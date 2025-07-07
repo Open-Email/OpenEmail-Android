@@ -43,7 +43,7 @@ class MainApplication : Application(), ImageLoaderFactory {
         factory { SoundPlayer(get()) }
         factory { CopyAttachmentService(get()) }
         single { ProcessIncomingIntentsRepository(get(), get()) }
-        single { SyncRepository(get(), get()) }
+        single { SyncRepository(get(), get(), get()) }
         single { AddContactRepository(get(), get(), get()) }
         single { LogoutRepository(get(), get(), get()) }
         single {

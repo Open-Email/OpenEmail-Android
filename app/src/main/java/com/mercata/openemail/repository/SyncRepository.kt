@@ -4,11 +4,14 @@ import android.content.Context
 import androidx.lifecycle.asFlow
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
+import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.mercata.openemail.SP_REFRESH_INTERVAL
 import com.mercata.openemail.db.AppDatabase
 import com.mercata.openemail.db.archive.toArchive
 import com.mercata.openemail.db.messages.toDraftWithReaders
@@ -30,10 +33,14 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.concurrent.TimeUnit
+
+private const val UNIQUE_PERIODIC_WORK_NAME = "MailFetchPeriodic"
 
 class SyncRepository(
     private val context: Context,
     private val soundPlayer: SoundPlayer,
+    private val sharedPreferences: SharedPreferences,
 ) {
     private val _sendingState = MutableSharedFlow<Boolean>()
     val sendingState: SharedFlow<Boolean> = _sendingState
@@ -42,7 +49,33 @@ class SyncRepository(
     val refreshing: SharedFlow<Boolean> = _refreshing
 
     init {
+        sharedPreferences.sharedPreferences.registerOnSharedPreferenceChangeListener { sp, key ->
+            if (key == SP_REFRESH_INTERVAL) {
+                schedulePeriodicFetch()
+            }
+        }
+        schedulePeriodicFetch()
+    }
 
+    fun schedulePeriodicFetch() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val periodic =
+            PeriodicWorkRequestBuilder<SyncWorker>(
+                sharedPreferences.getRefreshInterval().minutesAmount.toLong(),
+                TimeUnit.MINUTES
+            )
+                .setConstraints(constraints)
+                .build()
+
+        WorkManager.getInstance(context)
+            .enqueueUniquePeriodicWork(
+                UNIQUE_PERIODIC_WORK_NAME,
+                ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
+                periodic
+            )
     }
 
     class SyncWorker(
